@@ -1,0 +1,7 @@
+namespace: "netapp"
+name: "ontap"
+version: "19.9.2"
+authors:
+    - "NetApp Ansible Team <ng-ansibleteam@netapp.com>"
+license: "Apache-2.0"
+readme: README.md
