@@ -9,3 +9,6 @@
 #                                                               #
 # ============================================================= #
 
+## 19.10.0
+- na_ontap_command New options: vserver this allow command to run as either cluster admin or vserver admin.
+if using vserver admin you must use the vserver option

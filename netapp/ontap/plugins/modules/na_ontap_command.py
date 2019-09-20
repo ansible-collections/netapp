@@ -37,6 +37,10 @@ options:
         type: bool
         default: false
         version_added: "2.9"
+    vserver:
+        description:
+        - If running as vserver admin, you must give a vserver or module will fail
+        version_added: "19.10.0"
 '''
 
 EXAMPLES = """
@@ -76,7 +80,8 @@ class NetAppONTAPCommand(object):
         self.argument_spec.update(dict(
             command=dict(required=True, type='list'),
             privilege=dict(required=False, type='str', choices=['admin', 'advanced'], default='admin'),
-            return_dict=dict(required=False, type='bool', default=False)
+            return_dict=dict(required=False, type='bool', default=False),
+            vserver=dict(required=False, type='str'),
         ))
         self.module = AnsibleModule(
             argument_spec=self.argument_spec,
@@ -86,6 +91,7 @@ class NetAppONTAPCommand(object):
         # set up state variables
         self.command = parameters['command']
         self.privilege = parameters['privilege']
+        self.vserver = parameters['vserver']
         self.return_dict = parameters['return_dict']
 
         self.result_dict = dict()
@@ -110,11 +116,16 @@ class NetAppONTAPCommand(object):
         """
         results = netapp_utils.get_cserver(self.server)
         cserver = netapp_utils.setup_na_ontap_zapi(module=self.module, vserver=results)
-        netapp_utils.ems_log_event(event_name, cserver)
+        try:
+            netapp_utils.ems_log_event(event_name, cserver)
+        except netapp_utils.zapi.NaApiError as error:
+            self.module.fail_json(msg='Cluster Admin required if -vserver is not passed %s: %s' %
+                                  (self.command, to_native(error)),
+                                  exception=traceback.format_exc())
 
     def run_command(self):
         ''' calls the ZAPI '''
-        self.asup_log_for_cserver("na_ontap_command: " + str(self.command))
+        self.ems()
         command_obj = netapp_utils.zapi.NaElement("system-cli")
 
         args_obj = netapp_utils.zapi.NaElement("args")
@@ -142,6 +153,22 @@ class NetAppONTAPCommand(object):
             self.module.fail_json(msg='Error running command %s: %s' %
                                   (self.command, to_native(error)),
                                   exception=traceback.format_exc())
+
+    def ems(self):
+        """
+        Error out if Cluster Admin username is used with Vserver, or Vserver admin used with out vserver being set
+        :return:
+        """
+        if self.vserver:
+            ems_server = netapp_utils.setup_na_ontap_zapi(module=self.module, vserver=self.vserver)
+            try:
+                netapp_utils.ems_log_event("na_ontap_command" + str(self.command), ems_server)
+            except netapp_utils.zapi.NaApiError as error:
+                self.module.fail_json(msg='Vserver admin required if -vserver is given %s: %s' %
+                                          (self.command, to_native(error)),
+                                      exception=traceback.format_exc())
+        else:
+            self.asup_log_for_cserver("na_ontap_command: " + str(self.command))
 
     def apply(self):
         ''' calls the command and returns raw output '''
