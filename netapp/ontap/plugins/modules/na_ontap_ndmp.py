@@ -174,6 +174,7 @@ from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils._text import to_native
 import ansible_collections.netapp.ontap.plugins.module_utils.netapp as netapp_utils
 from ansible_collections.netapp.ontap.plugins.module_utils.netapp_module import NetAppModule
+from ansible_collections.netapp.ontap.plugins.module_utils.netapp import OntapRestAPI
 
 HAS_NETAPP_LIB = netapp_utils.has_netapp_lib()
 
@@ -183,6 +184,7 @@ class NetAppONTAPNdmp(object):
     modify vserver cifs security
     '''
     def __init__(self):
+        self.use_rest = False
 
         self.argument_spec = netapp_utils.na_ontap_host_argument_spec()
         self.modifiable_options = dict(
@@ -220,35 +222,80 @@ class NetAppONTAPNdmp(object):
 
         self.na_helper = NetAppModule()
         self.parameters = self.na_helper.set_parameters(self.module.params)
+        # API should be used for ONTAP 9.6 or higher, ZAPI for lower version
+        self.restApi = OntapRestAPI(self.module)
+        unsupported_rest_properties = ['abort_on_disk_error', 'backup_log_enable', 'data_port_range',
+                                       'debug_enable', 'debug_filter', 'dump_detailed_stats',
+                                       'dump_logical_find', 'fh_dir_retry_interval', 'fh_node_retry_interval',
+                                       'ignore_ctime_enabled', 'is_secure_control_connection_enabled',
+                                       'offset_map_enable', 'per_qtree_exclude_enable', 'preferred_interface_role',
+                                       'restore_vm_cache_size', 'secondary_debug_filter', 'tcpnodelay', 'tcpwinsize']
+        used_unsupported_rest_properties = [x for x in unsupported_rest_properties if x in self.parameters]
+        self.use_rest, error = self.restApi.is_rest(used_unsupported_rest_properties)
+        if error is not None:
+            self.module.fail_json(msg=error)
+        if not self.use_rest:
+            if HAS_NETAPP_LIB is False:
+                self.module.fail_json(msg="the python NetApp-Lib module is required")
+            else:
+                self.server = netapp_utils.setup_na_ontap_zapi(module=self.module, vserver=self.parameters['vserver'])
 
-        if HAS_NETAPP_LIB is False:
-            self.module.fail_json(msg="the python NetApp-Lib module is required")
-        else:
-            self.server = netapp_utils.setup_na_ontap_zapi(module=self.module, vserver=self.parameters['vserver'])
+    def get_ndmp_svm_uuid(self):
 
-    def ndmp_get_iter(self):
+        """
+            Get a svm's UUID
+            :return: uuid of the node
+            """
+        params = {'svm.name': self.parameters['vserver']}
+        api = "protocols/ndmp/svms"
+        message, error = self.restApi.get(api, params)
+        if error is not None:
+            self.module.fail_json(msg=error)
+        if 'records' in message and len(message['records']) == 0:
+            self.module.fail_json(msg='Error fetching uuid for vserver %s: ' % (self.parameters['vserver']))
+        if len(message.keys()) == 0:
+            error = "No information collected from %s: %s" % (api, repr(message))
+            self.module.fail_json(msg=error)
+        elif 'records' not in message:
+            error = "Unexpected response from %s: %s" % (api, repr(message))
+            self.module.fail_json(msg=error)
+        return message['records'][0]['svm']['uuid']
+
+    def ndmp_get_iter(self, uuid=None):
         """
         get current vserver ndmp attributes.
         :return: a dict of ndmp attributes.
         """
-        ndmp_get = netapp_utils.zapi.NaElement('ndmp-vserver-attributes-get-iter')
-        query = netapp_utils.zapi.NaElement('query')
-        ndmp_info = netapp_utils.zapi.NaElement('ndmp-vserver-attributes-info')
-        ndmp_info.add_new_child('vserver', self.parameters['vserver'])
-        query.add_child_elem(ndmp_info)
-        ndmp_get.add_child_elem(query)
-        ndmp_details = dict()
-        try:
-            result = self.server.invoke_successfully(ndmp_get, enable_tunneling=True)
-        except netapp_utils.zapi.NaApiError as error:
-            self.module.fail_json(msg='Error fetching ndmp from %s: %s'
-                                      % (self.parameters['vserver'], to_native(error)),
-                                  exception=traceback.format_exc())
+        if self.use_rest:
+            data = dict()
+            params = {'fields': 'authentication_types,enabled'}
+            api = '/protocols/ndmp/svms/' + uuid
+            message, error = self.restApi.get(api, params)
+            data['enable'] = message['enabled']
+            data['authtype'] = message['authentication_types']
 
-        if result.get_child_by_name('num-records') and int(result.get_child_content('num-records')) > 0:
-            ndmp_attributes = result.get_child_by_name('attributes-list').get_child_by_name('ndmp-vserver-attributes-info')
-            self.get_ndmp_details(ndmp_details, ndmp_attributes)
-        return ndmp_details
+            if error:
+                self.module.fail_json(msg=error)
+            return data
+        else:
+            ndmp_get = netapp_utils.zapi.NaElement('ndmp-vserver-attributes-get-iter')
+            query = netapp_utils.zapi.NaElement('query')
+            ndmp_info = netapp_utils.zapi.NaElement('ndmp-vserver-attributes-info')
+            ndmp_info.add_new_child('vserver', self.parameters['vserver'])
+            query.add_child_elem(ndmp_info)
+            ndmp_get.add_child_elem(query)
+            ndmp_details = dict()
+            try:
+                result = self.server.invoke_successfully(ndmp_get, enable_tunneling=True)
+            except netapp_utils.zapi.NaApiError as error:
+                self.module.fail_json(msg='Error fetching ndmp from %s: %s'
+                                          % (self.parameters['vserver'], to_native(error)),
+                                      exception=traceback.format_exc())
+
+            if result.get_child_by_name('num-records') and int(result.get_child_content('num-records')) > 0:
+                ndmp_attributes = result.get_child_by_name('attributes-list').get_child_by_name('ndmp-vserver-attributes-info')
+                self.get_ndmp_details(ndmp_details, ndmp_attributes)
+            return ndmp_details
 
     def get_ndmp_details(self, ndmp_details, ndmp_attributes):
         """
@@ -274,28 +321,41 @@ class NetAppONTAPNdmp(object):
         :param modify: A list of attributes to modify
         :return: None
         """
-        ndmp_modify = netapp_utils.zapi.NaElement('ndmp-vserver-attributes-modify')
-        for attribute in modify:
-            if attribute == 'authtype':
-                authtypes = netapp_utils.zapi.NaElement('authtype')
-                types = self.parameters['authtype']
-                for authtype in types:
-                    authtypes.add_new_child('ndmpd-authtypes', authtype)
-                ndmp_modify.add_child_elem(authtypes)
-            elif attribute == 'preferred_interface_role':
-                preferred_interface_roles = netapp_utils.zapi.NaElement('preferred-interface-role')
-                roles = self.parameters['preferred_interface_role']
-                for role in roles:
-                    preferred_interface_roles.add_new_child('netport-role', role)
-                ndmp_modify.add_child_elem(preferred_interface_roles)
-            else:
-                ndmp_modify.add_new_child(self.attribute_to_name(attribute), str(self.parameters[attribute]))
-        try:
-            self.server.invoke_successfully(ndmp_modify, enable_tunneling=True)
-        except netapp_utils.zapi.NaApiError as e:
-            self.module.fail_json(msg='Error modifying ndmp on %s: %s'
-                                  % (self.parameters['vserver'], to_native(e)),
-                                  exception=traceback.format_exc())
+        if self.use_rest:
+            ndmp = dict()
+            uuid = self.get_ndmp_svm_uuid()
+            if self.parameters.get('enable'):
+                ndmp['enabled'] = self.parameters['enable']
+            if self.parameters.get('authtype'):
+                ndmp['authentication_types'] = self.parameters['authtype']
+            api = "protocols/ndmp/svms/" + uuid
+            message, error = self.restApi.patch(api, ndmp)
+            if error:
+                self.module.fail_json(msg=error)
+        else:
+
+            ndmp_modify = netapp_utils.zapi.NaElement('ndmp-vserver-attributes-modify')
+            for attribute in modify:
+                if attribute == 'authtype':
+                    authtypes = netapp_utils.zapi.NaElement('authtype')
+                    types = self.parameters['authtype']
+                    for authtype in types:
+                        authtypes.add_new_child('ndmpd-authtypes', authtype)
+                    ndmp_modify.add_child_elem(authtypes)
+                elif attribute == 'preferred_interface_role':
+                    preferred_interface_roles = netapp_utils.zapi.NaElement('preferred-interface-role')
+                    roles = self.parameters['preferred_interface_role']
+                    for role in roles:
+                        preferred_interface_roles.add_new_child('netport-role', role)
+                    ndmp_modify.add_child_elem(preferred_interface_roles)
+                else:
+                    ndmp_modify.add_new_child(self.attribute_to_name(attribute), str(self.parameters[attribute]))
+            try:
+                self.server.invoke_successfully(ndmp_modify, enable_tunneling=True)
+            except netapp_utils.zapi.NaApiError as e:
+                self.module.fail_json(msg='Error modifying ndmp on %s: %s'
+                                      % (self.parameters['vserver'], to_native(e)),
+                                      exception=traceback.format_exc())
 
     @staticmethod
     def attribute_to_name(attribute):
@@ -310,9 +370,15 @@ class NetAppONTAPNdmp(object):
 
     def apply(self):
         """Call modify operations."""
-        self.asup_log_for_cserver("na_ontap_ndmp")
-        current = self.ndmp_get_iter()
+        uuid = None
+        if not self.use_rest:
+            self.asup_log_for_cserver("na_ontap_ndmp")
+        if self.use_rest:
+            # we only have the svm name, we need to the the uuid for the svm
+            uuid = self.get_ndmp_svm_uuid()
+        current = self.ndmp_get_iter(uuid=uuid)
         modify = self.na_helper.get_modified_attributes(current, self.parameters)
+
         if self.na_helper.changed:
             if self.module.check_mode:
                 pass

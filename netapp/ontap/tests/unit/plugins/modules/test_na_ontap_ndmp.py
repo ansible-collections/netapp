@@ -19,6 +19,19 @@ from ansible_collections.netapp.ontap.plugins.modules.na_ontap_ndmp \
 if not netapp_utils.has_netapp_lib():
     pytestmark = pytest.mark.skip('skipping as missing required netapp_lib')
 
+# REST API canned responses when mocking send_request
+SRR = {
+    # common responses
+    'is_rest': (200, None),
+    'is_zapi': (400, "Unreachable"),
+    'get_uuid': ({'records': [{'uuid': 'testuuid'}]}, None),
+    'empty_good': ({}, None),
+    'end_of_sequence': (None, "Unexpected call to send_request"),
+    'generic_error': (None, 'Error fetching ndmp from ansible: NetApp API failed. Reason - Unexpected error:',
+                      "REST API " "currently does not support 'backup_log_enable, ignore_ctime_enabled'"),
+    'get_ndmp': ({"enabled": True, "authentication_types": ["test"],
+                  "records": [{"svm": {"name": "svm1", "uuid": "02c9e252-41be-11e9-81d5-00a0986138f7"}}]}, None)}
+
 
 def set_module_args(args):
     """prepare arguments so that they will be picked up during module creation"""
@@ -80,10 +93,11 @@ class MockONTAPConnection(object):
                 'ndmp-vserver-attributes-info': {
                     'ignore_ctime_enabled': ndmp_details['ignore_ctime_enabled'],
                     'backup_log_enable': ndmp_details['backup_log_enable'],
-                    'authtype': {
-                        'ndmpd-authtypes': 'plaintext',
-                        'ndmpd-authtypes': 'challenge'
-                    }
+
+                    'authtype': [
+                        {'ndmpd-authtypes': 'plaintext'},
+                        {'ndmpd-authtypes': 'challenge'}
+                    ]
                 }
             }
         }
@@ -101,35 +115,50 @@ class TestMyModule(unittest.TestCase):
         self.mock_module_helper.start()
         self.addCleanup(self.mock_module_helper.stop)
         self.mock_ndmp = {
-            'ignore_ctime_enabled': 'true',
-            'backup_log_enable': 'false'
+            'ignore_ctime_enabled': True,
+            'backup_log_enable': 'false',
+            'authtype': 'plaintext',
+            'enable': True
         }
 
-    def mock_args(self):
-        return {
-            'ignore_ctime_enabled': self.mock_ndmp['ignore_ctime_enabled'],
-            'backup_log_enable': self.mock_ndmp['backup_log_enable'],
-            'vserver': 'ansible',
-            'hostname': 'test',
-            'username': 'test_user',
-            'password': 'test_pass!',
-            'https': 'False'
-        }
+    def mock_args(self, rest=False):
+        if rest:
+            return {
+                'authtype': self.mock_ndmp['authtype'],
+                'enable': True,
+                'vserver': 'ansible',
+                'hostname': 'test',
+                'username': 'test_user',
+                'password': 'test_pass!',
+                'https': 'False'
+            }
+        else:
+            return {
+                'vserver': 'ansible',
+                'authtype': self.mock_ndmp['authtype'],
+                'ignore_ctime_enabled': self.mock_ndmp['ignore_ctime_enabled'],
+                'backup_log_enable': self.mock_ndmp['backup_log_enable'],
+                'enable': self.mock_ndmp['enable'],
+                'hostname': 'test',
+                'username': 'test_user',
+                'password': 'test_pass!'
+            }
 
-    def get_ndmp_mock_object(self, kind=None):
+    def get_ndmp_mock_object(self, kind=None, type='zapi'):
         """
         Helper method to return an na_ontap_ndmp object
         :param kind: passes this param to MockONTAPConnection()
         :return: na_ontap_ndmp object
         """
         obj = ndmp_module()
-        obj.asup_log_for_cserver = Mock(return_value=None)
-        obj.server = Mock()
-        obj.server.invoke_successfully = Mock()
-        if kind is None:
-            obj.server = MockONTAPConnection()
-        else:
-            obj.server = MockONTAPConnection(kind=kind, data=self.mock_ndmp)
+        if type == 'zapi':
+            obj.asup_log_for_cserver = Mock(return_value=None)
+            obj.server = Mock()
+            obj.server.invoke_successfully = Mock()
+            if kind is None:
+                obj.server = MockONTAPConnection()
+            else:
+                obj.server = MockONTAPConnection(kind=kind, data=self.mock_ndmp)
         return obj
 
     @patch('ansible_collections.netapp.ontap.plugins.modules.na_ontap_ndmp.NetAppONTAPNdmp.ndmp_get_iter')
@@ -163,3 +192,36 @@ class TestMyModule(unittest.TestCase):
         with pytest.raises(AnsibleFailJson) as exc:
             self.get_ndmp_mock_object('error').apply()
         assert exc.value.args[0]['msg'] == 'Error modifying ndmp on ansible: NetApp API failed. Reason - test:error'
+
+    @patch('ansible_collections.netapp.ontap.plugins.module_utils.netapp.OntapRestAPI.send_request')
+    def test_rest_error(self, mock_request):
+        data = self.mock_args()
+        data['use_rest'] = 'Always'
+        set_module_args(data)
+        mock_request.side_effect = [
+            SRR['is_rest'],
+            SRR['generic_error'],
+            SRR['end_of_sequence']
+        ]
+        with pytest.raises(AnsibleFailJson) as exc:
+            self.get_ndmp_mock_object(type='rest').apply()
+        assert exc.value.args[0]['msg'] == SRR['generic_error'][2]
+
+    @patch('ansible_collections.netapp.ontap.plugins.module_utils.netapp.OntapRestAPI.send_request')
+    @patch('ansible_collections.netapp.ontap.plugins.module_utils.netapp.OntapRestAPI.get')
+    def test_rest_successfully_modify(self, mock_get, mock_request):
+        data = self.mock_args(rest=True)
+        data['use_rest'] = 'Always'
+        set_module_args(data)
+        mock_get.return_value = SRR['get_ndmp'][0], None
+        mock_request.side_effect = [
+            SRR['is_rest'],
+            SRR['get_uuid'],
+            SRR['get_ndmp'],
+            SRR['empty_good'],  # get
+            SRR['end_of_sequence'],
+        ]
+        my_obj = ndmp_module()
+        with pytest.raises(AnsibleExitJson) as exc:
+            my_obj.apply()
+        assert exc.value.args[0]['changed']
