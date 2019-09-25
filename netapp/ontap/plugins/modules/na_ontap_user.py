@@ -38,7 +38,7 @@ options:
   applications:
     description:
     - List of application to grant access to.
-    - Creating a login with application console for a data Vserver is not supported.
+    - Creating a login with application console, telnet, rsh, and service-processor for a data Vserver is not supported.
     required: true
     type: list
     choices: ['console', 'http','ontapi','rsh','snmp','service-processor','sp','ssh','telnet']

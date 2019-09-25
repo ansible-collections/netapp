@@ -13,3 +13,4 @@
 - na_ontap_command New options: vserver this allow command to run as either cluster admin or vserver admin.
 if using vserver admin you must use the vserver option
 - na_ontap_name_service_switch New module: create/modify/delete name service switch configuration.
+- na_ontap_user: minor documentation update for application parameter.
