@@ -66,6 +66,8 @@ options:
   password:
     description:
     - Password of the Active Directory domain administrator
+    - Required when C(state=present), to modify ActiveDirectory properties
+    required: true
     type: str
 '''
 
@@ -134,7 +136,7 @@ class AwsCvsNetappActiveDir(object):
             region=dict(required=True, type='str'),
             DNS=dict(required=False, type='str'),
             domain=dict(required=False, type='str'),
-            password=dict(required=False, type='str', no_log=True),
+            password=dict(required=True, type='str', no_log=True),
             netBIOS=dict(required=False, type='str'),
             username=dict(required=False, type='str')
         ))
@@ -233,8 +235,12 @@ class AwsCvsNetappActiveDir(object):
         cd_action = self.na_helper.get_cd_action(current, self.parameters)
 
         if current and self.parameters['state'] != 'absent':
-            keys_to_check = ['DNS', 'domain', 'username', 'password', 'netBIOS']
+            keys_to_check = ['DNS', 'domain', 'username', 'netBIOS']
             updated_active_directory, modify = self.na_helper.compare_and_update_values(current, self.parameters, keys_to_check)
+
+            if self.parameters['password']:
+                modify = True
+                updated_active_directory['password'] = self.parameters['password']
 
             if modify is True:
                 self.na_helper.changed = True
