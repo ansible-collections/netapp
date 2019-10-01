@@ -18,3 +18,4 @@
 ### Bug Fixes
 - na_ontap_qtree: REST API takes "unix_permissions" as parameter instead of "mode".
 - na_ontap_user: minor documentation update for application parameter.
+- na_ontap_ndmp: minor documentation changes for restore_vm_cache_size and data_port_range.

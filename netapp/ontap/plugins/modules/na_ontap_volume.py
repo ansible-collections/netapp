@@ -493,6 +493,9 @@ class NetAppOntapVolume(object):
         ))
         self.module = AnsibleModule(
             argument_spec=self.argument_spec,
+            mutually_exclusive=[
+                ['space_guarantee', 'space_slo']
+            ],
             supports_check_mode=True
         )
         self.na_helper = NetAppModule()

@@ -52,7 +52,7 @@ options:
 
   data_port_range:
     description:
-    - Data port range.
+    - Data port range. Modification not supported for data Vservers.
     type: str
 
   debug_enable:
@@ -117,7 +117,7 @@ options:
 
   restore_vm_cache_size:
     description:
-    - Restore VM file cache size.
+    - Restore VM file cache size. Value range [4-1024]
     type: int
 
   secondary_debug_filter:

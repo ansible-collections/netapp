@@ -231,7 +231,7 @@ class NetAppOntapQTree(object):
             if self.parameters.get('security_style'):
                 params['security_style'] = self.parameters['security_style']
             if self.parameters.get('unix_permissions'):
-                params['mode'] = self.parameters['unix_permissions']
+                params['unix_permissions'] = self.parameters['unix_permissions']
             __, error = self.restApi.post(api, params)
             if error:
                 self.module.fail_json(msg=error)
@@ -370,7 +370,7 @@ class NetAppOntapQTree(object):
             if self.parameters.get('security_style') and self.parameters['security_style'] != current['security_style']:
                 modify = True
             if self.parameters.get('unix_permissions') and \
-                    self.parameters['unix_permissions'] != current['unix_permissions']:
+                    self.parameters['unix_permissions'] != str(current['unix_permissions']):
                 modify = True
             # rest and zapi handle export policy differently
             if self.use_rest:

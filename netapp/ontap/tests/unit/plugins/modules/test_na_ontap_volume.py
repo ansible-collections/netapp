@@ -269,7 +269,6 @@ class TestMyModule(unittest.TestCase):
             'password': 'test_pass!',
             'name': self.mock_vol['name'],
             'vserver': self.mock_vol['vserver'],
-            'space_guarantee': 'none',
             'policy': 'default',
             'language': self.mock_vol['language'],
             'is_online': True,
@@ -438,6 +437,7 @@ class TestMyModule(unittest.TestCase):
     def test_successful_modify_space(self):
         ''' Test successful modify space '''
         data = self.mock_args()
+        del data['space_slo']
         data['space_guarantee'] = 'volume'
         set_module_args(data)
         with pytest.raises(AnsibleExitJson) as exc:
