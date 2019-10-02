@@ -1,0 +1,45 @@
+- name: Create Azure NetApp capacity pool
+  azure_rm_netapp_capacity_pool:
+    resource_group: laurentngroupnodash
+    account_name: tests-netapp
+    name: tests-poolsss
+    location: eastus
+    size: 2
+  register: output
+
+- assert:
+    that: output.changed
+
+- name: Create Azure NetApp capacity pool (Idempotency)
+  azure_rm_netapp_capacity_pool:
+    resource_group: laurentngroupnodash
+    account_name: tests-netapp
+    name: tests-poolsss
+    location: eastus
+    size: 2
+    register: output
+
+- assert:
+    that: not output.changed
+
+- name: Delete Azure NetApp capacity pool
+  azure_rm_netapp_capacity_pool:
+    state: absent
+    resource_group: laurentngroupnodash
+    account_name: tests-netapp
+    name: tests-poolsss
+  register: output
+
+- assert:
+    that: output.changed
+
+- name: Delete Azure NetApp capacity pool (Idempotency)
+  azure_rm_netapp_capacity_pool:
+    state: absent
+    resource_group: laurentngroupnodash
+    account_name: tests-netapp
+    name: tests-poolsss
+  register: output
+
+- assert:
+      that: not output.changed
