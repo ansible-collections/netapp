@@ -19,6 +19,41 @@ from ansible_collections.netapp.ontap.plugins.modules.na_ontap_job_schedule \
 if not netapp_utils.has_netapp_lib():
     pytestmark = pytest.mark.skip('skipping as missing required netapp_lib')
 
+# REST API canned responses when mocking send_request
+SRR = {
+    # common responses
+    'is_rest': (200, None),
+    'is_zapi': (400, "Unreachable"),
+    'empty_good': ({}, None),
+    'end_of_sequence': (None, "Unexpected call to send_request"),
+    'generic_error': (None, "Expected error"),
+    # module specific responses
+    'get_schedule': (
+        {
+            "records": [
+                {
+                    "uuid": "010df156-e0a9-11e9-9f70-005056b3df08",
+                    "name": "test_job",
+                    "cron": {
+                        "minutes": [
+                            25
+                        ],
+                        "hours": [
+                            0
+                        ],
+                        "weekdays": [
+                            0
+                        ]
+                    }
+                }
+            ],
+            "num_records": 1
+        }, None),
+    "no_record": (
+        {"num_records": 0},
+        None)
+}
+
 
 def set_module_args(args):
     """prepare arguments so that they will be picked up during module creation"""
@@ -130,30 +165,45 @@ class TestMyModule(unittest.TestCase):
         self.addCleanup(self.mock_module_helper.stop)
         self.mock_job = {
             'name': 'test_job',
-            'minutes': '25'
+            'minutes': '25',
+            'job_hours': ['0'],
+            'weekdays': ['0']
         }
 
-    def mock_args(self):
-        return {
-            'name': self.mock_job['name'],
-            'job_minutes': [self.mock_job['minutes']],
-            'hostname': 'test',
-            'username': 'test_user',
-            'password': 'test_pass!'
-        }
+    def mock_args(self, rest=False):
+        if rest:
+            return {
+                'name': self.mock_job['name'],
+                'job_minutes': [self.mock_job['minutes']],
+                'job_hours': self.mock_job['job_hours'],
+                'job_days_of_week': self.mock_job['weekdays'],
+                'hostname': 'test',
+                'username': 'test_user',
+                'password': 'test_pass!'
+            }
+        else:
+            return {
+                'name': self.mock_job['name'],
+                'job_minutes': [self.mock_job['minutes']],
+                'hostname': 'test',
+                'username': 'test_user',
+                'password': 'test_pass!'
+            }
 
-    def get_job_mock_object(self, kind=None):
+    def get_job_mock_object(self, kind=None, call_type='zapi'):
         """
         Helper method to return an na_ontap_job_schedule object
         :param kind: passes this param to MockONTAPConnection()
+        :param call_type:
         :return: na_ontap_job_schedule object
         """
         job_obj = job_module()
         job_obj.autosupport_log = Mock(return_value=None)
-        if kind is None:
-            job_obj.server = MockONTAPConnection()
-        else:
-            job_obj.server = MockONTAPConnection(kind=kind, data=self.mock_job)
+        if call_type == 'zapi':
+            if kind is None:
+                job_obj.server = MockONTAPConnection()
+            else:
+                job_obj.server = MockONTAPConnection(kind=kind, data=self.mock_job)
         return job_obj
 
     def test_module_fail_when_required_args_missing(self):
@@ -244,3 +294,77 @@ class TestMyModule(unittest.TestCase):
         with pytest.raises(AnsibleExitJson) as exc:
             self.get_job_mock_object('job').apply()
         assert not exc.value.args[0]['changed']
+
+    @patch('ansible_collections.netapp.ontap.plugins.module_utils.netapp.OntapRestAPI.send_request')
+    def test_rest_successful_create(self, mock_request):
+        '''Test successful rest create'''
+        data = self.mock_args(rest=True)
+        set_module_args(data)
+        mock_request.side_effect = [
+            SRR['is_rest'],
+            SRR['no_record'],
+            SRR['empty_good'],
+            SRR['end_of_sequence']
+        ]
+        with pytest.raises(AnsibleExitJson) as exc:
+            self.get_job_mock_object(call_type='rest').apply()
+        assert exc.value.args[0]['changed']
+
+    @patch('ansible_collections.netapp.ontap.plugins.module_utils.netapp.OntapRestAPI.send_request')
+    def test_rest_create_idempotency(self, mock_request):
+        '''Test rest create idempotency'''
+        data = self.mock_args(rest=True)
+        set_module_args(data)
+        mock_request.side_effect = [
+            SRR['is_rest'],
+            SRR['get_schedule'],
+            SRR['empty_good'],
+            SRR['end_of_sequence']
+        ]
+        with pytest.raises(AnsibleExitJson) as exc:
+            self.get_job_mock_object(call_type='rest').apply()
+        assert not exc.value.args[0]['changed']
+
+    @patch('ansible_collections.netapp.ontap.plugins.module_utils.netapp.OntapRestAPI.send_request')
+    def test_rest_error(self, mock_request):
+        '''Test rest create idempotency'''
+        data = self.mock_args(rest=True)
+        set_module_args(data)
+        mock_request.side_effect = [
+            SRR['is_rest'],
+            SRR['no_record'],
+            SRR['generic_error'],
+            SRR['empty_good'],
+            SRR['end_of_sequence']
+        ]
+        with pytest.raises(AnsibleFailJson) as exc:
+            self.get_job_mock_object(call_type='rest').apply()
+        assert 'Error on creating job schedule: Expected error' in exc.value.args[0]['msg']
+
+        data = self.mock_args(rest=True)
+        data['job_minutes'] = ['20']
+        set_module_args(data)
+        mock_request.side_effect = [
+            SRR['is_rest'],
+            SRR['get_schedule'],
+            SRR['generic_error'],
+            SRR['empty_good'],
+            SRR['end_of_sequence']
+        ]
+        with pytest.raises(AnsibleFailJson) as exc:
+            self.get_job_mock_object(call_type='rest').apply()
+        assert 'Error on modifying job schedule: Expected error' in exc.value.args[0]['msg']
+
+        data = self.mock_args(rest=True)
+        data['state'] = 'absent'
+        set_module_args(data)
+        mock_request.side_effect = [
+            SRR['is_rest'],
+            SRR['get_schedule'],
+            SRR['generic_error'],
+            SRR['empty_good'],
+            SRR['end_of_sequence']
+        ]
+        with pytest.raises(AnsibleFailJson) as exc:
+            self.get_job_mock_object(call_type='rest').apply()
+        assert 'Error on deleting job schedule: Expected error' in exc.value.args[0]['msg']

@@ -38,3 +38,4 @@ By default, the module will use REST if the target system supports it, and the o
 -- Note: `oplocks` is not supported with REST, defaults to enable.
 - na_ontap_svm
 -- Note: `root_volume`, `root_volume_aggregate`, `root_volume_security_style` are not supported with REST.
+- na_ontap_job_schedule

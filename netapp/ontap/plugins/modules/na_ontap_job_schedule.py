@@ -108,6 +108,7 @@ from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils._text import to_native
 import ansible_collections.netapp.ontap.plugins.module_utils.netapp as netapp_utils
 from ansible_collections.netapp.ontap.plugins.module_utils.netapp_module import NetAppModule
+from ansible_collections.netapp.ontap.plugins.module_utils.netapp import OntapRestAPI
 
 HAS_NETAPP_LIB = netapp_utils.has_netapp_lib()
 
@@ -117,6 +118,7 @@ class NetAppONTAPJob(object):
 
     def __init__(self):
 
+        self.use_rest = False
         self.argument_spec = netapp_utils.na_ontap_host_argument_spec()
         self.argument_spec.update(dict(
             state=dict(required=False, choices=[
@@ -129,6 +131,7 @@ class NetAppONTAPJob(object):
             job_days_of_week=dict(required=False, type='list')
         ))
 
+        self.uuid = None
         self.module = AnsibleModule(
             argument_spec=self.argument_spec,
             supports_check_mode=True
@@ -137,12 +140,17 @@ class NetAppONTAPJob(object):
         self.na_helper = NetAppModule()
         self.parameters = self.na_helper.set_parameters(self.module.params)
         self.set_playbook_zapi_key_map()
+        self.set_playbook_api_key_map()
 
-        if HAS_NETAPP_LIB is False:
-            self.module.fail_json(
-                msg="the python NetApp-Lib module is required")
+        self.restApi = OntapRestAPI(self.module)
+        if self.restApi.is_rest():
+            self.use_rest = True
         else:
-            self.server = netapp_utils.setup_na_ontap_zapi(module=self.module)
+            if HAS_NETAPP_LIB is False:
+                self.module.fail_json(
+                    msg="the python NetApp-Lib module is required")
+            else:
+                self.server = netapp_utils.setup_na_ontap_zapi(module=self.module)
 
     def set_playbook_zapi_key_map(self):
         self.na_helper.zapi_string_keys = {
@@ -156,6 +164,15 @@ class NetAppONTAPJob(object):
             'job_days_of_week': ('job-schedule-cron-day-of-week', 'cron-day-of-week')
         }
 
+    def set_playbook_api_key_map(self):
+        self.na_helper.api_list_keys = {
+            'job_minutes': 'minutes',
+            'job_months': 'months',
+            'job_hours': 'hours',
+            'job_days_of_month': 'days',
+            'job_days_of_week': 'weekdays'
+        }
+
     def get_job_schedule(self):
         """
         Return details about the job
@@ -164,37 +181,58 @@ class NetAppONTAPJob(object):
         :return: Details about the Job. None if not found.
         :rtype: dict
         """
-        job_get_iter = netapp_utils.zapi.NaElement('job-schedule-cron-get-iter')
-        job_get_iter.translate_struct({
-            'query': {
-                'job-schedule-cron-info': {
-                    'job-schedule-name': self.parameters['name']
+        if self.use_rest:
+            params = {'name': self.parameters['name']}
+            api = '/cluster/schedules'
+            message, error = self.restApi.get(api, params)
+            if error is not None:
+                self.module.fail_json(msg="Error on fetching job schedule: %s" % error)
+            if message['num_records'] > 0:
+                self.uuid = message['records'][0]['uuid']
+                job_details = dict()
+                job_details['name'] = message['records'][0]['name']
+                for key, value in self.na_helper.api_list_keys.items():
+                    if value in message['records'][0]['cron']:
+                        job_details[key] = message['records'][0]['cron'][value]
+                # convert list of int to list of string
+                for key, value in job_details.items():
+                    if isinstance(value, list):
+                        for i in range(len(value)):
+                            value[i] = str(value[i])
+                return job_details
+
+        else:
+            job_get_iter = netapp_utils.zapi.NaElement('job-schedule-cron-get-iter')
+            job_get_iter.translate_struct({
+                'query': {
+                    'job-schedule-cron-info': {
+                        'job-schedule-name': self.parameters['name']
+                    }
                 }
-            }
-        })
-        result = self.server.invoke_successfully(job_get_iter, True)
-        job_details = None
-        # check if job exists
-        if result.get_child_by_name('num-records') and int(result['num-records']) >= 1:
-            job_info = result['attributes-list']['job-schedule-cron-info']
-            job_details = dict()
-            for item_key, zapi_key in self.na_helper.zapi_string_keys.items():
-                job_details[item_key] = job_info[zapi_key]
-            for item_key, zapi_key in self.na_helper.zapi_list_keys.items():
-                parent, dummy = zapi_key
-                job_details[item_key] = self.na_helper.get_value_for_list(from_zapi=True,
-                                                                          zapi_parent=job_info.get_child_by_name(parent)
-                                                                          )
-                # if any of the job_hours, job_minutes, job_months, job_days are empty:
-                # it means the value is -1 for ZAPI
-                if not job_details[item_key]:
-                    job_details[item_key] = ['-1']
-        return job_details
+            })
+            result = self.server.invoke_successfully(job_get_iter, True)
+            job_details = None
+            # check if job exists
+            if result.get_child_by_name('num-records') and int(result['num-records']) >= 1:
+                job_info = result['attributes-list']['job-schedule-cron-info']
+                job_details = dict()
+                for item_key, zapi_key in self.na_helper.zapi_string_keys.items():
+                    job_details[item_key] = job_info[zapi_key]
+                for item_key, zapi_key in self.na_helper.zapi_list_keys.items():
+                    parent, dummy = zapi_key
+                    job_details[item_key] = self.na_helper.get_value_for_list(from_zapi=True,
+                                                                              zapi_parent=job_info.get_child_by_name(parent)
+                                                                              )
+                    # if any of the job_hours, job_minutes, job_months, job_days are empty:
+                    # it means the value is -1 for ZAPI
+                    if not job_details[item_key]:
+                        job_details[item_key] = ['-1']
+            return job_details
 
     def add_job_details(self, na_element_object, values):
         """
         Add children node for create or modify NaElement object
-        :param na_element_object: modif or create NaElement object
+        :param na_element_object: modify or create NaElement object
         :param values: dictionary of cron values to be added
         :return: None
         """
@@ -217,43 +255,90 @@ class NetAppONTAPJob(object):
         if self.parameters.get('job_minutes') is None:
             self.module.fail_json(msg='Error: missing required parameter job_minutes for create')
 
-        job_schedule_create = netapp_utils.zapi.NaElement('job-schedule-cron-create')
-        self.add_job_details(job_schedule_create, self.parameters)
-        try:
-            self.server.invoke_successfully(job_schedule_create,
-                                            enable_tunneling=True)
-        except netapp_utils.zapi.NaApiError as error:
-            self.module.fail_json(msg='Error creating job schedule %s: %s'
-                                  % (self.parameters['name'], to_native(error)),
-                                  exception=traceback.format_exc())
+        if self.use_rest:
+            cron = dict()
+            for key, value in self.na_helper.api_list_keys.items():
+                # -1 means all in zapi, while empty means all in api.
+                if self.parameters.get(key):
+                    if len(self.parameters[key]) == 1 and int(self.parameters[key][0]) == -1:
+                        pass
+                    else:
+                        cron[value] = self.parameters[key]
+
+            params = {
+                'name': self.parameters['name'],
+                'cron': cron
+            }
+            api = '/cluster/schedules'
+            message, error = self.restApi.post(api, params)
+            if error is not None:
+                self.module.fail_json(msg="Error on creating job schedule: %s" % error)
+
+        else:
+            job_schedule_create = netapp_utils.zapi.NaElement('job-schedule-cron-create')
+            self.add_job_details(job_schedule_create, self.parameters)
+            try:
+                self.server.invoke_successfully(job_schedule_create,
+                                                enable_tunneling=True)
+            except netapp_utils.zapi.NaApiError as error:
+                self.module.fail_json(msg='Error creating job schedule %s: %s'
+                                      % (self.parameters['name'], to_native(error)),
+                                      exception=traceback.format_exc())
 
     def delete_job_schedule(self):
         """
         Delete a job schedule
         """
-        job_schedule_delete = netapp_utils.zapi.NaElement('job-schedule-cron-destroy')
-        self.add_job_details(job_schedule_delete, self.parameters)
-        try:
-            self.server.invoke_successfully(job_schedule_delete,
-                                            enable_tunneling=True)
-        except netapp_utils.zapi.NaApiError as error:
-            self.module.fail_json(msg='Error deleting job schedule %s: %s'
-                                  % (self.parameters['name'], to_native(error)),
-                                  exception=traceback.format_exc())
+        if self.use_rest:
+            api = '/cluster/schedules/' + self.uuid
+            message, error = self.restApi.delete(api, {})
+            if error is not None:
+                self.module.fail_json(msg="Error on deleting job schedule: %s" % error)
+        else:
+            job_schedule_delete = netapp_utils.zapi.NaElement('job-schedule-cron-destroy')
+            self.add_job_details(job_schedule_delete, self.parameters)
+            try:
+                self.server.invoke_successfully(job_schedule_delete,
+                                                enable_tunneling=True)
+            except netapp_utils.zapi.NaApiError as error:
+                self.module.fail_json(msg='Error deleting job schedule %s: %s'
+                                      % (self.parameters['name'], to_native(error)),
+                                      exception=traceback.format_exc())
 
-    def modify_job_schedule(self, params):
+    def modify_job_schedule(self, params, current):
         """
         modify a job schedule
         """
-        job_schedule_modify = netapp_utils.zapi.NaElement.create_node_with_children(
-            'job-schedule-cron-modify', **{'job-schedule-name': self.parameters['name']})
-        self.add_job_details(job_schedule_modify, params)
-        try:
-            self.server.invoke_successfully(job_schedule_modify, enable_tunneling=True)
-        except netapp_utils.zapi.NaApiError as error:
-            self.module.fail_json(msg='Error modifying job schedule %s: %s'
-                                  % (self.parameters['name'], to_native(error)),
-                                  exception=traceback.format_exc())
+        if self.use_rest:
+            cron = dict()
+            for key, value in self.na_helper.api_list_keys.items():
+                # -1 means all in zapi, while empty means all in api.
+                if params.get(key):
+                    if len(self.parameters[key]) == 1 and int(self.parameters[key][0]) == -1:
+                        pass
+                    else:
+                        cron[value] = self.parameters[key]
+                # Usually only include modify attributes, but omitting an attribute means all in api.
+                # Need to add the current attributes in params.
+                elif current.get(key):
+                    cron[value] = current[key]
+            params = {
+                'cron': cron
+            }
+            api = '/cluster/schedules/' + self.uuid
+            message, error = self.restApi.patch(api, params)
+            if error is not None:
+                self.module.fail_json(msg="Error on modifying job schedule: %s" % error)
+        else:
+            job_schedule_modify = netapp_utils.zapi.NaElement.create_node_with_children(
+                'job-schedule-cron-modify', **{'job-schedule-name': self.parameters['name']})
+            self.add_job_details(job_schedule_modify, params)
+            try:
+                self.server.invoke_successfully(job_schedule_modify, enable_tunneling=True)
+            except netapp_utils.zapi.NaApiError as error:
+                self.module.fail_json(msg='Error modifying job schedule %s: %s'
+                                      % (self.parameters['name'], to_native(error)),
+                                      exception=traceback.format_exc())
 
     def autosupport_log(self):
         """
@@ -268,12 +353,12 @@ class NetAppONTAPJob(object):
         """
         Apply action to job-schedule
         """
-        self.autosupport_log()
+        if not self.use_rest:
+            self.autosupport_log()
         current = self.get_job_schedule()
         action = self.na_helper.get_cd_action(current, self.parameters)
         if action is None and self.parameters['state'] == 'present':
             modify = self.na_helper.get_modified_attributes(current, self.parameters)
-
         if self.na_helper.changed:
             if self.module.check_mode:
                 pass
@@ -283,7 +368,7 @@ class NetAppONTAPJob(object):
                 elif action == 'delete':
                     self.delete_job_schedule()
                 elif modify:
-                    self.modify_job_schedule(modify)
+                    self.modify_job_schedule(modify, current)
         self.module.exit_json(changed=self.na_helper.changed)
 
 
