@@ -38,7 +38,8 @@ steps:
     which mazer
   displayName: 'Install maze, until ansible-galaxy can take over'
   
-- script |
+- script: |
     cd netapp/ontap
     mazer build
+  displayName: 'build ONTAP collection'
 
