@@ -23,8 +23,12 @@ steps:
     which pip
     python -V
     pip -V
+    
+- script: python -m pip install --upgrade pip setuptools wheel
+  displayName: 'Install tools'
+
+- script: |
     which ansible-galaxy
-    pip install --upgrade pip
     pip install -v mazer
     which mazer
   displayName: 'Check version'
