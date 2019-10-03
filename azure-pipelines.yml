@@ -27,6 +27,7 @@ steps:
     which pip
     python -V
     pip -V
+  displayName: 'check versions'
     
 - script: python -m pip install --upgrade pip setuptools wheel
   displayName: 'Install tools'
@@ -35,5 +36,9 @@ steps:
     which ansible-galaxy
     python -m pip install -v mazer
     which mazer
-  displayName: 'Check version'
+  displayName: 'Install maze, until ansible-galaxy can take over'
+  
+- script |
+    cd netapp/ontap
+    mazer build
 
