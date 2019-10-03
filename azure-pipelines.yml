@@ -18,6 +18,10 @@ steps:
     echo See https://aka.ms/yaml
   displayName: 'Run a multi-line script'
 
-- script: which python
+- script: | 
+    which python
+    which pip
+    python -v
+    pip -v
   displayName: 'Check version'
 
