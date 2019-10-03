@@ -15,7 +15,10 @@ jobs:
       run: |
         echo Add other actions to build,
         echo test, and deploy your project.
+        pwd
         pip install wheel
         pip -v install mazer
         which python
+        which mazer
+        pwd
         
