@@ -21,7 +21,8 @@ steps:
 - script: | 
     which python
     which pip
-    python -v
-    pip -v
+    python -V
+    pip -V
+    which ansible-galaxy
   displayName: 'Check version'
 
