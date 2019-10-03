@@ -15,5 +15,6 @@ jobs:
       run: |
         echo Add other actions to build,
         echo test, and deploy your project.
+        pip install --upgrade pip
         pip install mazer
         which mazer
