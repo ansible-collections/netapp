@@ -29,7 +29,7 @@ steps:
 
 - script: |
     which ansible-galaxy
-    pip install -v mazer
+    python -m pip install -v mazer
     which mazer
   displayName: 'Check version'
 
