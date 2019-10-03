@@ -24,6 +24,6 @@ steps:
     python -V
     pip -V
     which ansible-galaxy
-    which mazer
+    pip install -v mazer
   displayName: 'Check version'
 
