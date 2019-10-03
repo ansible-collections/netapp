@@ -26,8 +26,8 @@ options:
 requirements:
     - python >= 2.7
     - azure >= 2.0.0
-    - Python netapp-mgmt. Install using 'pip install netapp-mgmt'
-    - Python netapp-mgmt-netapp. Install using 'pip install netapp-mgmt-netapp'
+    - Python azure-mgmt. Install using 'pip install azure-mgmt'
+    - Python azure-mgmt-netapp. Install using 'pip install azure-mgmt-netapp'
     - For authentication with Azure NetApp log in before you run your tasks or playbook with C(az login).
 
 notes:
