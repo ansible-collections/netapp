@@ -16,5 +16,6 @@ jobs:
         echo Add other actions to build,
         echo test, and deploy your project.
         pip install wheel
-        pip install mazer
-        which mazer
+        pip -v install mazer
+        which python
+        
