@@ -9,8 +9,8 @@ __metaclass__ = type
 import json
 import pytest
 
-from units.compat import unittest
-from units.compat.mock import patch, Mock
+from ansible_collections.netapp.aws.tests.unit.compat import unittest
+from ansible_collections.netapp.aws.tests.unit.compat.mock import patch, Mock
 from ansible.module_utils import basic
 from ansible.module_utils._text import to_bytes
 from requests import Response
@@ -119,8 +119,8 @@ class TestMyModule(unittest.TestCase):
         assert exc.value.args[0]['changed']
 
     @patch('ansible_collections.netapp.aws.plugins.modules.aws_netapp_cvs_FileSystems.AwsCvsNetappFileSystem.get_filesystemId')
-    @patch('ansible_collections.netapp.aws.module_utils.netapp.AwsCvsRestAPI.get_state')
-    @patch('ansible_collections.netapp.aws.module_utils.netapp.AwsCvsRestAPI.post')
+    @patch('ansible_collections.netapp.aws.plugins.module_utils.netapp.AwsCvsRestAPI.get_state')
+    @patch('ansible_collections.netapp.aws.plugins.module_utils.netapp.AwsCvsRestAPI.post')
     def test_create_aws_netapp_cvs_snapshots_pass(self, get_post_api, get_state_api, get_filesystemId):
         set_module_args(self.set_args_create_aws_netapp_cvs_filesystems())
         my_obj = fileSystem_module()
@@ -135,8 +135,8 @@ class TestMyModule(unittest.TestCase):
 
     @patch('ansible_collections.netapp.aws.plugins.modules.aws_netapp_cvs_FileSystems.AwsCvsNetappFileSystem.get_filesystemId')
     @patch('ansible_collections.netapp.aws.plugins.modules.aws_netapp_cvs_FileSystems.AwsCvsNetappFileSystem.get_filesystem')
-    @patch('ansible_collections.netapp.aws.module_utils.netapp.AwsCvsRestAPI.get_state')
-    @patch('ansible_collections.netapp.aws.module_utils.netapp.AwsCvsRestAPI.delete')
+    @patch('ansible_collections.netapp.aws.plugins.module_utils.netapp.AwsCvsRestAPI.get_state')
+    @patch('ansible_collections.netapp.aws.plugins.module_utils.netapp.AwsCvsRestAPI.delete')
     def test_delete_aws_netapp_cvs_snapshots_pass(self, get_post_api, get_state_api, get_filesystem, get_filesystemId):
         set_module_args(self.set_args_delete_aws_netapp_cvs_filesystems())
         my_obj = fileSystem_module()

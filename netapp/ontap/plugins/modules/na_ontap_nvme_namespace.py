@@ -36,6 +36,12 @@ options:
       - Size in bytes.
         Range is [0..2^63-1].
     type: int
+  size_unit:
+    description:
+    - The unit used to interpret the size parameter.
+    choices: ['bytes', 'b', 'kb', 'mb', 'gb', 'tb', 'pb', 'eb', 'zb', 'yb']
+    type: str
+    default: 'b'
   path:
     description:
       - Namespace path.
@@ -52,6 +58,7 @@ EXAMPLES = """
         ostype: linux
         path: /vol/ansible/test
         size: 20
+        size_unit: mb
         vserver: "{{ vserver }}"
         hostname: "{{ hostname }}"
         username: "{{ username }}"
@@ -63,6 +70,7 @@ EXAMPLES = """
         ostype: linux
         path: /vol/ansible/test
         size: 20
+        size_unit: mb
         vserver: "{{ vserver }}"
         hostname: "{{ hostname }}"
         username: "{{ username }}"
@@ -94,7 +102,8 @@ class NetAppONTAPNVMENamespace(object):
             vserver=dict(required=True, type='str'),
             ostype=dict(required=False, type='str', choices=['windows', 'linux', 'vmware', 'xen', 'hyper_v']),
             path=dict(required=True, type='str'),
-            size=dict(required=False, type='int')
+            size=dict(required=False, type='int'),
+            size_unit=dict(default='b', choices=['bytes', 'b', 'kb', 'mb', 'gb', 'tb', 'pb', 'eb', 'zb', 'yb'], type='str'),
         ))
 
         self.module = AnsibleModule(
@@ -105,6 +114,10 @@ class NetAppONTAPNVMENamespace(object):
 
         self.na_helper = NetAppModule()
         self.parameters = self.na_helper.set_parameters(self.module.params)
+
+        if self.parameters.get('size'):
+            self.parameters['size'] = self.parameters['size'] * \
+                netapp_utils.POW2_BYTE_MAP[self.parameters['size_unit']]
 
         if HAS_NETAPP_LIB is False:
             self.module.fail_json(msg="the python NetApp-Lib module is required")

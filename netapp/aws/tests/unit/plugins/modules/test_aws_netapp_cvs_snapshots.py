@@ -8,9 +8,8 @@ __metaclass__ = type
 import json
 import pytest
 
-
-from units.compat import unittest
-from units.compat.mock import patch, Mock
+from ansible_collections.netapp.aws.tests.unit.compat import unittest
+from ansible_collections.netapp.aws.tests.unit.compat.mock import patch, Mock
 from ansible.module_utils import basic
 from ansible.module_utils._text import to_bytes
 from requests import Response

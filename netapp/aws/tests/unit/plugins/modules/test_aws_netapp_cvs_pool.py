@@ -8,8 +8,8 @@ __metaclass__ = type
 import json
 import pytest
 
-from units.compat import unittest
-from units.compat.mock import patch, Mock
+from ansible_collections.netapp.aws.tests.unit.compat import unittest
+from ansible_collections.netapp.aws.tests.unit.compat.mock import patch, Mock
 from ansible.module_utils import basic
 from ansible.module_utils._text import to_bytes
 from requests import Response
@@ -137,7 +137,7 @@ class TestMyModule(unittest.TestCase):
         assert exc.value.args[0]['changed']
 
     @patch('ansible_collections.netapp.aws.plugins.modules.aws_netapp_cvs_pool.NetAppAWSCVS.get_aws_netapp_cvs_pool')
-    @patch('ansible_collections.netapp.aws.module_utils.netapp.AwsCvsRestAPI.put')
+    @patch('ansible_collections.netapp.aws.plugins.module_utils.netapp.AwsCvsRestAPI.put')
     def test_update_aws_netapp_cvs_pool_pass(self, get_put_api, get_aws_api):
         set_module_args(self.set_args_update_aws_netapp_cvs_pool())
         my_obj = pool_module()
@@ -158,7 +158,7 @@ class TestMyModule(unittest.TestCase):
         assert exc.value.args[0]['changed']
 
     @patch('ansible_collections.netapp.aws.plugins.modules.aws_netapp_cvs_pool.NetAppAWSCVS.get_aws_netapp_cvs_pool')
-    @patch('ansible_collections.netapp.aws.module_utils.netapp.AwsCvsRestAPI.put')
+    @patch('ansible_collections.netapp.aws.plugins.module_utils.netapp.AwsCvsRestAPI.put')
     def test_update_aws_netapp_cvs_pool_fail(self, get_put_api, get_aws_api):
         set_module_args(self.set_args_update_aws_netapp_cvs_pool())
         my_obj = pool_module()
@@ -179,7 +179,7 @@ class TestMyModule(unittest.TestCase):
         assert exc.value.args[0]['msg'] is not None
 
     @patch('ansible_collections.netapp.aws.plugins.modules.aws_netapp_cvs_pool.NetAppAWSCVS.get_aws_netapp_cvs_pool')
-    @patch('ansible_collections.netapp.aws.module_utils.netapp.AwsCvsRestAPI.post')
+    @patch('ansible_collections.netapp.aws.plugins.module_utils.netapp.AwsCvsRestAPI.post')
     def test_create_aws_netapp_cvs_pool_pass(self, get_post_api, get_aws_api):
         set_module_args(self.set_args_create_aws_netapp_cvs_pool())
         my_obj = pool_module()
@@ -200,7 +200,7 @@ class TestMyModule(unittest.TestCase):
         assert exc.value.args[0]['changed']
 
     @patch('ansible_collections.netapp.aws.plugins.modules.aws_netapp_cvs_pool.NetAppAWSCVS.get_aws_netapp_cvs_pool')
-    @patch('ansible_collections.netapp.aws.module_utils.netapp.AwsCvsRestAPI.post')
+    @patch('ansible_collections.netapp.aws.plugins.module_utils.netapp.AwsCvsRestAPI.post')
     def test_create_aws_netapp_cvs_pool_fail(self, get_post_api, get_aws_api):
         set_module_args(self.set_args_create_aws_netapp_cvs_pool())
         my_obj = pool_module()
@@ -221,7 +221,7 @@ class TestMyModule(unittest.TestCase):
         assert exc.value.args[0]['msg'] is not None
 
     @patch('ansible_collections.netapp.aws.plugins.modules.aws_netapp_cvs_pool.NetAppAWSCVS.get_aws_netapp_cvs_pool')
-    @patch('ansible_collections.netapp.aws.module_utils.netapp.AwsCvsRestAPI.delete')
+    @patch('ansible_collections.netapp.aws.plugins.module_utils.netapp.AwsCvsRestAPI.delete')
     def test_delete_aws_netapp_cvs_pool_pass(self, get_delete_api, get_aws_api):
         set_module_args(self.set_args_delete_aws_netapp_cvs_pool())
         my_obj = pool_module()
@@ -242,7 +242,7 @@ class TestMyModule(unittest.TestCase):
         assert exc.value.args[0]['changed']
 
     @patch('ansible_collections.netapp.aws.plugins.modules.aws_netapp_cvs_pool.NetAppAWSCVS.get_aws_netapp_cvs_pool')
-    @patch('ansible_collections.netapp.aws.module_utils.netapp.AwsCvsRestAPI.delete')
+    @patch('ansible_collections.netapp.aws.plugins.module_utils.netapp.AwsCvsRestAPI.delete')
     def test_delete_aws_netapp_cvs_pool_fail(self, get_delete_api, get_aws_api):
         set_module_args(self.set_args_delete_aws_netapp_cvs_pool())
         my_obj = pool_module()

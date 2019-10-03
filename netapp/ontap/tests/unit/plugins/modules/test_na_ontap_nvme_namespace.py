@@ -100,6 +100,7 @@ class TestMyModule(unittest.TestCase):
             ostype = 'linux'
             path = 'abcd/vol'
             size = 20
+            size_unit = 'mb'
         else:
             hostname = 'hostname'
             username = 'username'
@@ -108,6 +109,7 @@ class TestMyModule(unittest.TestCase):
             ostype = 'linux'
             path = 'abcd/vol'
             size = 20
+            size_unit = 'mb'
         return dict({
             'hostname': hostname,
             'username': username,
@@ -115,7 +117,8 @@ class TestMyModule(unittest.TestCase):
             'ostype': ostype,
             'vserver': vserver,
             'path': path,
-            'size': size
+            'size': size,
+            'size_unit': size_unit
         })
 
     def test_module_fail_when_required_args_missing(self):
