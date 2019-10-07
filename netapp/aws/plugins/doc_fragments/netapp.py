@@ -40,5 +40,5 @@ options:
     - Should https certificates be validated?
     type: bool
 notes:
-  - The modules prefixed with aws\\_cvs\\_netapp are built to Manage AWS Cloud Volume Service .
+  - The modules prefixed with aws\\_cvs\\_netapp are built to Manage AWS Cloud Volumes Service .
 """
