@@ -8,8 +8,9 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 4
+      # Python version 2.6 does not exist in github 
       matrix:
-        python-version: [2.6, 2.7, 3.5, 3.6, 3.7, 3.8]
+        python-version: [2.7, 3.5, 3.6, 3.7, 3.8]
     
     steps:
     - uses: actions/checkout@v1
