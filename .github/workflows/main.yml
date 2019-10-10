@@ -26,3 +26,8 @@ jobs:
     - name: Run pycodestyle
       run: |
         pycodestyle --max-line-length=160 --ignore=E305,E402,W503,W504,E722,E741 ./
+    - name: run yamlint
+      run: |
+        ansible2.9/hacking/env-setup
+        cd ansible_collections/netapp/ontap
+        ansible-test sanity --docker=default --test yamllint plugins/modules/*
