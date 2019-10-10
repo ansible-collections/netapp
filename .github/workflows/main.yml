@@ -1,4 +1,4 @@
-name: Carchi test CI
+name: NetApp Ansible CI
 
 on: [push]
 
@@ -58,7 +58,7 @@ jobs:
         cd ../aws
         ansible-test sanity --docker=default --test pylint plugins/modules/*
     - name: Run unit tests
-      # Need to fix unit test for thing other than ontap later. 
+      # Need to fix unit test for thing other than ontap later.
       # cd ../elementsw
       # ansible-test units --docker=default --python ${{ matrix.python-version }}
       #  cd ../azure
