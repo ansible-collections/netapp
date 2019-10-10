@@ -29,6 +29,17 @@ jobs:
         pycodestyle --max-line-length=160 --ignore=E305,E402,W503,W504,E722,E741 ./
     - name: run yamlint
       run: |
-        pwd
         cd ansible_collections/netapp/ontap
         ansible-test sanity --docker=default --test yamllint plugins/modules/*
+    - name: run validate modules
+      run: |
+        cd ansible_collections/netapp/ontap
+        ansible-test sanity --docker=default --test validate-modules plugins/modules/*
+    - name: run Pylint
+      run: |
+        cd ansible_collections/netapp/ontap
+        ansible-test sanity --docker=default --test pylint plugins/modules/*
+    - name: run unit tests
+      run: |
+        cd ansible_collections/netapp/ontap
+        ansible-test units --docker=default --python ${{ matrix.python-version }}
