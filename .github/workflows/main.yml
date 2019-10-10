@@ -58,13 +58,13 @@ jobs:
         cd ../aws
         ansible-test sanity --docker=default --test pylint plugins/modules/*
     - name: Run unit tests
-      # elementsw unit test are not working on github
+      # Need to fix unit test for thing other than ontap later. 
       # cd ../elementsw
       # ansible-test units --docker=default --python ${{ matrix.python-version }}
+      #  cd ../azure
+      #  ansible-test units --docker=default --python ${{ matrix.python-version }}
+      #  cd ../aws
+      #  ansible-test units --docker=default --python ${{ matrix.python-version }}
       run: |
         cd ansible_collections/netapp/ontap
-        ansible-test units --docker=default --python ${{ matrix.python-version }}
-        cd ../azure
-        ansible-test units --docker=default --python ${{ matrix.python-version }}
-        cd ../aws
         ansible-test units --docker=default --python ${{ matrix.python-version }}
