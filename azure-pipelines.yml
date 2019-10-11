@@ -1,0 +1,45 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+- master
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+- script: echo Hello, world!
+  displayName: 'Run a one-line script'
+
+- script: |
+    echo Add other tasks to build, test, and deploy your project.
+    echo See https://aka.ms/yaml
+  displayName: 'Run a multi-line script'
+  
+- task: UsePythonVersion@0
+  inputs:
+    versionSpec: '3.6'
+
+- script: | 
+    which python
+    which pip
+    python -V
+    pip -V
+  displayName: 'check versions'
+    
+- script: python -m pip install --upgrade pip setuptools wheel
+  displayName: 'Install tools'
+
+- script: |
+    which ansible-galaxy
+    python -m pip install -v mazer
+    which mazer
+  displayName: 'Install mazer, until ansible-galaxy can take over'
+  
+- script: |
+    cd netapp/ontap
+    mazer build
+  displayName: 'build ONTAP collection'
+
