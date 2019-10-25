@@ -62,7 +62,7 @@ EXAMPLES = """
    - name: Add drive with status available to cluster
      tags:
      - elementsw_add_drive
-     na_element_drive:
+     na_elementsw_drive:
        hostname: "{{ elementsw_hostname }}"
        username: "{{ elementsw_username }}"
        password: "{{ elementsw_password }}"
@@ -75,7 +75,7 @@ EXAMPLES = """
    - name: Remove active drive from cluster
      tags:
      - elementsw_remove_drive
-     na_element_drive:
+     na_elementsw_drive:
        hostname: "{{ elementsw_hostname }}"
        username: "{{ elementsw_username }}"
        password: "{{ elementsw_password }}"
