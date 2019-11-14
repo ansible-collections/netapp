@@ -3,7 +3,7 @@
 
 ''' unit tests for module_utils netapp.py '''
 from __future__ import (absolute_import, division, print_function)
-
+__metaclass__ = type
 import pytest
 
 from ansible.module_utils.ansible_release import __version__ as ansible_version
