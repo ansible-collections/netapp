@@ -9,14 +9,27 @@ Specifications subject to change without notice.
 
 =============================================================
 
-## Requirements
+# Installation
+```bash
+ansible-galaxy collection install netapp.azure
+```
+To use Collection add the following to the top of your playbook, with out this you will be using Ansible 2.9 version of the module
+```  
+collections:
+  - netapp.azure
+```
+# Need help
+Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
+
+# Requirements
 - python >= 2.7
 - azure >= 2.0.0
-- Python azure-mgmt. Install using 'pip install azure-mgmt'
-- Python azure-mgmt-netapp. Install using 'pip install azure-mgmt-netapp'
+- Python azure-mgmt. Install using ```pip install azure-mgmt```
+- Python azure-mgmt-netapp. Install using ```pip install azure-mgmt-netapp```
 - For authentication with Azure NetApp log in before you run your tasks or playbook with 'az login'.
 
-## 19.11.1
+# Release Notes
+## 19.11.0
 
 ## 19.10.0
 Changes in 19.10.0 and September collection releases compared to Ansible 2.9
