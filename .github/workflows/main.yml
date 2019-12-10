@@ -24,39 +24,16 @@ jobs:
         python -m pip install --upgrade pip
         pip install netapp-lib pycodestyle
         pip install ansible==2.9.0rc2
-    - name: Run pycodestyle
-      run: |
-        pycodestyle --max-line-length=160 --ignore=E305,E402,W503,W504,E722,E741 ./
-    - name: Run yamlint
+    - name: Run Ansible Sanity
       run: |
         cd ansible_collections/netapp/ontap
-        ansible-test sanity --docker=default --test yamllint plugins/modules/*
+        ansible-test sanity --docker=default plugins/modules/*
         cd ../elementsw
-        ansible-test sanity --docker=default --test yamllint plugins/modules/*
+        ansible-test sanity --docker=default plugins/modules/*
         cd ../azure
-        ansible-test sanity --docker=default --test yamllint plugins/modules/*
+        ansible-test sanity --docker=default plugins/modules/*
         cd ../aws
-        ansible-test sanity --docker=default --test yamllint plugins/modules/*
-    - name: Run validate modules
-      run: |
-        cd ansible_collections/netapp/ontap
-        ansible-test sanity --docker=default --test validate-modules plugins/modules/*
-        cd ../elementsw
-        ansible-test sanity --docker=default --test validate-modules plugins/modules/*
-        cd ../azure
-        ansible-test sanity --docker=default --test validate-modules plugins/modules/*
-        cd ../aws
-        ansible-test sanity --docker=default --test validate-modules plugins/modules/*
-    - name: Run Pylint on Ontap
-      run: |
-        cd ansible_collections/netapp/ontap
-        ansible-test sanity --docker=default --test pylint plugins/modules/*
-        cd ../elementsw
-        ansible-test sanity --docker=default --test pylint plugins/modules/*
-        cd ../azure
-        ansible-test sanity --docker=default --test pylint plugins/modules/*
-        cd ../aws
-        ansible-test sanity --docker=default --test pylint plugins/modules/*
+        ansible-test sanity --docker=default plugins/modules/*
     - name: Run unit tests
       # Need to fix unit test for thing other than ontap later.
       # cd ../elementsw
