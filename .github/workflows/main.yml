@@ -27,13 +27,13 @@ jobs:
     - name: Run Ansible Sanity
       run: |
         cd ansible_collections/netapp/ontap
-        ansible-test sanity --docker=default plugins/modules/*
+        ansible-test sanity --docker=default --python ${{ matrix.python-version }} plugins/modules/*
         cd ../elementsw
-        ansible-test sanity --docker=default plugins/modules/*
+        ansible-test sanity --docker=default --python ${{ matrix.python-version }} plugins/modules/*
         cd ../azure
-        ansible-test sanity --docker=default plugins/modules/*
+        ansible-test sanity --docker=default --python ${{ matrix.python-version }} plugins/modules/*
         cd ../aws
-        ansible-test sanity --docker=default plugins/modules/*
+        ansible-test sanity --docker=default --python ${{ matrix.python-version }} plugins/modules/*
     - name: Run unit tests
       # Need to fix unit test for thing other than ontap later.
       # cd ../elementsw
