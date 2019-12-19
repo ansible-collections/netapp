@@ -3,8 +3,8 @@
 There are currently 4 NetApp Collections
 * ONTAP
 * ElementSW (Solidfire)
-* CSV for Azure
-* CSV for AWS
+* CVS for Azure
+* CVS for AWS
 
 ## Requirements
 - ansible version >= 2.9
