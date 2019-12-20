@@ -25,17 +25,20 @@ options:
       required: true
       description:
       - The hostname or IP address of the SolidFire cluster.
+      type: str
   username:
       required: true
       description:
       - Please ensure that the user has the adequate permissions. For more information, please read the official documentation
         U(https://mysupport.netapp.com/documentation/docweb/index.html?productID=62636&language=en-US).
       aliases: ['user']
+      type: str
   password:
       required: true
       description:
       - Password for the specified user.
       aliases: ['pass']
+      type: str
 
 requirements:
   - The modules were developed with SolidFire 10.1
