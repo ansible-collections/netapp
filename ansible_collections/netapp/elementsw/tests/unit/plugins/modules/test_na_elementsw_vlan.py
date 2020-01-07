@@ -159,8 +159,7 @@ class TestMyModule(unittest.TestCase):
         assert exc.value.args[0]['changed']
 
     @patch('ansible_collections.netapp.elementsw.plugins.module_utils.netapp.create_sf_connection')
-    @patch('ansible.modules.storage.netapp.na_elementsw_vlan.ElementSWVlan.get_network_details')
-    def test_successful_delete(self, mock_get, mock_create_sf_connection):
+    def test_successful_delete(self, mock_create_sf_connection):
         ''' successful delete'''
         data = self.mock_args()
         data['state'] = 'absent'
@@ -173,12 +172,8 @@ class TestMyModule(unittest.TestCase):
         assert exc.value.args[0]['changed']
 
     @patch('ansible_collections.netapp.elementsw.plugins.module_utils.netapp.create_sf_connection')
-    @patch('ansible.modules.storage.netapp.na_elementsw_vlan.ElementSWVlan.get_network_details')
-    def test_successful_modify(self, mock_get, mock_create_sf_connection):
+    def test_successful_modify(self, mock_create_sf_connection):
         ''' successful modify'''
-        mock_get.return_value = {
-            'svip': '1.1.1.1'
-        }
         data = self.mock_args()
         data['svip'] = '3.4.5.6'
         set_module_args(data)
