@@ -24,7 +24,7 @@ module: na_elementsw_access_group_volumes
 short_description: NetApp Element Software Add/Remove Volumes to/from Access Group
 extends_documentation_fragment:
     - netapp.elementsw.netapp.solidfire
-version_added: '19.12.0'
+version_added: '20.01.0'
 author: NetApp Ansible Team (@carchi8py) <ng-ansibleteam@netapp.com>
 description:
 - Add or remove volumes to/from access group on Element Software Cluster.
