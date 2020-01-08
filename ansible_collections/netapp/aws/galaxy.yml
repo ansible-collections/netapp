@@ -9,5 +9,5 @@ description: Cloud Volumes Service (CVS) for AWS
 repository: https://github.com/netapp/ansible/
 homepage: netapp.io
 tags:
-    - "Storage"
-    - "Cloud"
+    - storage
+    - cloud
