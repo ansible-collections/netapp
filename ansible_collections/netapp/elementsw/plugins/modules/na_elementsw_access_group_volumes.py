@@ -211,7 +211,7 @@ class ElementSWAccessGroupVolumes(object):
         self.volume_ids = self.get_volume_ids()
         group_detail = self.get_access_group(self.access_group_name)
         if group_detail is None:
-            self.module.fail_json(msg='Error: Specified access group "%s" does not exist for account id: %s.' % (self.access_group, str(input_account_id)))
+            self.module.fail_json(msg='Error: Specified access group "%s" does not exist for account id: %s.' % (self.access_group_name, str(input_account_id)))
         self.group_id = group_detail.volume_access_group_id
         volumes = group_detail.volumes
 
