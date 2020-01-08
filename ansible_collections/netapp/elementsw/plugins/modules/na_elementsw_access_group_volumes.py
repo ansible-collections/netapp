@@ -181,7 +181,7 @@ class ElementSWAccessGroupVolumes(object):
             if volume_id:
                 volume_ids.append(volume_id)
             else:
-                self.module.fail_json(msg='Specified volume %s does not exist' % volume)
+                self.module.fail_json(msg='Error: Specified volume %s does not exist' % volume)
         return volume_ids
 
     def update_access_group(self, volumes):
