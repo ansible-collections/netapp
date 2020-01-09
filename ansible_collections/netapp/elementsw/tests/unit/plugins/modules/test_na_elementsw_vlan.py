@@ -185,7 +185,7 @@ class TestMyModule(unittest.TestCase):
         assert exc.value.args[0]['changed']
 
     @patch('ansible_collections.netapp.elementsw.plugins.module_utils.netapp.create_sf_connection')
-    @patch('ansible.modules.storage.netapp.na_elementsw_vlan.ElementSWVlan.get_network_details')
+    @patch('ansible_collections.netapp.elementsw.plugins.modules.na_elementsw_vlan.ElementSWVlan.get_network_details')
     def test_successful_modify_address_blocks_same_length(self, mock_get, mock_create_sf_connection):
         ''' successful modify'''
         mock_get.return_value = {
@@ -206,8 +206,8 @@ class TestMyModule(unittest.TestCase):
         assert exc.value.args[0]['changed']
 
     @patch('ansible_collections.netapp.elementsw.plugins.module_utils.netapp.create_sf_connection')
-    @patch('ansible.modules.storage.netapp.na_elementsw_vlan.ElementSWVlan.get_network_details')
-    def test_successful_modify_address_blocks_different_length(self, mock_get, mock_create_sf_connection):
+    @patch('ansible_collections.netapp.elementsw.plugins.modules.na_elementsw_vlan.ElementSWVlan.get_network_details')
+    def test_successful_modify_address_blocks_different_length_1(self, mock_get, mock_create_sf_connection):
         ''' successful modify'''
         mock_get.return_value = {
             'address_blocks': [
@@ -228,8 +228,8 @@ class TestMyModule(unittest.TestCase):
         assert exc.value.args[0]['changed']
 
     @patch('ansible_collections.netapp.elementsw.plugins.module_utils.netapp.create_sf_connection')
-    @patch('ansible.modules.storage.netapp.na_elementsw_vlan.ElementSWVlan.get_network_details')
-    def test_successful_modify_address_blocks_different_length(self, mock_get, mock_create_sf_connection):
+    @patch('ansible_collections.netapp.elementsw.plugins.modules.na_elementsw_vlan.ElementSWVlan.get_network_details')
+    def test_successful_modify_address_blocks_different_length_2(self, mock_get, mock_create_sf_connection):
         ''' successful modify'''
         mock_get.return_value = {
             'address_blocks': [
@@ -251,8 +251,8 @@ class TestMyModule(unittest.TestCase):
         assert not exc.value.args[0]['changed']
 
     @patch('ansible_collections.netapp.elementsw.plugins.module_utils.netapp.create_sf_connection')
-    @patch('ansible.modules.storage.netapp.na_elementsw_vlan.ElementSWVlan.get_network_details')
-    def test_successful_modify_address_blocks_different_length(self, mock_get, mock_create_sf_connection):
+    @patch('ansible_collections.netapp.elementsw.plugins.modules.na_elementsw_vlan.ElementSWVlan.get_network_details')
+    def test_successful_modify_address_blocks_different_length_3(self, mock_get, mock_create_sf_connection):
         ''' successful modify'''
         mock_get.return_value = {
             'address_blocks': [
