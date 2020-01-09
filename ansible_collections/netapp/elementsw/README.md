@@ -18,7 +18,7 @@ collections:
 Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
                                          
 #Release Notes
-## 20.01.0
+## 20.1.0
 ### New Module
 - na_elementsw_access_group_volumes: add/remove volumes to/from existing access group
 ## 19.11.0
