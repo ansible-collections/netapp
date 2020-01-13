@@ -18,6 +18,11 @@ collections:
 Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
                                          
 #Release Notes
+
+## 20.2.0
+### Bug Fixes
+- netapp.py: report error in case of connection error rather than raising a generic exception by default.
+
 ## 20.1.0
 ### New Module
 - na_elementsw_access_group_volumes: add/remove volumes to/from existing access group

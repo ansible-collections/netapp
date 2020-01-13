@@ -95,6 +95,7 @@ try:
     from solidfire.factory import ElementFactory
     from solidfire.custom.models import TimeIntervalFrequency
     from solidfire.models import Schedule, ScheduleInfo
+    import solidfire.common
 
     HAS_SF_SDK = True
 except Exception:
@@ -132,7 +133,7 @@ def ontap_sf_host_argument_spec():
     )
 
 
-def create_sf_connection(module, port=None):
+def create_sf_connection(module, port=None, raise_on_connection_error=False):
     hostname = module.params['hostname']
     username = module.params['username']
     password = module.params['password']
@@ -141,8 +142,12 @@ def create_sf_connection(module, port=None):
         try:
             return_val = ElementFactory.create(hostname, username, password, port=port)
             return return_val
-        except Exception:
-            raise Exception("Unable to create SF connection")
+        except solidfire.common.ApiConnectionError as exc:
+            if raise_on_connection_error:
+                raise exc
+            module.fail_json(msg=repr(exc))
+        except Exception as exc:
+            raise Exception("Unable to create SF connection: %s" % repr(exc))
     else:
         module.fail_json(msg="the python SolidFire SDK module is required")
 
