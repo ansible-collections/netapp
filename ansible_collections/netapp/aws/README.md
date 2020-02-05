@@ -30,4 +30,10 @@ They require a subscription to the service and your API access keys.
 The modules currently support Active Directory, Pool, FileSystem (Volume), and Snapshot services.
 
 # Release Notes
+## 20.2.0
+
+### Bug Fixes
+- galaxy.yml: fix path to github repository.
+
 ## 19.11.0
+- Initial release as a collection.

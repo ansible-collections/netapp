@@ -29,10 +29,13 @@ Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 - For authentication with Azure NetApp log in before you run your tasks or playbook with 'az login'.
 
 # Release Notes
-## 19.11.0
+## 20.2.0
 
-## 19.10.0
-Changes in 19.10.0 and September collection releases compared to Ansible 2.9
+### Bug Fixes
+- galaxy.yml: fix path to github repository.
+
+## 19.11.0
+- Initial release.
 ### New Modules
 - azure_rm_netapp_account: create/delete NetApp Azure Files Account.
 - azure_rm_netapp_capacity_pool: create/delete NetApp Azure Files capacity pool.

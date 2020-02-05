@@ -21,11 +21,13 @@ Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 
 ## 20.2.0
 ### Bug Fixes
+- galaxy.yml: fix path to github repository.
 - netapp.py: report error in case of connection error rather than raising a generic exception by default.
 
 ## 20.1.0
 ### New Module
 - na_elementsw_access_group_volumes: add/remove volumes to/from existing access group
+
 ## 19.11.0
 ## 19.10.0
 Changes in 19.10.0 and September collection releases compared to Ansible 2.9
