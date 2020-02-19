@@ -1,0 +1,55 @@
+- name: Create Azure NetApp volume
+  azure_rm_netapp_volume:
+    resource_group: laurentngroupnodash
+    account_name: tests-netapp
+    pool_name: tests-pool
+    name: tests-volume2
+    location: eastus
+    file_path: tests-volume2
+    virtual_network: laurentngroupnodash-vnet
+    subnet_id: default
+    service_level: Ultra
+  register: output
+
+- assert:
+    that: output.changed
+
+- name: Create Azure NetApp volume (Idempotency)
+  azure_rm_netapp_volume:
+    resource_group: laurentngroupnodash
+    account_name: tests-netapp
+    pool_name: tests-pool
+    name: tests-volume2
+    location: eastus
+    file_path: tests-volume2
+    virtual_network: laurentngroupnodash-vnet
+    subnet_id: default
+    service_level: Ultra
+  register: output
+
+- assert:
+    that: not output.changed
+
+- name: Delete Azure NetApp volume
+  azure_rm_netapp_volume:
+    state: absent
+    resource_group: laurentngroupnodash
+    account_name: tests-netapp
+    pool_name: tests-pool
+    name: tests-volume2
+  register: output
+
+- assert:
+    that: output.changed
+
+- name: Delete Azure NetApp volume (Idempotency)
+  azure_rm_netapp_volume:
+    state: absent
+    resource_group: laurentngroupnodash
+    account_name: tests-netapp
+    pool_name: tests-pool
+    name: tests-volume2
+  register: output
+
+- assert:
+    that: not output.changed

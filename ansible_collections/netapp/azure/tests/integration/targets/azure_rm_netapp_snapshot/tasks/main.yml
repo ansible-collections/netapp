@@ -1,0 +1,51 @@
+- name: Create Azure NetApp snapshot
+  azure_rm_netapp_snapshot:
+    resource_group: laurentngroupnodash
+    account_name: tests-netapp
+    pool_name: test-pool
+    volume_name: tes
+    name: tests-snapshot
+    location: eastus
+  register: output
+
+- assert:
+    that: output.changed
+
+- name: Create Azure NetApp snapshot (Idempotency)
+  azure_rm_netapp_snapshot:
+    resource_group: laurentngroupnodash
+    account_name: tests-netapp
+    pool_name: test-pool
+    volume_name: tes
+    name: tests-snapshot
+    location: eastus
+  register: output
+
+- assert:
+      that: not output.changed
+
+- name: Delete Azure NetApp snapshot
+  azure_rm_netapp_snapshot:
+    state: absent
+    resource_group: laurentngroupnodash
+    account_name: tests-netapp
+    pool_name: test-pool
+    volume_name: tes
+    name: tests-snapshot
+  register: output
+
+- assert:
+    that: output.changed
+
+- name: Delete Azure NetApp snapshot (Idempotency)
+  azure_rm_netapp_snapshot:
+    state: absent
+    resource_group: laurentngroupnodash
+    account_name: tests-netapp
+    pool_name: test-pool
+    volume_name: tes
+    name: tests-snapshot
+  register: output
+
+- assert:
+      that: not output.changed
