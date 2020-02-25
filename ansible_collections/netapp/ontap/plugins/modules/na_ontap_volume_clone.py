@@ -78,6 +78,11 @@ options:
     description:
     - The UNIX group ID for the clone volume.
     type: int
+  split:
+    version_added: '20.2.0'
+    description:
+    - Split clone volume from parent volume.
+    type: bool
 '''
 
 EXAMPLES = """
@@ -131,7 +136,8 @@ class NetAppONTAPVolumeClone(object):
             volume_type=dict(required=False, choices=['rw', 'dp']),
             junction_path=dict(required=False, type='str', default=None),
             uid=dict(required=False, type='int'),
-            gid=dict(required=False, type='int')
+            gid=dict(required=False, type='int'),
+            split=dict(required=False, type='bool', default=None),
         ))
 
         self.module = AnsibleModule(
@@ -148,7 +154,14 @@ class NetAppONTAPVolumeClone(object):
         if HAS_NETAPP_LIB is False:
             self.module.fail_json(msg="the python NetApp-Lib module is required")
         else:
-            self.server = netapp_utils.setup_na_ontap_zapi(module=self.module, vserver=self.parameters['vserver'])
+            if self.parameters.get('parent_vserver'):
+                # use cluster ZAPI, as vserver ZAPI does not support parent-vserser for create
+                self.create_server = netapp_utils.setup_na_ontap_zapi(module=self.module)
+                # keep vserver for ems log and clone-get
+                self.vserver = netapp_utils.setup_na_ontap_zapi(module=self.module, vserver=self.parameters['vserver'])
+            else:
+                self.vserver = netapp_utils.setup_na_ontap_zapi(module=self.module, vserver=self.parameters['vserver'])
+                self.create_server = self.vserver
         return
 
     def create_volume_clone(self):
@@ -157,7 +170,7 @@ class NetAppONTAPVolumeClone(object):
         """
         clone_obj = netapp_utils.zapi.NaElement('volume-clone-create')
         clone_obj.add_new_child("parent-volume", self.parameters['parent_volume'])
-        clone_obj.add_new_child("volume", self.parameters['volume'])
+        clone_obj.add_new_child("volume", self.parameters['name'])
         if self.parameters.get('qos_policy_group_name'):
             clone_obj.add_new_child("qos-policy-group-name", self.parameters['qos_policy_group_name'])
         if self.parameters.get('space_reserve'):
@@ -166,6 +179,7 @@ class NetAppONTAPVolumeClone(object):
             clone_obj.add_new_child("parent-snapshot", self.parameters['parent_snapshot'])
         if self.parameters.get('parent_vserver'):
             clone_obj.add_new_child("parent-vserver", self.parameters['parent_vserver'])
+            clone_obj.add_new_child("vserver", self.parameters['vserver'])
         if self.parameters.get('volume_type'):
             clone_obj.add_new_child("volume-type", self.parameters['volume_type'])
         if self.parameters.get('junction_path'):
@@ -174,45 +188,80 @@ class NetAppONTAPVolumeClone(object):
             clone_obj.add_new_child("uid", str(self.parameters['uid']))
             clone_obj.add_new_child("gid", str(self.parameters['gid']))
         try:
-            self.server.invoke_successfully(clone_obj, True)
+            self.create_server.invoke_successfully(clone_obj, True)
         except netapp_utils.zapi.NaApiError as exc:
             self.module.fail_json(msg='Error creating volume clone: %s: %s' %
-                                      (self.parameters['volume'], to_native(exc)), exception=traceback.format_exc())
+                                      (self.parameters['name'], to_native(exc)), exception=traceback.format_exc())
+        if 'split' in self.parameters and self.parameters['split']:
+            self.start_volume_clone_split()
+
+    def modify_volume_clone(self):
+        """
+        Modify an existing volume clone
+        """
+        if 'split' in self.parameters and self.parameters['split']:
+            self.start_volume_clone_split()
+
+    def start_volume_clone_split(self):
+        """
+        Starts a volume clone split
+        """
+        clone_obj = netapp_utils.zapi.NaElement('volume-clone-split-start')
+        clone_obj.add_new_child("volume", self.parameters['name'])
+        try:
+            self.vserver.invoke_successfully(clone_obj, True)
+        except netapp_utils.zapi.NaApiError as exc:
+            self.module.fail_json(msg='Error starting volume clone split: %s: %s' %
+                                      (self.parameters['name'], to_native(exc)), exception=traceback.format_exc())
 
     def get_volume_clone(self):
         clone_obj = netapp_utils.zapi.NaElement('volume-clone-get')
-        clone_obj.add_new_child("volume", self.parameters['volume'])
+        clone_obj.add_new_child("volume", self.parameters['name'])
+        current = None
         try:
-            results = self.server.invoke_successfully(clone_obj, True)
+            results = self.vserver.invoke_successfully(clone_obj, True)
             if results.get_child_by_name('attributes'):
                 attributes = results.get_child_by_name('attributes')
                 info = attributes.get_child_by_name('volume-clone-info')
-                parent_volume = info.get_child_content('parent-volume')
-                # checking if clone volume name already used to create by same parent volume
-                if parent_volume == self.parameters['parent_volume']:
-                    return results
+                current = {}
+                # Check if clone is currently splitting. Whilst a split is in
+                # progress, these attributes are present in 'volume-clone-info':
+                # block-percentage-complete, blocks-scanned & blocks-updated.
+                if info.get_child_by_name('block-percentage-complete') or \
+                   info.get_child_by_name('blocks-scanned') or \
+                   info.get_child_by_name('blocks-updated'):
+                    current["split"] = True
+                else:
+                    # Clone hasn't been split.
+                    current["split"] = False
+            return current
         except netapp_utils.zapi.NaApiError as error:
-            # Error 15661 denotes an volume clone not being found.
+            # Error 15661 denotes a volume clone not being found.
             if to_native(error.code) == "15661":
                 pass
             else:
                 self.module.fail_json(msg='Error fetching volume clone information %s: %s' %
-                                          (self.parameters['volume'], to_native(error)), exception=traceback.format_exc())
+                                          (self.parameters['name'], to_native(error)), exception=traceback.format_exc())
         return None
 
     def apply(self):
         """
-        Run Module based on play book
+        Run Module based on playbook
         """
-        netapp_utils.ems_log_event("na_ontap_volume_clone", self.server)
+        netapp_utils.ems_log_event("na_ontap_volume_clone", self.vserver)
         current = self.get_volume_clone()
+        modify = None
         cd_action = self.na_helper.get_cd_action(current, self.parameters)
+        if cd_action is None and self.parameters['state'] == 'present':
+            modify = self.na_helper.get_modified_attributes(current, self.parameters)
         if self.na_helper.changed:
             if self.module.check_mode:
                 pass
             else:
                 if cd_action == 'create':
                     self.create_volume_clone()
+                if modify:
+                    self.modify_volume_clone()
         self.module.exit_json(changed=self.na_helper.changed)
 
 

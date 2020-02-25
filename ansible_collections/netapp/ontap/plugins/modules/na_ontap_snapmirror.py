@@ -13,8 +13,8 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 DOCUMENTATION = '''
 author: NetApp Ansible Team (@carchi8py) <ng-ansibleteam@netapp.com>
 description:
-  - Create/Delete/Initialize SnapMirror volume/vserver relationships for ONTAP/ONTAP
-  - Create/Delete/Initialize SnapMirror volume relationship between ElementSW and ONTAP
+  - Create/Delete/Update/Initialize SnapMirror volume/vserver relationships for ONTAP/ONTAP
+  - Create/Delete/Update/Initialize SnapMirror volume relationship between ElementSW and ONTAP
   - Modify schedule for a SnapMirror relationship for ONTAP/ONTAP and ElementSW/ONTAP
   - Pre-requisite for ElementSW to ONTAP relationship or vice-versa is an established SnapMirror endpoint for ONTAP cluster with ElementSW UI
   - Pre-requisite for ElementSW to ONTAP relationship or vice-versa is to have SnapMirror enabled in the ElementSW volume
@@ -88,6 +88,28 @@ options:
      - Default is unlimited, it can be explicitly set to 0 as unlimited.
     type: int
     version_added: '2.9'
+  initialize:
+    description:
+     - Specifies whether to initialize SnapMirror relation.
+     - Default is True, it can be explicitly set to False to avoid initializing SnapMirror relation.
+    default: true
+    type: bool
+    version_added: '19.11.0'
+  update:
+    description:
+     - Specifies whether to update the destination endpoint of the SnapMirror relationship only if the relationship is already present and active.
+     - Default is True.
+    default: true
+    type: bool
+    version_added: '20.2.0'
+  relationship_state:
+    description:
+     - Specifies whether to break SnapMirror relation or establish a SnapMirror relationship.
+     - state must be present to use this option.
+    default: active
+    choices: ['active', 'broken']
+    type: str
+    version_added: '20.2.0'
   identity_preserve:
     description:
      - Specifies whether or not the identity of the source Vserver is replicated to the destination Vserver.
@@ -112,6 +134,7 @@ EXAMPLES = """
         schedule: hourly
         policy: MirrorAllSnapshots
         max_transfer_rate: 1000
+        initialize: False
         hostname: "{{ destination_cluster_hostname }}"
         username: "{{ destination_cluster_username }}"
         password: "{{ destination_cluster_password }}"
@@ -140,6 +163,16 @@ EXAMPLES = """
     - name: Delete SnapMirror
       na_ontap_snapmirror:
         state: absent
+        destination_path: <path>
+        source_hostname: "{{ source_hostname }}"
+        hostname: "{{ destination_cluster_hostname }}"
+        username: "{{ destination_cluster_username }}"
+        password: "{{ destination_cluster_password }}"
+
+    - name: Break Snapmirror
+      na_ontap_snapmirror:
+        state: present
+        relationship_state: broken
         destination_path: <path>
         source_hostname: "{{ source_hostname }}"
         hostname: "{{ destination_cluster_hostname }}"
@@ -236,7 +269,10 @@ class NetAppONTAPSnapmirror(object):
             source_username=dict(required=False, type='str'),
             source_password=dict(required=False, type='str', no_log=True),
             max_transfer_rate=dict(required=False, type='int'),
-            identity_preserve=dict(required=False, type='bool')
+            initialize=dict(required=False, type='bool', default=True),
+            update=dict(required=False, type='bool', default=True),
+            identity_preserve=dict(required=False, type='bool'),
+            relationship_state=dict(required=False, type='str', choices=['active', 'broken'], default='active')
         ))
 
         self.module = AnsibleModule(
@@ -372,7 +408,8 @@ class NetAppONTAPSnapmirror(object):
             snapmirror_create.add_new_child('identity-preserve', str(self.parameters['identity_preserve']))
         try:
             self.server.invoke_successfully(snapmirror_create, enable_tunneling=True)
-            self.snapmirror_initialize()
+            if self.parameters['initialize']:
+                self.snapmirror_initialize()
         except netapp_utils.zapi.NaApiError as error:
             self.module.fail_json(msg='Error creating SnapMirror %s' % to_native(error),
                                   exception=traceback.format_exc())
@@ -389,7 +426,7 @@ class NetAppONTAPSnapmirror(object):
         self.module.params['hostname'] = self.parameters['source_hostname']
         self.source_server = netapp_utils.setup_na_ontap_zapi(module=self.module)
 
-    def delete_snapmirror(self, is_hci, relationship_type):
+    def delete_snapmirror(self, is_hci, relationship_type, mirror_state):
         """
         Delete a SnapMirror relationship
         #1. Quiesce the SnapMirror relationship at destination
@@ -400,11 +437,11 @@ class NetAppONTAPSnapmirror(object):
         if not is_hci:
             if not self.parameters.get('source_hostname'):
                 self.module.fail_json(msg='Missing parameters for delete: Please specify the '
-                                          'source cluster hostname to release the SnapMirror relation')
+                                          'source cluster hostname to release the SnapMirror relationship')
         # Quiesce at destination
         self.snapmirror_quiesce()
         # Break at destination
-        if relationship_type not in ['load_sharing', 'vault']:
+        if relationship_type not in ['load_sharing', 'vault'] and mirror_state not in ['uninitialized', 'broken-off']:
             self.snapmirror_break()
         # if source is ONTAP, release the destination at source cluster
         if not is_hci:
@@ -659,8 +696,16 @@ class NetAppONTAPSnapmirror(object):
         :return: None
         """
         results = netapp_utils.get_cserver(self.server)
-        cserver = netapp_utils.setup_na_ontap_zapi(module=self.module, vserver=results)
-        netapp_utils.ems_log_event(event_name, cserver)
+        if results is None:
+            # We may be running on a vserser
+            try:
+                netapp_utils.ems_log_event(event_name, self.server)
+            except netapp_utils.zapi.NaApiError:
+                # Don't fail if we cannot log usage
+                pass
+        else:
+            cserver = netapp_utils.setup_na_ontap_zapi(module=self.module, vserver=results)
+            netapp_utils.ems_log_event(event_name, cserver)
 
     def apply(self):
         """
@@ -691,18 +736,32 @@ class NetAppONTAPSnapmirror(object):
             else:
                 if self.parameters.get('connection_type') == 'elementsw_ontap':
                     element_snapmirror = True
-                self.delete_snapmirror(element_snapmirror, current['relationship'])
+                self.delete_snapmirror(element_snapmirror, current['relationship'], current['mirror_state'])
         else:
             if modify:
                 self.snapmirror_modify(modify)
+            # break relationship when 'relationship_state' == 'broken'
+            if current and self.parameters['state'] == 'present' and self.parameters['relationship_state'] == 'broken':
+                if current['mirror_state'] == 'uninitialized':
+                    self.module.fail_json(msg='SnapMirror relationship cannot be broken if mirror state is uninitialized')
+                elif current['relationship'] in ['load_sharing', 'vault']:
+                    self.module.fail_json(msg='SnapMirror break is not allowed in a load_sharing or vault relationship')
+                elif current['mirror_state'] != 'broken-off':
+                    self.snapmirror_break()
+                    self.na_helper.changed = True
             # check for initialize
-            if current and current['mirror_state'] != 'snapmirrored':
+            elif current and self.parameters['initialize'] and self.parameters['relationship_state'] == 'active' \
+                    and current['mirror_state'] == 'uninitialized':
                 self.snapmirror_initialize()
                 # set changed explicitly for initialize
                 self.na_helper.changed = True
             # Update when create is called again, or modify is being called
-            if self.parameters['state'] == 'present':
-                self.snapmirror_update()
+            if self.parameters['state'] == 'present' and self.parameters['relationship_state'] == 'active'\
+                    and self.parameters['update']:
+                current = self.snapmirror_get()
+                if current['mirror_state'] == 'snapmirrored':
+                    self.snapmirror_update()
+                    self.na_helper.changed = True
         self.module.exit_json(changed=self.na_helper.changed)
 
 

@@ -1,6 +1,7 @@
 ''' unit tests ONTAP Ansible module: na_ontap_snapmirror '''
 
 from __future__ import (absolute_import, division, print_function)
+__metaclass__ = type
 import json
 import pytest
 
@@ -110,6 +111,8 @@ class TestMyModule(unittest.TestCase):
             schedule = None
             source_username = 'admin'
             source_password = 'password'
+            relationship_state = 'active'
+            update = True
         else:
             hostname = '10.10.10.10'
             username = 'admin'
@@ -123,6 +126,8 @@ class TestMyModule(unittest.TestCase):
             schedule = None
             source_username = 'admin'
             source_password = 'password'
+            relationship_state = 'active'
+            update = True
         return dict({
             'hostname': hostname,
             'username': username,
@@ -135,7 +140,9 @@ class TestMyModule(unittest.TestCase):
             'relationship_type': relationship_type,
             'schedule': schedule,
             'source_username': source_username,
-            'source_password': source_password
+            'source_password': source_password,
+            'relationship_state': relationship_state,
+            'update': update
         })
 
     def test_module_fail_when_required_args_missing(self):
@@ -175,7 +182,9 @@ class TestMyModule(unittest.TestCase):
         assert exc.value.args[0]['changed']
         snapmirror_create.assert_called_with()
         # to reset na_helper from remembering the previous 'changed' value
-        set_module_args(self.set_default_args())
+        data = self.set_default_args()
+        data['update'] = False
+        set_module_args(data)
         my_obj = my_module()
         my_obj.asup_log_for_cserver = Mock(return_value=None)
         if not self.onbox:
@@ -183,6 +192,42 @@ class TestMyModule(unittest.TestCase):
         with pytest.raises(AnsibleExitJson) as exc:
             my_obj.apply()
         assert not exc.value.args[0]['changed']
+
+    def test_successful_break(self):
+        ''' breaking snapmirror and testing idempotency '''
+        data = self.set_default_args()
+        data['relationship_state'] = 'broken'
+        set_module_args(data)
+        my_obj = my_module()
+        my_obj.asup_log_for_cserver = Mock(return_value=None)
+        if not self.onbox:
+            my_obj.server = MockONTAPConnection('snapmirror', 'snapmirrored', status='idle')
+        with pytest.raises(AnsibleExitJson) as exc:
+            my_obj.apply()
+        assert exc.value.args[0]['changed']
+        # to reset na_helper from remembering the previous 'changed' value
+        set_module_args(self.set_default_args())
+        my_obj = my_module()
+        my_obj.asup_log_for_cserver = Mock(return_value=None)
+        if not self.onbox:
+            my_obj.server = MockONTAPConnection('snapmirror', 'broken-off', status='idle')
+        with pytest.raises(AnsibleExitJson) as exc:
+            my_obj.apply()
+        assert not exc.value.args[0]['changed']
+
+    def test_successful_create_without_initialize(self):
+        ''' creating snapmirror and testing idempotency '''
+        data = self.set_default_args()
+        data['schedule'] = 'abc'
+        data['identity_preserve'] = True
+        data['initialize'] = False
+        set_module_args(data)
+        my_obj = my_module()
+        my_obj.asup_log_for_cserver = Mock(return_value=None)
+        my_obj.server = MockONTAPConnection('snapmirror', 'Uninitialized', status='idle')
+        with pytest.raises(AnsibleExitJson) as exc:
+            my_obj.apply()
+        assert exc.value.args[0]['changed']
 
     @patch('ansible_collections.netapp.ontap.plugins.modules.na_ontap_snapmirror.NetAppONTAPSnapmirror.snapmirror_create')
     @patch('ansible_collections.netapp.ontap.plugins.modules.na_ontap_snapmirror.NetAppONTAPSnapmirror.check_elementsw_parameters')
@@ -242,7 +287,7 @@ class TestMyModule(unittest.TestCase):
         with pytest.raises(AnsibleExitJson) as exc:
             my_obj.apply()
         assert exc.value.args[0]['changed']
-        delete_snapmirror.assert_called_with(False, 'data_protection')
+        delete_snapmirror.assert_called_with(False, 'data_protection', None)
         # to reset na_helper from remembering the previous 'changed' value
         my_obj = my_module()
         my_obj.asup_log_for_cserver = Mock(return_value=None)
@@ -331,6 +376,7 @@ class TestMyModule(unittest.TestCase):
         snapmirror_modify.assert_called_with({'policy': 'ansible2', 'schedule': 'abc2', 'max_transfer_rate': 2000})
         # to reset na_helper from remembering the previous 'changed' value
         data = self.set_default_args()
+        data['update'] = False
         set_module_args(data)
         my_obj = my_module()
         my_obj.asup_log_for_cserver = Mock(return_value=None)
@@ -348,13 +394,14 @@ class TestMyModule(unittest.TestCase):
         my_obj = my_module()
         my_obj.asup_log_for_cserver = Mock(return_value=None)
         if not self.onbox:
-            my_obj.server = MockONTAPConnection('snapmirror', status='transferring')
+            my_obj.server = MockONTAPConnection('snapmirror', status='idle', parm='uninitialized')
         with pytest.raises(AnsibleExitJson) as exc:
             my_obj.apply()
         assert exc.value.args[0]['changed']
         snapmirror_initialize.assert_called_with()
         # to reset na_helper from remembering the previous 'changed' value
         data = self.set_default_args()
+        data['update'] = False
         set_module_args(data)
         my_obj = my_module()
         my_obj.asup_log_for_cserver = Mock(return_value=None)
@@ -364,19 +411,18 @@ class TestMyModule(unittest.TestCase):
             my_obj.apply()
         assert not exc.value.args[0]['changed']
 
-    @patch('ansible_collections.netapp.ontap.plugins.modules.na_ontap_snapmirror.NetAppONTAPSnapmirror.snapmirror_update')
-    def test_successful_update(self, snapmirror_update):
+    def test_successful_update(self):
         ''' update snapmirror and testing idempotency '''
         data = self.set_default_args()
+        data['policy'] = 'ansible2'
         set_module_args(data)
         my_obj = my_module()
         my_obj.asup_log_for_cserver = Mock(return_value=None)
         if not self.onbox:
-            my_obj.server = MockONTAPConnection('snapmirror', status='idle', parm='snapmirrored')
+            my_obj.server = MockONTAPConnection('snapmirror', status='idle')
         with pytest.raises(AnsibleExitJson) as exc:
             my_obj.apply()
-        assert not exc.value.args[0]['changed']
-        snapmirror_update.assert_called_with()
+        assert exc.value.args[0]['changed']
 
     def test_elementsw_volume_exists(self):
         ''' elementsw_volume_exists '''
@@ -478,22 +524,6 @@ class TestMyModule(unittest.TestCase):
         match = my_obj.element_source_path_format_matches('10.10.10.10:/lun/10')
         assert match is not None
 
-    @patch('ansible_collections.netapp.ontap.plugins.module_utils.netapp.create_sf_connection')
-    def test_set_elem_connection(self, create_sf_connection):
-        ''' test set_elem_connection '''
-        data = self.set_default_args()
-        data['source_hostname'] = 'test_source'
-        set_module_args(data)
-        my_obj = my_module()
-        my_obj.asup_log_for_cserver = Mock(return_value=None)
-        create_sf_connection.return_value = Mock()
-        if not self.onbox:
-            my_obj.server = MockONTAPConnection('snapmirror', status='idle', parm='snapmirrored')
-        my_obj.set_element_connection('source')
-        assert my_obj.module.params['hostname'] == data['source_hostname']
-        assert my_obj.module.params['username'] == data['source_username']
-        assert my_obj.module.params['password'] == data['source_password']
-
     def test_remote_volume_exists(self):
         ''' test check_if_remote_volume_exists '''
         data = self.set_default_args()
@@ -508,22 +538,6 @@ class TestMyModule(unittest.TestCase):
             my_obj.source_server = MockONTAPConnection('snapmirror', status='idle', parm='snapmirrored')
         res = my_obj.check_if_remote_volume_exists()
         assert res
-
-    @patch('ansible_collections.netapp.ontap.plugins.module_utils.netapp.create_sf_connection')
-    def test_set_elem_connection_destination(self, create_sf_connection):
-        ''' test set_elem_connection for destination'''
-        data = self.set_default_args()
-        data['source_hostname'] = 'test_source'
-        set_module_args(data)
-        my_obj = my_module()
-        my_obj.asup_log_for_cserver = Mock(return_value=None)
-        create_sf_connection.return_value = Mock()
-        if not self.onbox:
-            my_obj.server = MockONTAPConnection('snapmirror', status='idle', parm='snapmirrored')
-        my_obj.set_element_connection('destination')
-        assert my_obj.module.params['hostname'] == data['hostname']
-        assert my_obj.module.params['username'] == data['username']
-        assert my_obj.module.params['password'] == data['password']
 
     def test_if_all_methods_catch_exception(self):
         data = self.set_default_args()
@@ -567,7 +581,7 @@ class TestMyModule(unittest.TestCase):
             my_obj.snapmirror_quiesce = Mock(return_value=None)
             my_obj.get_destination = Mock(return_value=None)
             my_obj.snapmirror_break = Mock(return_value=None)
-            my_obj.delete_snapmirror(False, 'data_protection')
+            my_obj.delete_snapmirror(False, 'data_protection', None)
         assert 'Error deleting SnapMirror :' in exc.value.args[0]['msg']
         with pytest.raises(AnsibleFailJson) as exc:
             my_obj.snapmirror_modify({'policy': 'ansible2', 'schedule': 'abc2'})

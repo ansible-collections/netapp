@@ -12,13 +12,14 @@ Role Variables
 --------------
 ```
 cluster: <short ONTAP name of cluster>
-hostname: <ONTAP mgmt ip or fqdn>
-username: <ONTAP admin account>
-password: <ONTAP admin account password>
+netapp_hostname: <ONTAP mgmt ip or fqdn>
+netapp_username: <ONTAP admin account>
+netapp_password: <ONTAP admin account password>
 
 nas:
   - { name: nfs_share, protocol: nfs, vserver: nfs_vserver, client: 172.32.0.201, ro: sys, rw: sys, su: sys, aggr: aggr1, size: 10, share: share_name }
-# If you are creating an NFS export you will omit the share: section.  If you are creating a CIFS share you may omit the ro,rw,su,client sections
+# If you are creating an NFS export you will omit the share: section.
+# If you are creating a CIFS share you may omit the ro, rw, su, client sections.
 
 ```
 Dependencies
@@ -36,24 +37,8 @@ Example Playbook
     - netapp.ontap
   vars_files:
     - globals.yml
-  vars:
-    input: &input
-      hostname: "{{ netapp_hostname }}"
-      username: "{{ netapp_username }}"
-      password: "{{ netapp_password }}"
-  tasks:
-  - name: Get Ontapi version
-    na_ontap_info:
-      state: info
-      <<: *input
-      https: true
-      ontapi: 32
-      validate_certs: false
-    register: netapp
-  - import_role:
-      name: na_ontap_nas_create
-    vars:
-      <<: *input
+  roles:
+  - na_ontap_nas_create
 ```
 
 I use a globals file to hold my variables.
@@ -66,6 +51,7 @@ netapp_password: netapp123
 
 nas:
   - { name: nfs_share, protocol: nfs, vserver: nfs_vserver, client: 172.32.0.201, ro: sys, rw: sys, su: sys, aggr: aggr1, size: 10 }
+  - { name: cifs_share, protocol: cifs, vserver: cifs_vserver, aggr: aggr1, size: 10, share: cifs_share_1 }
 ```
 
 License

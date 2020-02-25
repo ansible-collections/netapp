@@ -4,6 +4,7 @@
 ''' unit tests for ONTAP Ansible module na_ontap_info '''
 
 from __future__ import (absolute_import, division, print_function)
+__metaclass__ = type
 import json
 import pytest
 import sys
@@ -117,17 +118,26 @@ class TestMyModule(unittest.TestCase):
             'hostname': 'hostname',
             'username': 'username',
             'password': 'password',
+            'vserver': None
         }
 
     def get_info_mock_object(self, kind=None):
         """
         Helper method to return an na_ontap_info object
         """
+        argument_spec = netapp_utils.na_ontap_host_argument_spec()
+        argument_spec.update(dict(
+            state=dict(type='str', default='info', choices=['info']),
+            gather_subset=dict(default=['all'], type='list'),
+            vserver=dict(type='str', default=None, required=False),
+            max_records=dict(type='int', default=1024, required=False)
+        ))
         module = basic.AnsibleModule(
-            argument_spec=netapp_utils.na_ontap_host_argument_spec(),
+            argument_spec=argument_spec,
             supports_check_mode=True
         )
-        obj = info_module(module)
+        max_records = module.params['max_records']
+        obj = info_module(module, max_records)
         obj.netapp_info = dict()
         if kind is None:
             obj.server = MockONTAPConnection()
@@ -151,6 +161,7 @@ class TestMyModule(unittest.TestCase):
             my_obj.get_all(['net_interface_info'])
         if sys.version_info >= (2, 7):
             msg = 'net-interface-info'
+            print(exc.value.args[0])
             assert exc.value.args[0] == msg
 
     @patch('ansible_collections.netapp.ontap.plugins.module_utils.netapp.ems_log_event')
@@ -197,7 +208,10 @@ class TestMyModule(unittest.TestCase):
         obj = self.get_info_mock_object('zapi_error')
         with pytest.raises(AnsibleFailJson) as exc:
             obj.ontapi()
+        # The new version of nettap-lib adds a space after :
+        # Keep both versions to keep the pipeline happy
         assert exc.value.args[0]['msg'] == 'Error calling API system-get-ontapi-version: NetApp API failed. Reason - test:error'
+
 
     def test_call_api_error(self):
         '''test call_api will raise zapi error'''
@@ -205,6 +219,8 @@ class TestMyModule(unittest.TestCase):
         obj = self.get_info_mock_object('zapi_error')
         with pytest.raises(AnsibleFailJson) as exc:
             obj.call_api('nvme-get-iter')
+        # The new version of nettap-lib adds a space after :
+        # Keep both versions to keep the pipeline happy
         assert exc.value.args[0]['msg'] == 'Error calling API nvme-get-iter: NetApp API failed. Reason - test:error'
 
     def test_find_item(self):

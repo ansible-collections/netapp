@@ -6,8 +6,8 @@ __metaclass__ = type
 import json
 import pytest
 
-from ansible_collections.netapp.elementsw.test.units.compat import unittest
-from ansible_collections.netapp.elementsw.test.units.compat.mock import patch
+from ansible_collections.netapp.elementsw.tests.unit.compat import unittest
+from ansible_collections.netapp.elementsw.tests.unit.compat.mock import patch
 from ansible.module_utils import basic
 from ansible.module_utils._text import to_bytes
 import ansible_collections.netapp.elementsw.plugins.module_utils.netapp as netapp_utils
@@ -15,7 +15,7 @@ import ansible_collections.netapp.elementsw.plugins.module_utils.netapp as netap
 if not netapp_utils.has_sf_sdk():
     pytestmark = pytest.mark.skip('skipping as missing required SolidFire Python SDK')
 
-from ansible.modules.storage.netapp.na_elementsw_access_group \
+from ansible_collections.netapp.elementsw.plugins.modules.na_elementsw_access_group \
     import ElementSWAccessGroup as my_module  # module under test
 
 

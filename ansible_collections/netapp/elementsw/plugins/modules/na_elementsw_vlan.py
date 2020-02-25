@@ -230,7 +230,9 @@ class ElementSWVlan(object):
                 vlan_details['gateway'] = vlan.gateway
                 vlan_details['netmask'] = vlan.netmask
                 vlan_details['namespace'] = vlan.namespace
-                vlan_details['attributes'] = vlan.attributes
+                vlan_details['attributes'] = dict()
+                for key in vlan.attributes.__dict__.keys():
+                    vlan_details['attributes'][key] = vlan.attributes.key
                 return vlan_details
         return None
 

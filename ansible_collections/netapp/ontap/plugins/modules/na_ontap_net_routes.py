@@ -44,6 +44,7 @@ options:
     description:
     - Specify the route metric.
     - If this field is not provided the default will be set to 20.
+    type: int
   from_destination:
     description:
     - Specify the route destination that should be changed.
@@ -104,10 +105,10 @@ class NetAppOntapNetRoutes(object):
             vserver=dict(required=True, type='str'),
             destination=dict(required=True, type='str'),
             gateway=dict(required=True, type='str'),
-            metric=dict(required=False, type='str'),
+            metric=dict(required=False, type='int'),
             from_destination=dict(required=False, type='str', default=None),
             from_gateway=dict(required=False, type='str', default=None),
-            from_metric=dict(required=False, type='str', default=None),
+            from_metric=dict(required=False, type='int', default=None),
         ))
 
         self.module = AnsibleModule(
@@ -119,9 +120,15 @@ class NetAppOntapNetRoutes(object):
         self.parameters = self.na_helper.set_parameters(self.module.params)
 
         self.restApi = OntapRestAPI(self.module)
-        if self.restApi.is_rest():
-            self.use_rest = True
-        else:
+        # some attributes are not supported in earlier REST implementation
+        unsupported_rest_properties = ['metric', 'from_metric']
+        used_unsupported_rest_properties = [x for x in unsupported_rest_properties if x in self.parameters]
+        self.use_rest, error = self.restApi.is_rest(used_unsupported_rest_properties)
+
+        if error is not None:
+            self.module.fail_json(msg=error)
+
+        if not self.use_rest:
             if HAS_NETAPP_LIB is False:
                 self.module.fail_json(msg="the python NetApp-Lib module is required")
             else:
@@ -152,7 +159,7 @@ class NetAppOntapNetRoutes(object):
                 metric = current_metric
             # Metric can be None, Can't set metric to none
             if metric is not None:
-                route_obj.add_new_child("metric", metric)
+                route_obj.add_new_child("metric", str(metric))
             try:
                 self.server.invoke_successfully(route_obj, True)
             except netapp_utils.zapi.NaApiError as error:
@@ -228,7 +235,7 @@ class NetAppOntapNetRoutes(object):
                     value = desired[attribute]
                 else:
                     value = current[attribute]
-                route_obj.add_new_child(attribute, value)
+                route_obj.add_new_child(attribute, str(value))
             try:
                 result = self.server.invoke_successfully(route_obj, True)
             except netapp_utils.zapi.NaApiError as error:
@@ -294,7 +301,7 @@ class NetAppOntapNetRoutes(object):
                     current = {
                         'destination': route_info.get_child_content('destination'),
                         'gateway': route_info.get_child_content('gateway'),
-                        'metric': route_info.get_child_content('metric')
+                        'metric': int(route_info.get_child_content('metric'))
                     }
 
             except netapp_utils.zapi.NaApiError as error:

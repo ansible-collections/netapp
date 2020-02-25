@@ -33,13 +33,30 @@ options:
         version_added: "2.8"
     return_dict:
         description:
-        - returns a parsesable dictonary instead of raw XML output
+        - Returns a parsesable dictionary instead of raw XML output
+        - C(result_value)
+        - C(status) > passed, failed..
+        - C(stdout) > command output in plaintext)
+        - C(stdout_lines) > list of command output lines)
+        - C(stdout_lines_filter) > empty list or list of command output lines matching I(include_lines) or I(exclude_lines) parameters.
         type: bool
         default: false
         version_added: "2.9"
     vserver:
         description:
-        - If running as vserver admin, you must give a vserver or module will fail
+        - If running as vserver admin, you must give a I(vserver) or module will fail
+        version_added: "19.10.0"
+    include_lines:
+        description:
+        - applied only when I(return_dict) is true
+        - return only lines containing string pattern in C(stdout_lines_filter)
+        default: ''
+        version_added: "19.10.0"
+    exclude_lines:
+        description:
+        - applied only when I(return_dict) is true
+        - return only lines containing string pattern in C(stdout_lines_filter)
+        default: ''
         version_added: "19.10.0"
 '''
 
@@ -51,12 +68,24 @@ EXAMPLES = """
         password: "{{ admin password }}"
         command: ['version']
 
+    # Same as above, but returns parseable dictonary
     - name: run ontap cli command
       na_ontap_command:
         hostname: "{{ hostname }}"
         username: "{{ admin username }}"
         password: "{{ admin password }}"
-        command: ['network', 'interface', 'show']
+        command: ['node', 'show', '-fields', 'node,health,uptime,model']
+        privilege: 'admin'
+        return_dict: true
+
+    # Same as above, but with lines filtering
+    - name: run ontap cli command
+      na_ontap_command:
+        hostname: "{{ hostname }}"
+        username: "{{ admin username }}"
+        password: "{{ admin password }}"
+        command: ['node', 'show', '-fields', 'node,health,uptime,model']
+        exlude_lines: 'ode ' # Exclude lines with 'Node ' or 'node'
         privilege: 'admin'
         return_dict: true
 """
@@ -82,6 +111,8 @@ class NetAppONTAPCommand(object):
             privilege=dict(required=False, type='str', choices=['admin', 'advanced'], default='admin'),
             return_dict=dict(required=False, type='bool', default=False),
             vserver=dict(required=False, type='str'),
+            include_lines=dict(required=False, type='str', default=''),
+            exclude_lines=dict(required=False, type='str', default=''),
         ))
         self.module = AnsibleModule(
             argument_spec=self.argument_spec,
@@ -93,6 +124,8 @@ class NetAppONTAPCommand(object):
         self.privilege = parameters['privilege']
         self.vserver = parameters['vserver']
         self.return_dict = parameters['return_dict']
+        self.include_lines = parameters['include_lines']
+        self.exclude_lines = parameters['exclude_lines']
 
         self.result_dict = dict()
         self.result_dict['status'] = ""
@@ -100,6 +133,7 @@ class NetAppONTAPCommand(object):
         self.result_dict['invoked_command'] = " ".join(self.command)
         self.result_dict['stdout'] = ""
         self.result_dict['stdout_lines'] = []
+        self.result_dict['stdout_lines_filter'] = []
         self.result_dict['xml_dict'] = dict()
 
         if HAS_NETAPP_LIB is False:
@@ -182,10 +216,14 @@ class NetAppONTAPCommand(object):
         xml_parse_ok = True
 
         try:
+            importing = 'ast'
+            import ast
+            importing = 'xml.parsers.expat'
             import xml.parsers.expat
         except ImportError:
-            self.result_dict['status'] = "XML parsing failed. Cannot import xml.parsers.expat!"
+            self.result_dict['status'] = "XML parsing failed. Cannot import %s!" % importing
             self.result_dict['stdout'] = str(xmldata)
+            self.result_dict['result_value'] = -1
             xml_import_ok = False
 
         if xml_import_ok:
@@ -200,18 +238,38 @@ class NetAppONTAPCommand(object):
             except xml.parsers.expat.ExpatError as errcode:
                 self.result_dict['status'] = "XML parsing failed: " + str(errcode)
                 self.result_dict['stdout'] = str(xmldata)
+                self.result_dict['result_value'] = -1
                 xml_parse_ok = False
 
             if xml_parse_ok:
                 self.result_dict['status'] = self.result_dict['xml_dict']['results']['attrs']['status']
                 stdout_string = self._format_escaped_data(self.result_dict['xml_dict']['cli-output']['data'])
                 self.result_dict['stdout'] = stdout_string
+                # Generate stdout_lines list
                 for line in stdout_string.split('\n'):
                     stripped_line = line.strip()
                     if len(stripped_line) > 1:
                         self.result_dict['stdout_lines'].append(stripped_line)
+
+                        # Generate stdout_lines_filter_list
+                        if self.exclude_lines:
+                            if self.include_lines in stripped_line and self.exclude_lines not in stripped_line:
+                                self.result_dict['stdout_lines_filter'].append(stripped_line)
+                        else:
+                            if self.include_lines and self.include_lines in stripped_line:
+                                self.result_dict['stdout_lines_filter'].append(stripped_line)
+
                 self.result_dict['xml_dict']['cli-output']['data'] = stdout_string
-                self.result_dict['result_value'] = int(str(self.result_dict['xml_dict']['cli-result-value']['data']).replace("'", ""))
+                cli_result_value = self.result_dict['xml_dict']['cli-result-value']['data']
+                try:
+                    # get rid of extra quotes "'1'", but maybe "u'1'" or "b'1'"
+                    cli_result_value = ast.literal_eval(cli_result_value)
+                except (SyntaxError, ValueError):
+                    pass
+                try:
+                    self.result_dict['result_value'] = int(cli_result_value)
+                except ValueError:
+                    self.result_dict['result_value'] = cli_result_value
 
         return self.result_dict
 

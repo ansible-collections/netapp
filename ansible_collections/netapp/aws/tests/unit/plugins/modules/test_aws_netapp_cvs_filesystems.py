@@ -1,7 +1,7 @@
 # (c) 2019, NetApp, Inc
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
-''' unit tests AWS CVS FileSystems Ansible module: aws_netapp_cvs_FileSystems'''
+''' unit tests AWS CVS FileSystems Ansible module: aws_netapp_cvs_filesystems'''
 
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
@@ -14,7 +14,7 @@ from ansible_collections.netapp.aws.tests.unit.compat.mock import patch, Mock
 from ansible.module_utils import basic
 from ansible.module_utils._text import to_bytes
 from requests import Response
-from ansible_collections.netapp.aws.plugins.modules.aws_netapp_cvs_FileSystems \
+from ansible_collections.netapp.aws.plugins.modules.aws_netapp_cvs_filesystems \
     import AwsCvsNetappFileSystem as fileSystem_module
 
 
@@ -118,7 +118,7 @@ class TestMyModule(unittest.TestCase):
         print('Info: test_module_fail_when_required_args_present: %s' % exc.value.args[0]['msg'])
         assert exc.value.args[0]['changed']
 
-    @patch('ansible_collections.netapp.aws.plugins.modules.aws_netapp_cvs_FileSystems.AwsCvsNetappFileSystem.get_filesystemId')
+    @patch('ansible_collections.netapp.aws.plugins.modules.aws_netapp_cvs_filesystems.AwsCvsNetappFileSystem.get_filesystemId')
     @patch('ansible_collections.netapp.aws.plugins.module_utils.netapp.AwsCvsRestAPI.get_state')
     @patch('ansible_collections.netapp.aws.plugins.module_utils.netapp.AwsCvsRestAPI.post')
     def test_create_aws_netapp_cvs_snapshots_pass(self, get_post_api, get_state_api, get_filesystemId):
@@ -133,8 +133,8 @@ class TestMyModule(unittest.TestCase):
         print('Info: test_create_aws_netapp_cvs_filesystem_pass: %s' % repr(exc.value.args[0]))
         assert exc.value.args[0]['changed']
 
-    @patch('ansible_collections.netapp.aws.plugins.modules.aws_netapp_cvs_FileSystems.AwsCvsNetappFileSystem.get_filesystemId')
-    @patch('ansible_collections.netapp.aws.plugins.modules.aws_netapp_cvs_FileSystems.AwsCvsNetappFileSystem.get_filesystem')
+    @patch('ansible_collections.netapp.aws.plugins.modules.aws_netapp_cvs_filesystems.AwsCvsNetappFileSystem.get_filesystemId')
+    @patch('ansible_collections.netapp.aws.plugins.modules.aws_netapp_cvs_filesystems.AwsCvsNetappFileSystem.get_filesystem')
     @patch('ansible_collections.netapp.aws.plugins.module_utils.netapp.AwsCvsRestAPI.get_state')
     @patch('ansible_collections.netapp.aws.plugins.module_utils.netapp.AwsCvsRestAPI.delete')
     def test_delete_aws_netapp_cvs_snapshots_pass(self, get_post_api, get_state_api, get_filesystem, get_filesystemId):

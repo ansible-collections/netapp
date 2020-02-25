@@ -38,6 +38,8 @@ try:
 except ImportError:
     ansible_version = 'unknown'
 
+COLLECTION_VERSION = "20.3.0"
+
 try:
     from netapp_lib.api.zapi import zapi
     HAS_NETAPP_LIB = True
@@ -84,6 +86,10 @@ POW2_BYTE_MAP = dict(
     eb=1024 ** 6,
     zb=1024 ** 7,
     yb=1024 ** 8
+)
+
+ERROR_MSG = dict(
+    no_cserver='This module is expected to run as cluster admin'
 )
 
 try:
@@ -175,7 +181,7 @@ def setup_na_ontap_zapi(module, vserver=None):
         module.fail_json(msg="the python NetApp-Lib module is required")
 
 
-def ems_log_event(source, server, name="Ansible", id="12345", version=ansible_version,
+def ems_log_event(source, server, name="Ansible", id="12345", version=COLLECTION_VERSION,
                   category="Information", event="setup", autosupport="false"):
     ems_log = zapi.NaElement('ems-autosupport-log')
     # Host name invoking the API.
@@ -196,6 +202,7 @@ def ems_log_event(source, server, name="Ansible", id="12345", version=ansible_ve
 
 
 def get_cserver_zapi(server):
+    ''' returns None if not run on the management or cluster IP '''
     vserver_info = zapi.NaElement('vserver-get-iter')
     query_details = zapi.NaElement.create_node_with_children('vserver-info', **{'vserver-type': 'admin'})
     query = zapi.NaElement('query')
@@ -204,8 +211,11 @@ def get_cserver_zapi(server):
     result = server.invoke_successfully(vserver_info,
                                         enable_tunneling=False)
     attribute_list = result.get_child_by_name('attributes-list')
-    vserver_list = attribute_list.get_child_by_name('vserver-info')
-    return vserver_list.get_child_content('vserver-name')
+    if attribute_list is not None:
+        vserver_list = attribute_list.get_child_by_name('vserver-info')
+        if vserver_list is not None:
+            return vserver_list.get_child_content('vserver-name')
+    return None
 
 
 def get_cserver(connection, is_rest=False):
@@ -290,6 +300,9 @@ class OntapRestAPI(object):
         self.log_debug(status_code, content)
         if return_status_code:
             return status_code, error_details
+        if not json_dict and method == 'OPTIONS':
+            # OPTIONS provides the list of supported verbs
+            json_dict['Allow'] = response.headers['Allow']
         return json_dict, error_details
 
     def get(self, api, params):
@@ -307,6 +320,10 @@ class OntapRestAPI(object):
     def delete(self, api, data, params=None):
         method = 'DELETE'
         return self.send_request(method, api, params, json=data)
+
+    def options(self, api, params=None):
+        method = 'OPTIONS'
+        return self.send_request(method, api, params)
 
     def _is_rest(self, used_unsupported_rest_properties=None):
         if self.use_rest == "Always":

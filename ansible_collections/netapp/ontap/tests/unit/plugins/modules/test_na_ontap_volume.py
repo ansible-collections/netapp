@@ -4,6 +4,7 @@
 ''' unit test template for ONTAP Ansible module '''
 
 from __future__ import (absolute_import, division, print_function)
+__metaclass__ = type
 import json
 import pytest
 
@@ -119,7 +120,9 @@ class MockONTAPConnection(object):
                     },
                     'volume-security-attributes': {
                         'volume-security-unix-attributes': {
-                            'permissions': vol_details['unix_permissions']
+                            'permissions': vol_details['unix_permissions'],
+                            'group-id': vol_details['group_id'],
+                            'user-id': vol_details['user_id']
                         }
                     },
                     'volume-vserver-dr-protection-attributes': {
@@ -254,6 +257,8 @@ class TestMyModule(unittest.TestCase):
             'vserver': 'test_vserver',
             'size': 20971520,
             'unix_permissions': '755',
+            'user_id': 100,
+            'group_id': 1000,
             'snapshot_policy': 'default',
             'qos_policy_group': 'performance',
             'qos_adaptive_policy_group': 'performance',
@@ -273,6 +278,8 @@ class TestMyModule(unittest.TestCase):
             'language': self.mock_vol['language'],
             'is_online': True,
             'unix_permissions': '---rwxr-xr-x',
+            'user_id': 100,
+            'group_id': 1000,
             'snapshot_policy': 'default',
             'qos_policy_group': 'performance',
             'qos_adaptive_policy_group': 'performance',
@@ -308,6 +315,7 @@ class TestMyModule(unittest.TestCase):
         vol_obj.ems_log_event = Mock(return_value=None)
         vol_obj.cluster = Mock()
         vol_obj.cluster.invoke_successfully = Mock()
+        vol_obj.get_efficiency_policy = Mock(return_value='test_efficiency')
         vol_obj.volume_style = None
         if kind is None:
             vol_obj.server = MockONTAPConnection()
@@ -724,7 +732,8 @@ class TestMyModule(unittest.TestCase):
             'name': self.mock_vol['name'],
             'vserver': self.mock_vol['vserver'],
             'style_extended': 'flexgroup',
-            'unix_permissions': '755'
+            'unix_permissions': '755',
+            'is_online': True
         }
         get_volume.side_effect = [
             current
@@ -785,6 +794,7 @@ class TestMyModule(unittest.TestCase):
         obj = self.get_volume_mock_object('success_modify_async')
         with pytest.raises(AnsibleExitJson) as exc:
             obj.apply()
+        print(exc)
         assert exc.value.args[0]['changed']
 
     @patch('ansible_collections.netapp.ontap.plugins.modules.na_ontap_volume.NetAppOntapVolume.get_volume')
@@ -969,6 +979,24 @@ class TestMyModule(unittest.TestCase):
         ''' Test successful modify vserver_dr_protection '''
         data = self.mock_args()
         data['vserver_dr_protection'] = 'protected'
+        set_module_args(data)
+        with pytest.raises(AnsibleExitJson) as exc:
+            self.get_volume_mock_object('volume').apply()
+        assert exc.value.args[0]['changed']
+
+    def test_successful_group_id(self):
+        ''' Test successful modify group_id '''
+        data = self.mock_args()
+        data['group_id'] = 1001
+        set_module_args(data)
+        with pytest.raises(AnsibleExitJson) as exc:
+            self.get_volume_mock_object('volume').apply()
+        assert exc.value.args[0]['changed']
+
+    def test_successful_user_id(self):
+        ''' Test successful modify user_id '''
+        data = self.mock_args()
+        data['user_id'] = 101
         set_module_args(data)
         with pytest.raises(AnsibleExitJson) as exc:
             self.get_volume_mock_object('volume').apply()

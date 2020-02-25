@@ -48,6 +48,15 @@ options:
     description:
     - Schedule to be added inside the policy.
     type: list
+  prefix:
+    description:
+    - Snapshot name prefix for the schedule.
+    - Prefix name should be unique within the policy.
+    - Cannot set a different prefix to a schedule that has already been assigned to a snapshot policy.
+    - Prefix cannot be modifed after schedule has been added.
+    type: list
+    required: false
+    version_added: '19.10.1'
   snapmirror_label:
     description:
     - SnapMirror label assigned to each schedule inside the policy. Use an empty
@@ -68,6 +77,7 @@ EXAMPLES = """
         state: present
         name: ansible2
         schedule: hourly
+        prefix: hourly
         count: 150
         enabled: True
         username: "{{ netapp_username }}"
@@ -80,6 +90,7 @@ EXAMPLES = """
         state: present
         name: ansible2
         schedule: ['hourly', 'daily', 'weekly', 'monthly', '5min']
+        prefix: ['hourly', 'daily', 'weekly', 'monthly', '5min']
         count: [1, 2, 3, 4, 5]
         enabled: True
         username: "{{ netapp_username }}"
@@ -93,6 +104,7 @@ EXAMPLES = """
         name: ansible3
         vserver: ansible
         schedule: ['hourly', 'daily', 'weekly', 'monthly', '5min']
+        prefix: ['hourly', 'daily', 'weekly', 'monthly', '5min']
         count: [1, 2, 3, 4, 5]
         snapmirror_label: ['hourly', 'daily', 'weekly', 'monthly', '']
         enabled: True
@@ -152,6 +164,7 @@ class NetAppOntapSnapshotPolicy(object):
             count=dict(required=False, type="list", elements="int"),
             comment=dict(required=False, type="str"),
             schedule=dict(required=False, type="list", elements="str"),
+            prefix=dict(required=False, type="list", elements="str"),
             snapmirror_label=dict(required=False, type="list", elements="str"),
             vserver=dict(required=False, type="str")
         ))
@@ -200,15 +213,21 @@ class NetAppOntapSnapshotPolicy(object):
                 current['vserver'] = snapshot_policy.get_child_content('vserver-name')
                 current['enabled'] = False if snapshot_policy.get_child_content('enabled').lower() == 'false' else True
                 current['comment'] = snapshot_policy.get_child_content('comment') or ''
-                current['schedule'], current['count'], current['snapmirror_label'] = [], [], []
+                current['schedule'], current['count'], current['snapmirror_label'], current['prefix'] = [], [], [], []
                 if snapshot_policy.get_child_by_name('snapshot-policy-schedules'):
                     for schedule in snapshot_policy['snapshot-policy-schedules'].get_children():
                         current['schedule'].append(schedule.get_child_content('schedule'))
                         current['count'].append(int(schedule.get_child_content('count')))
+
                         snapmirror_label = schedule.get_child_content('snapmirror-label')
                         if snapmirror_label is None or snapmirror_label == '-':
                             snapmirror_label = ''
                         current['snapmirror_label'].append(snapmirror_label)
+
+                        prefix = schedule.get_child_content('prefix')
+                        if prefix is None or prefix == '-':
+                            prefix = ''
+                        current['prefix'].append(prefix)
                 return current
         except netapp_utils.zapi.NaApiError as error:
             self.module.fail_json(msg=to_native(error), exception=traceback.format_exc())
@@ -231,6 +250,11 @@ class NetAppOntapSnapshotPolicy(object):
             if len(self.parameters['snapmirror_label']) != len(self.parameters['schedule']):
                 self.module.fail_json(msg="Error: Each Snapshot Policy schedule must have an "
                                           "accompanying SnapMirror Label")
+
+        if 'prefix' in self.parameters:
+            if len(self.parameters['prefix']) != len(self.parameters['schedule']):
+                self.module.fail_json(msg="Error: Each Snapshot Policy schedule must have an "
+                                          "accompanying prefix")
 
     def modify_snapshot_policy(self, current):
         """
@@ -366,9 +390,17 @@ class NetAppOntapSnapshotPolicy(object):
             # User hasn't supplied any snapmirror labels.
             snapmirror_labels = [None] * len(self.parameters['schedule'])
 
+        if 'prefix' in self.parameters:
+            prefixes = self.parameters['prefix']
+        else:
+            # User hasn't supplied any prefixes.
+            prefixes = [None] * len(self.parameters['schedule'])
+
         # zapi attribute for first schedule is schedule1, second is schedule2 and so on
         positions = [str(i) for i in range(1, len(self.parameters['schedule']) + 1)]
-        for schedule, count, snapmirror_label, position in zip(self.parameters['schedule'], self.parameters['count'], snapmirror_labels, positions):
+        for schedule, prefix, count, snapmirror_label, position in \
+            zip(self.parameters['schedule'], prefixes,
+                self.parameters['count'], snapmirror_labels, positions):
             schedule = schedule.strip()
             options['count' + position] = str(count)
             options['schedule' + position] = schedule
@@ -376,6 +408,11 @@ class NetAppOntapSnapshotPolicy(object):
                 snapmirror_label = snapmirror_label.strip()
                 if snapmirror_label != '':
                     options['snapmirror-label' + position] = snapmirror_label
+            if prefix is not None:
+                prefix = prefix.strip()
+                if prefix != '':
+                    options['prefix' + position] = prefix
+
         snapshot_obj = netapp_utils.zapi.NaElement.create_node_with_children('snapshot-policy-create', **options)
 
         # Set up optional variables to create a snapshot policy
@@ -410,9 +447,12 @@ class NetAppOntapSnapshotPolicy(object):
         :param event_name: Name of the event log
         :return: None
         """
-        results = netapp_utils.get_cserver(self.server)
-        cserver = netapp_utils.setup_na_ontap_zapi(module=self.module, vserver=results)
-        netapp_utils.ems_log_event(event_name, cserver)
+        if 'vserver' in self.parameters:
+            netapp_utils.ems_log_event(event_name, self.server)
+        else:
+            results = netapp_utils.get_cserver(self.server)
+            cserver = netapp_utils.setup_na_ontap_zapi(module=self.module, vserver=results)
+            netapp_utils.ems_log_event(event_name, cserver)
 
     def apply(self):
         """
@@ -423,7 +463,7 @@ class NetAppOntapSnapshotPolicy(object):
         modify = None
         cd_action = self.na_helper.get_cd_action(current, self.parameters)
         if cd_action is None and self.parameters['state'] == 'present':
-            # Don't sort schedule/count/snapmirror_label lists as it can
+            # Don't sort schedule/prefix/count/snapmirror_label lists as it can
             # mess up the intended parameter order.
             modify = self.na_helper.get_modified_attributes(current, self.parameters)
 

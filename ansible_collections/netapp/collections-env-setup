@@ -1,0 +1,71 @@
+# usage: source ansible_collections/netapp/collections-env-setup [-q]
+#    modifies environment for running Ansible collections from checkout
+
+# prepend a value to a potentially empty path variable
+# usage: prepend_path variable_name value
+prepend_path()
+{
+    variable_name="$1"
+    value="$2"
+
+    old_value=$( eval "echo \$$variable_name" )
+
+    if [ "x$old_value" != "x" ]; then
+        value="$value:"
+    fi
+
+    export "$variable_name=$value$old_value"
+}
+
+# Default values for shell variables we use
+PYTHONPATH=${PYTHONPATH-""}
+PYTHON=$(which python 2>/dev/null || which python3 2>/dev/null)
+PYTHON_BIN=${PYTHON_BIN-$PYTHON}
+ANSIBLE_TEST=$(which ansible-test)
+
+verbosity=${1-info} # Defaults to `info' if unspecified
+
+if [ "$verbosity" = -q ]; then
+    verbosity=silent
+fi
+
+# When run using source as directed, $0 gets set to bash, so we must use $BASH_SOURCE
+if [ -n "$BASH_SOURCE" ] ; then
+    NETAPP_DIR=$(dirname "$BASH_SOURCE")
+elif [ $(basename -- "$0") = "env-setup" ]; then
+    NETAPP_DIR=$(dirname "$0")
+# Works with ksh93 but not pdksh, have to eval to keep ash happy...
+elif [ -n "$KSH_VERSION" ] && echo $KSH_VERSION | grep -qv '^@(#)PD KSH'; then
+    eval "NETAPP_DIR=\$(dirname \"\${.sh.file}\")"
+else
+    NETAPP_DIR="$PWD/ansible_collections/netapp"
+fi
+# The below is an alternative to readlink -fn which doesn't exist on macOS
+# Source: http://stackoverflow.com/a/1678636
+FULL_PATH=$($PYTHON_BIN -c "import os; print(os.path.realpath('$NETAPP_DIR'))")
+export ANSIBLE_NETAPP_COLLECTIONS_HOME=$(dirname $(dirname "$FULL_PATH"))
+
+PREFIX_PYTHONPATH="$ANSIBLE_NETAPP_COLLECTIONS_HOME"
+PREFIX_ANSIBLE_COLLECTIONS_PATHS="$ANSIBLE_NETAPP_COLLECTIONS_HOME"
+
+expr "$PYTHONPATH" : "${PREFIX_PYTHONPATH}.*" > /dev/null || prepend_path PYTHONPATH "$PREFIX_PYTHONPATH"
+expr "$ANSIBLE_COLLECTIONS_PATHS" : "${PREFIX_ANSIBLE_COLLECTIONS_PATHS}.*" > /dev/null || prepend_path ANSIBLE_COLLECTIONS_PATHS "$PREFIX_ANSIBLE_COLLECTIONS_PATHS"
+
+if [ "$verbosity" != silent ] ; then
+    cat <<- EOF
+
+	Setting up Ansible collection to run out of checkout...
+
+        Unmodified paths:
+	PATH=$PATH
+	MANPATH=$MANPATH
+	ANSIBLE_TEST=$ANSIBLE_TEST
+	
+        Updated paths:
+	PYTHONPATH=$PYTHONPATH
+	ANSIBLE_COLLECTIONS_PATHS=$ANSIBLE_COLLECTIONS_PATHS
+
+	Done!
+
+	EOF
+fi

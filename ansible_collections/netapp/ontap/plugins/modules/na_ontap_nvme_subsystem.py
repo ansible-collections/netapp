@@ -162,8 +162,9 @@ class NetAppONTAPNVMESubsystem(object):
         subsystem_get = netapp_utils.zapi.NaElement('nvme-subsystem-get-iter')
         query = {
             'query': {
-                'nvme-subsytem-info': {
-                    'subsystem': self.parameters.get('subsystem')
+                'nvme-subsystem-info': {
+                    'subsystem': self.parameters.get('subsystem'),
+                    'vserver': self.parameters.get('vserver')
                 }
             }
         }
@@ -225,7 +226,8 @@ class NetAppONTAPNVMESubsystem(object):
         query = {
             'query': {
                 zapi_info: {
-                    'subsystem': self.parameters.get('subsystem')
+                    'subsystem': self.parameters.get('subsystem'),
+                    'vserver': self.parameters.get('vserver')
                 }
             }
         }

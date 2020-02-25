@@ -13,13 +13,13 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 
 DOCUMENTATION = '''
 module: na_ontap_cluster
-short_description: NetApp ONTAP cluster - create, join, add license
+short_description: NetApp ONTAP cluster - create and join.
 extends_documentation_fragment:
     - netapp.ontap.netapp.na_ontap
 version_added: '2.6'
 author: NetApp Ansible Team (@carchi8py) <ng-ansibleteam@netapp.com>
 description:
-- Create or join or apply licenses to ONTAP clusters
+- Create or join to ONTAP clusters
 - Cluster join can be performed using only one of the parameters, either cluster_name or cluster_ip_address
 options:
   state:
@@ -33,16 +33,20 @@ options:
   cluster_ip_address:
     description:
     - IP address of cluster to be joined
-  license_code:
+  single_node_cluster:
     description:
-    - License code to be applied to the cluster
-  license_package:
+    - Whether the cluster is a single node cluster.
+    default: False
+    version_added: '19.11.0'
+    type: bool
+  cluster_location:
     description:
-    - License package name of the license to be removed
-  node_serial_number:
+    - Cluster location, only relevant if performing a modify action.
+    version_added: '19.11.0'
+  cluster_contact:
     description:
-    - Serial number of the cluster node
-
+    - Cluster contact, only relevant if performing a modify action.
+    version_added: '19.11.0'
 '''
 
 EXAMPLES = """
@@ -53,25 +57,26 @@ EXAMPLES = """
         hostname: "{{ netapp_hostname }}"
         username: "{{ netapp_username }}"
         password: "{{ netapp_password }}"
-    - name: Add license from cluster
+    - name: Join cluster
       na_ontap_cluster:
         state: present
-        cluster_name: FPaaS-A300-01
-        license_code: SGHLQDBBVAAAAAAAAAAAAAAAAAAA
+        cluster_ip_address: 10.10.10.10
         hostname: "{{ netapp_hostname }}"
         username: "{{ netapp_username }}"
         password: "{{ netapp_password }}"
     - name: Join cluster
       na_ontap_cluster:
         state: present
-        cluster_ip_address: 10.61.184.181
+        cluster_name: "{{ netapp_cluster}}"
         hostname: "{{ netapp_hostname }}"
         username: "{{ netapp_username }}"
         password: "{{ netapp_password }}"
-    - name: Join cluster
+    - name: modify cluster again
       na_ontap_cluster:
         state: present
-        cluster_name: FPaaS-A300-01
+        cluster_contact: testing
+        cluster_location: testing
+        cluster_name: "{{ netapp_cluster}}"
         hostname: "{{ netapp_hostname }}"
         username: "{{ netapp_username }}"
         password: "{{ netapp_password }}"
@@ -86,6 +91,7 @@ from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils._text import to_native
 import ansible_collections.netapp.ontap.plugins.module_utils.netapp as netapp_utils
 from ansible_collections.netapp.ontap.plugins.module_utils.netapp_module import NetAppModule
+import time
 
 HAS_NETAPP_LIB = netapp_utils.has_netapp_lib()
 
@@ -111,17 +117,14 @@ class NetAppONTAPCluster(object):
             state=dict(required=False, choices=['present'], default='present'),
             cluster_name=dict(required=False, type='str'),
             cluster_ip_address=dict(required=False, type='str'),
-            license_code=dict(required=False, type='str'),
-            license_package=dict(required=False, type='str'),
-            node_serial_number=dict(required=False, type='str')
+            cluster_location=dict(required=False, type='str'),
+            cluster_contact=dict(required=False, type='str'),
+            single_node_cluster=dict(required=False, type='bool', default=False)
         ))
 
         self.module = AnsibleModule(
             argument_spec=self.argument_spec,
-            supports_check_mode=True,
-            required_together=[
-                ['license_package', 'node_serial_number']
-            ]
+            supports_check_mode=True
         )
 
         self.na_helper = NetAppModule()
@@ -132,38 +135,13 @@ class NetAppONTAPCluster(object):
         else:
             self.server = netapp_utils.setup_na_ontap_zapi(module=self.module)
 
-    def get_licensing_status(self):
-        """
-            Check licensing status
-
-            :return: package (key) and licensing status (value)
-            :rtype: dict
-        """
-        license_status = netapp_utils.zapi.NaElement(
-            'license-v2-status-list-info')
-        try:
-            result = self.server.invoke_successfully(license_status,
-                                                     enable_tunneling=True)
-        except netapp_utils.zapi.NaApiError as error:
-            self.module.fail_json(msg="Error checking license status: %s" %
-                                  to_native(error), exception=traceback.format_exc())
-
-        return_dictionary = {}
-        license_v2_status = result.get_child_by_name('license-v2-status')
-        if license_v2_status:
-            for license_v2_status_info in license_v2_status.get_children():
-                package = license_v2_status_info.get_child_content('package')
-                status = license_v2_status_info.get_child_content('method')
-                return_dictionary[package] = status
-
-        return return_dictionary
-
     def create_cluster(self):
         """
         Create a cluster
         """
         cluster_create = netapp_utils.zapi.NaElement.create_node_with_children(
-            'cluster-create', **{'cluster-name': self.parameters['cluster_name']})
+            'cluster-create', **{'cluster-name': self.parameters['cluster_name'],
+                                 'single-node-cluster': str(self.parameters.get('single_node_cluster'))})
 
         try:
             self.server.invoke_successfully(cluster_create,
@@ -183,53 +161,114 @@ class NetAppONTAPCluster(object):
         Add a node to an existing cluster
         """
         if self.parameters.get('cluster_ip_address') is not None:
-            cluster_add_node = netapp_utils.zapi.NaElement.create_node_with_children(
-                'cluster-join', **{'cluster-ip-address': self.parameters['cluster_ip_address']})
-            for_fail_attribute = self.parameters.get('cluster_ip_address')
-        elif self.parameters.get('cluster_name') is not None:
-            cluster_add_node = netapp_utils.zapi.NaElement.create_node_with_children(
-                'cluster-join', **{'cluster-name': self.parameters['cluster_name']})
-            for_fail_attribute = self.parameters.get('cluster_name')
+            cluster_add_node = netapp_utils.zapi.NaElement('cluster-add-node')
+            cluster_ips = netapp_utils.zapi.NaElement('cluster-ips')
+            cluster_ips.add_new_child('ip-address', self.parameters.get('cluster_ip_address'))
+            cluster_add_node.add_child_elem(cluster_ips)
         else:
             return False
         try:
             self.server.invoke_successfully(cluster_add_node, enable_tunneling=True)
         except netapp_utils.zapi.NaApiError as error:
-            # Error 36503 denotes node already being used.
-            if to_native(error.code) == "36503":
+            # skip if error says no failed operations to retry.
+            if to_native(error) == "NetApp API failed. Reason - 13001:There are no failed \"cluster create\" or \"cluster add-node\" operations to retry.":
                 return False
             else:
-                self.module.fail_json(msg='Error adding node to cluster %s: %s'
-                                      % (for_fail_attribute, to_native(error)),
+                self.module.fail_json(msg='Error adding node with ip %s: %s'
+                                      % (self.parameters.get('cluster_ip_address'), to_native(error)),
                                       exception=traceback.format_exc())
         return True
 
-    def license_v2_add(self):
+    def modify_cluster_identity(self):
         """
-        Apply a license to cluster
+        Modifies the cluster identity
         """
-        license_add = netapp_utils.zapi.NaElement.create_node_with_children('license-v2-add')
-        license_add.add_node_with_children('codes', **{'license-code-v2': self.parameters['license_code']})
-        try:
-            self.server.invoke_successfully(license_add, enable_tunneling=True)
+        cluster_modify = netapp_utils.zapi.NaElement('cluster-identity-modify')
+        cluster_modify.add_new_child("cluster-name", self.parameters.get('cluster_name'))
+        if self.parameters.get('cluster_location') is not None:
+            cluster_modify.add_new_child("cluster-location", self.parameters.get('cluster_location'))
+        if self.parameters.get('cluster_contact') is not None:
+            cluster_modify.add_new_child("cluster-contact", self.parameters.get('cluster_contact'))
 
-        except netapp_utils.zapi.NaApiError as error:
-            self.module.fail_json(msg='Error adding license %s: %s'
-                                  % (self.parameters['license_code'], to_native(error)),
-                                  exception=traceback.format_exc())
-
-    def license_v2_delete(self):
-        """
-        Delete license from cluster
-        """
-        license_delete = netapp_utils.zapi.NaElement.create_node_with_children(
-            'license-v2-delete', **{'package': self.parameters['license_package'],
-                                    'serial-number': self.parameters['node_serial_number']})
         try:
-            self.server.invoke_successfully(license_delete, enable_tunneling=True)
+            self.server.invoke_successfully(cluster_modify,
+                                            enable_tunneling=True)
         except netapp_utils.zapi.NaApiError as error:
-            self.module.fail_json(msg='Error deleting license : %s' % (to_native(error)),
+            self.module.fail_json(msg='Error modifying cluster idetity details %s: %s'
+                                      % (self.parameters['cluster_name'], to_native(error)),
                                   exception=traceback.format_exc())
+        return True
+
+    def cluster_create_wait(self):
+        """
+        Wait whilst cluster creation completes
+        """
+
+        cluster_wait = netapp_utils.zapi.NaElement('cluster-create-join-progress-get')
+        is_complete = False
+        status = ''
+
+        while not is_complete and status != 'failed':
+            try:
+                result = self.server.invoke_successfully(cluster_wait, enable_tunneling=True)
+            except netapp_utils.zapi.NaApiError as error:
+
+                self.module.fail_json(msg='Error creating cluster %s: %s'
+                                          % (self.parameters.get('cluster_name'), to_native(error)),
+                                      exception=traceback.format_exc())
+            time.sleep(10)
+
+            clus_progress = result.get_child_by_name('attributes')
+            result = clus_progress.get_child_by_name('cluster-create-join-progress-info')
+            is_complete = self.na_helper.get_value_for_bool(from_zapi=True,
+                                                            value=result.get_child_content('is-complete'))
+            status = result.get_child_content('status')
+
+        if status != 'success':
+            current_status_message = result.get_child_content('current-status-message')
+
+            self.module.fail_json(
+                msg='Failed to create cluster %s: %s' % (self.parameters.get('cluster_name'), current_status_message))
+
+        return is_complete
+
+    def node_add_wait(self):
+        """
+        Wait whilst node is being added to the existing cluster
+        """
+        cluster_node_status = netapp_utils.zapi.NaElement('cluster-add-node-status-get-iter')
+        node_status_info = netapp_utils.zapi.NaElement('cluster-create-add-node-status-info')
+        node_status_info.add_new_child('cluster-ip', self.parameters.get('cluster_ip_address'))
+        query = netapp_utils.zapi.NaElement('query')
+        query.add_child_elem(node_status_info)
+        cluster_node_status.add_child_elem(query)
+        result = self.server.invoke_successfully(cluster_node_status, True)
+
+        is_complete = None
+        failure_msg = None
+
+        while is_complete != 'success' and is_complete != 'failure':
+            try:
+                result = self.server.invoke_successfully(cluster_node_status, enable_tunneling=True)
+            except netapp_utils.zapi.NaApiError as error:
+
+                self.module.fail_json(msg='Error adding node with ip address %s: %s'
+                                          % (self.parameters.get('cluster_ip_address'), to_native(error)),
+                                      exception=traceback.format_exc())
+            time.sleep(10)
+
+            attributes_list = result.get_child_by_name('attributes-list')
+            join_progress = attributes_list.get_child_by_name('cluster-create-add-node-status-info')
+            is_complete = join_progress.get_child_content('status')
+            failure_msg = join_progress.get_child_content('failure-msg')
+
+        if is_complete != 'success':
+            if 'Node is already in a cluster' in failure_msg:
+                return is_complete
+            else:
+                self.module.fail_json(
+                    msg='Error adding node with ip address %s' % (self.parameters.get('cluster_ip_address')))
+        return is_complete
 
     def autosupport_log(self):
         """
@@ -244,12 +283,8 @@ class NetAppONTAPCluster(object):
         """
         Apply action to cluster
         """
-        property_changed = False
+        changed = False
         create_flag = False
-        join_flag = False
-
-        self.autosupport_log()
-        license_status = self.get_licensing_status()
 
         if self.module.check_mode:
             pass
@@ -257,21 +292,18 @@ class NetAppONTAPCluster(object):
             if self.parameters.get('state') == 'present':
                 if self.parameters.get('cluster_name') is not None:
                     create_flag = self.create_cluster()
+                    if create_flag:
+                        cluster_wait = self.cluster_create_wait()
+                        changed = True if cluster_wait else changed
+                    if self.parameters.get('cluster_contact') is not None or self.parameters.get('cluster_location') is not None:
+                        modify_flag = self.modify_cluster_identity()
+                        changed = True if modify_flag is True else changed
                 if not create_flag:
                     join_flag = self.cluster_join()
-                if self.parameters.get('license_code') is not None:
-                    self.license_v2_add()
-                    property_changed = True
-                if self.parameters.get('license_package') is not None and\
-                        self.parameters.get('node_serial_number') is not None:
-                    if license_status.get(str(self.parameters.get('license_package')).lower()) != 'none':
-                        self.license_v2_delete()
-                        property_changed = True
-                if property_changed:
-                    new_license_status = self.get_licensing_status()
-                    if local_cmp(license_status, new_license_status) == 0:
-                        property_changed = False
-        changed = property_changed or create_flag or join_flag
+                    if join_flag:
+                        join_wait_flag = self.node_add_wait()
+                        changed = True if join_wait_flag == 'success' else changed
+        self.autosupport_log()
         self.module.exit_json(changed=changed)
 
 

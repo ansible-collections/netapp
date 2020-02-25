@@ -29,28 +29,95 @@ options:
             - Returns "info"
         default: "info"
         choices: ['info']
+    vserver:
+        type: str
+        description:
+            - The Vserver to run on. Must be used if using VSadmin. Not all info's support VSadmin and may fail
+        version_added: '19.11.0'
     gather_subset:
         type: list
         description:
             - When supplied, this argument will restrict the information collected
                 to a given subset.  Possible values for this argument include
-                "aggregate_info", "cluster_node_info", "igroup_info", "lun_info", "net_dns_info",
+                "aggregate_info",
+                "cifs_server_info",
+                "cifs_share_info",
+                "cifs_vserver_security_info",
+                "cluster_identity_info",
+                "cluster_image_info",
+                "cluster_node_info",
+                "cluster_peer_info",
+                "clock_info",
+                "export_policy_info",
+                "export_rule_info",
+                "fcp_adapter_info",
+                "fcp_alias_info",
+                "fcp_service_info",
+                "igroup_info",
+                "job_schedule_cron_info",
+                "kerberos_realm_info",
+                "ldap_client",
+                "ldap_config",
+                "lun_info",
+                "lun_map_info",
+                "net_dns_info",
+                "net_failover_group_info",
+                "net_firewall_info",
                 "net_ifgrp_info",
-                "net_interface_info", "net_port_info", "nvme_info", "nvme_interface_info",
-                "nvme_namespace_info", "nvme_subsystem_info", "ontap_version",
-                "qos_adaptive_policy_info", "qos_policy_info", "security_key_manager_key_info",
-                "security_login_account_info", "storage_failover_info", "volume_info",
-                "vserver_info", "vserver_login_banner_info", "vserver_motd_info", "vserver_nfs_info"
+                "net_interface_info",
+                "net_ipspaces_info",
+                "net_port_info",
+                "net_port_broadcast_domain_info",
+                "net_routes_info",
+                "net_vlan_info",
+                "nfs_info",
+                "ntfs_dacl_info",
+                "ntfs_sd_info",
+                "ntp_server_info",
+                "nvme_info",
+                "nvme_interface_info",
+                "nvme_namespace_info",
+                "nvme_subsystem_info",
+                "ontap_version",
+                "role_info",
+                "service_processor_network_info",
+                "sis_policy_info",
+                "snapmirror_info",
+                "snapmirror_policy_info",
+                "snapshot_info",
+                "snapshot_policy_info",
+                "qos_adaptive_policy_info",
+                "qos_policy_info",
+                "security_key_manager_key_info",
+                "security_login_account_info",
+                "storage_failover_info",
+                "volume_info",
+                "vscan_info",
+                "vscan_status_info",
+                "vscan_scanner_pool_info",
+                "vscan_connection_status_all_info",
+                "vscan_connection_extended_stats_info",
+                "vserver_info",
+                "vserver_login_banner_info",
+                "vserver_motd_info",
+                "vserver_nfs_info",
+                "vserver_peer_info",
                 Can specify a list of values to include a larger subset.  Values can also be used
                 with an initial C(M(!)) to specify that a specific subset should
                 not be collected.
             - nvme is supported with ONTAP 9.4 onwards.
             - use "help" to get a list of supported information for your system.
         default: "all"
+    max_records:
+        type: int
+        description:
+            - Maximum number of records per subset to return. Valid range is [1..2^32-1].
+        default: 1024
+        version_added: '20.2.0'
 '''
 
 EXAMPLES = '''
-- name: Get NetApp info (Password Authentication)
+- name: Get NetApp info as Cluster Admin (Password Authentication)
   na_ontap_info:
     state: info
     hostname: "na-vsim"
@@ -60,7 +127,15 @@ EXAMPLES = '''
 - debug:
     msg: "{{ ontap_info.ontap_info }}"
 
-- name: Limit Info Gathering to Aggregate Information
+- name: Get NetApp version as Vserver admin
+  na_ontap_info:
+    state: info
+    hostname: "na-vsim"
+    username: "vsadmin"
+    vserver: trident_svm
+    password: "vsadmins_password"
+
+- name: Limit Info Gathering to Aggregate Information as Cluster Admin
   na_ontap_info:
     state: info
     hostname: "na-vsim"
@@ -69,7 +144,7 @@ EXAMPLES = '''
     gather_subset: "aggregate_info"
   register: ontap_info
 
-- name: Limit Info Gathering to Volume and Lun Information
+- name: Limit Info Gathering to Volume and Lun Information as Cluster Admin
   na_ontap_info:
     state: info
     hostname: "na-vsim"
@@ -80,7 +155,7 @@ EXAMPLES = '''
       - lun_info
   register: ontap_info
 
-- name: Gather all info except for volume and lun information
+- name: Gather all info except for volume and lun information as Cluster Admin
   na_ontap_info:
     state: info
     hostname: "na-vsim"
@@ -100,6 +175,8 @@ ontap_info:
     sample: '{
         "ontap_info": {
             "aggregate_info": {...},
+            "cluster_identity_info": {...},
+            "cluster_image_info": {...},
             "cluster_node_info": {...},
             "net_dns_info": {...},
             "net_ifgrp_info": {...},
@@ -118,6 +195,11 @@ ontap_info:
             "igroup_info": {...},
             "qos_policy_info": {...},
             "qos_adaptive_policy_info": {...}
+            "snapmirror_info": {...}
+            "vscan_status_info": {...},
+            "vscan_scanner_pool_info": {...},
+            "vscan_connection_status_all_info": {...},
+            "vscan_connection_extended_stats_info": {...}
     }'
 '''
 
@@ -144,8 +226,9 @@ HAS_NETAPP_LIB = netapp_utils.has_netapp_lib()
 class NetAppONTAPGatherInfo(object):
     '''Class with gather info methods'''
 
-    def __init__(self, module):
+    def __init__(self, module, max_records):
         self.module = module
+        self.max_records = str(max_records)
         self.netapp_info = dict()
 
         # thanks to coreywan (https://github.com/ansible/ansible/pull/47016)
@@ -159,7 +242,7 @@ class NetAppONTAPGatherInfo(object):
                     'call': 'net-dns-get-iter',
                     'attribute': 'net-dns-info',
                     'field': 'vserver-name',
-                    'query': {'max-records': '1024'},
+                    'query': {'max-records': self.max_records},
                 },
                 'min_version': '0',
             },
@@ -169,7 +252,7 @@ class NetAppONTAPGatherInfo(object):
                     'call': 'net-interface-get-iter',
                     'attribute': 'net-interface-info',
                     'field': 'interface-name',
-                    'query': {'max-records': '1024'},
+                    'query': {'max-records': self.max_records},
                 },
                 'min_version': '0',
             },
@@ -179,7 +262,26 @@ class NetAppONTAPGatherInfo(object):
                     'call': 'net-port-get-iter',
                     'attribute': 'net-port-info',
                     'field': ('node', 'port'),
-                    'query': {'max-records': '1024'},
+                    'query': {'max-records': self.max_records},
+                },
+                'min_version': '0',
+            },
+            'cluster_identity_info': {
+                'method': self.get_generic_get_iter,
+                'kwargs': {
+                    'call': 'cluster-identity-get',
+                    'attribute': 'cluster-identity-info',
+                    'field': 'cluster-name',
+                },
+                'min_version': '0',
+            },
+            'cluster_image_info': {
+                'method': self.get_generic_get_iter,
+                'kwargs': {
+                    'call': 'cluster-image-get-iter',
+                    'attribute': 'cluster-image-info',
+                    'field': 'current-version',
+                    'query': {'max-records': self.max_records},
                 },
                 'min_version': '0',
             },
@@ -189,7 +291,7 @@ class NetAppONTAPGatherInfo(object):
                     'call': 'cluster-node-get-iter',
                     'attribute': 'cluster-node-info',
                     'field': 'node-name',
-                    'query': {'max-records': '1024'},
+                    'query': {'max-records': self.max_records},
                 },
                 'min_version': '0',
             },
@@ -199,7 +301,7 @@ class NetAppONTAPGatherInfo(object):
                     'call': 'security-login-get-iter',
                     'attribute': 'security-login-account-info',
                     'field': ('vserver', 'user-name', 'application', 'authentication-method'),
-                    'query': {'max-records': '1024'},
+                    'query': {'max-records': self.max_records},
                 },
                 'min_version': '0',
             },
@@ -209,7 +311,7 @@ class NetAppONTAPGatherInfo(object):
                     'call': 'aggr-get-iter',
                     'attribute': 'aggr-attributes',
                     'field': 'aggregate-name',
-                    'query': {'max-records': '1024'},
+                    'query': {'max-records': self.max_records},
                 },
                 'min_version': '0',
             },
@@ -219,7 +321,7 @@ class NetAppONTAPGatherInfo(object):
                     'call': 'volume-get-iter',
                     'attribute': 'volume-attributes',
                     'field': ('name', 'owning-vserver-name'),
-                    'query': {'max-records': '1024'},
+                    'query': {'max-records': self.max_records},
                 },
                 'min_version': '0',
             },
@@ -229,7 +331,7 @@ class NetAppONTAPGatherInfo(object):
                     'call': 'lun-get-iter',
                     'attribute': 'lun-info',
                     'field': ('vserver', 'path'),
-                    'query': {'max-records': '1024'},
+                    'query': {'max-records': self.max_records},
                 },
                 'min_version': '0',
             },
@@ -239,7 +341,7 @@ class NetAppONTAPGatherInfo(object):
                     'call': 'cf-get-iter',
                     'attribute': 'storage-failover-info',
                     'field': 'node',
-                    'query': {'max-records': '1024'},
+                    'query': {'max-records': self.max_records},
                 },
                 'min_version': '0',
             },
@@ -249,7 +351,7 @@ class NetAppONTAPGatherInfo(object):
                     'call': 'vserver-motd-get-iter',
                     'attribute': 'vserver-motd-info',
                     'field': 'vserver',
-                    'query': {'max-records': '1024'},
+                    'query': {'max-records': self.max_records},
                 },
                 'min_version': '0',
             },
@@ -259,7 +361,7 @@ class NetAppONTAPGatherInfo(object):
                     'call': 'vserver-login-banner-get-iter',
                     'attribute': 'vserver-login-banner-info',
                     'field': 'vserver',
-                    'query': {'max-records': '1024'},
+                    'query': {'max-records': self.max_records},
                 },
                 'min_version': '0',
             },
@@ -269,7 +371,7 @@ class NetAppONTAPGatherInfo(object):
                     'call': 'security-key-manager-key-get-iter',
                     'attribute': 'security-key-manager-key-info',
                     'field': ('node', 'key-id'),
-                    'query': {'max-records': '1024'},
+                    'query': {'max-records': self.max_records},
                 },
                 'min_version': '0',
             },
@@ -279,7 +381,7 @@ class NetAppONTAPGatherInfo(object):
                     'call': 'vserver-get-iter',
                     'attribute': 'vserver-info',
                     'field': 'vserver-name',
-                    'query': {'max-records': '1024'},
+                    'query': {'max-records': self.max_records},
                 },
                 'min_version': '0',
             },
@@ -289,7 +391,7 @@ class NetAppONTAPGatherInfo(object):
                     'call': 'nfs-service-get-iter',
                     'attribute': 'nfs-info',
                     'field': 'vserver',
-                    'query': {'max-records': '1024'},
+                    'query': {'max-records': self.max_records},
                 },
                 'min_version': '0',
             },
@@ -303,13 +405,18 @@ class NetAppONTAPGatherInfo(object):
                 'kwargs': {},
                 'min_version': '0',
             },
+            'clock_info': {
+                'method': self.clock_get_clock,
+                'kwargs': {},
+                'min_version': '0'
+            },
             'system_node_info': {
                 'method': self.get_generic_get_iter,
                 'kwargs': {
                     'call': 'system-node-get-iter',
                     'attribute': 'node-details-info',
                     'field': 'node',
-                    'query': {'max-records': '1024'},
+                    'query': {'max-records': self.max_records},
                 },
                 'min_version': '0',
             },
@@ -319,7 +426,7 @@ class NetAppONTAPGatherInfo(object):
                     'call': 'igroup-get-iter',
                     'attribute': 'initiator-group-info',
                     'field': ('vserver', 'initiator-group-name'),
-                    'query': {'max-records': '1024'},
+                    'query': {'max-records': self.max_records},
                 },
                 'min_version': '0',
             },
@@ -329,7 +436,57 @@ class NetAppONTAPGatherInfo(object):
                     'call': 'qos-policy-group-get-iter',
                     'attribute': 'qos-policy-group-info',
                     'field': 'policy-group',
-                    'query': {'max-records': '1024'},
+                    'query': {'max-records': self.max_records},
+                },
+                'min_version': '0',
+            },
+            'vscan_status_info': {
+                'method': self.get_generic_get_iter,
+                'kwargs': {
+                    'call': 'vscan-status-get-iter',
+                    'attribute': 'vscan-status-info',
+                    'field': 'vserver',
+                    'query': {'max-records': self.max_records},
+                },
+                'min_version': '0',
+            },
+            'vscan_scanner_pool_info': {
+                'method': self.get_generic_get_iter,
+                'kwargs': {
+                    'call': 'vscan-scanner-pool-get-iter',
+                    'attribute': 'vscan-scanner-pool-info',
+                    'field': 'vserver',
+                    'query': {'max-records': self.max_records},
+                },
+                'min_version': '0',
+            },
+            'vscan_connection_status_all_info': {
+                'method': self.get_generic_get_iter,
+                'kwargs': {
+                    'call': 'vscan-connection-status-all-get-iter',
+                    'attribute': 'vscan-connection-status-all-info',
+                    'field': 'vserver',
+                    'query': {'max-records': self.max_records},
+                },
+                'min_version': '0',
+            },
+            'vscan_connection_extended_stats_info': {
+                'method': self.get_generic_get_iter,
+                'kwargs': {
+                    'call': 'vscan-connection-extended-stats-get-iter',
+                    'attribute': 'vscan-connection-extended-stats-info',
+                    'field': 'vserver',
+                    'query': {'max-records': self.max_records},
+                },
+                'min_version': '0',
+            },
+            'snapshot_info': {
+                'method': self.get_generic_get_iter,
+                'kwargs': {
+                    'call': 'snapshot-get-iter',
+                    'attribute': 'snapshot-info',
+                    'field': ('vserver', 'volume', 'name'),
+                    'query': {'max-records': self.max_records},
                 },
                 'min_version': '0',
             },
@@ -340,7 +497,7 @@ class NetAppONTAPGatherInfo(object):
                     'call': 'qos-adaptive-policy-group-get-iter',
                     'attribute': 'qos-adaptive-policy-group-info',
                     'field': 'policy-group',
-                    'query': {'max-records': '1024'},
+                    'query': {'max-records': self.max_records},
                 },
                 'min_version': '130',
             },
@@ -351,7 +508,7 @@ class NetAppONTAPGatherInfo(object):
                     'call': 'nvme-get-iter',
                     'attribute': 'nvme-target-service-info',
                     'field': 'vserver',
-                    'query': {'max-records': '1024'},
+                    'query': {'max-records': self.max_records},
                 },
                 'min_version': '140',
             },
@@ -361,7 +518,7 @@ class NetAppONTAPGatherInfo(object):
                     'call': 'nvme-interface-get-iter',
                     'attribute': 'nvme-interface-info',
                     'field': 'vserver',
-                    'query': {'max-records': '1024'},
+                    'query': {'max-records': self.max_records},
                 },
                 'min_version': '140',
             },
@@ -371,7 +528,7 @@ class NetAppONTAPGatherInfo(object):
                     'call': 'nvme-subsystem-get-iter',
                     'attribute': 'nvme-subsystem-info',
                     'field': 'subsystem',
-                    'query': {'max-records': '1024'},
+                    'query': {'max-records': self.max_records},
                 },
                 'min_version': '140',
             },
@@ -381,9 +538,330 @@ class NetAppONTAPGatherInfo(object):
                     'call': 'nvme-namespace-get-iter',
                     'attribute': 'nvme-namespace-info',
                     'field': 'path',
-                    'query': {'max-records': '1024'},
+                    'query': {'max-records': self.max_records},
                 },
                 'min_version': '140',
+            },
+            'snapmirror_info': {
+                'method': self.get_generic_get_iter,
+                'kwargs': {
+                    'call': 'snapmirror-get-iter',
+                    'attribute': 'snapmirror-info',
+                    'field': 'destination-location',
+                    'query': {'max-records': self.max_records},
+                },
+                'min_version': '140',
+            },
+            'cifs_server_info': {
+                'method': self.get_generic_get_iter,
+                'kwargs': {
+                    'call': 'cifs-server-get-iter',
+                    'attribute': 'cifs-server-config',
+                    'field': ('vserver', 'domain', 'cifs-server'),
+                    'query': {'max-records': self.max_records},
+                },
+                'min_version': '0',
+            },
+            'cifs_share_info': {
+                'method': self.get_generic_get_iter,
+                'kwargs': {
+                    'call': 'cifs-share-get-iter',
+                    'attribute': 'cifs-share',
+                    'field': ('share-name', 'path', 'cifs-server'),
+                    'query': {'max-records': self.max_records},
+                },
+                'min_version': '0',
+            },
+            'cifs_vserver_security_info': {
+                'method': self.get_generic_get_iter,
+                'kwargs': {
+                    'call': 'cifs-security-get-iter',
+                    'attribute': 'cifs-security',
+                    'field': ('vserver'),
+                    'query': {'max-records': self.max_records},
+                },
+                'min_version': '0',
+            },
+            'cluster_peer_info': {
+                'method': self.get_generic_get_iter,
+                'kwargs': {
+                    'call': 'cluster-peer-get-iter',
+                    'attribute': 'cluster-peer-info',
+                    'field': ('cluster-name', 'remote-cluster-name'),
+                    'query': {'max-records': self.max_records},
+                },
+                'min_version': '0',
+            },
+            'export_policy_info': {
+                'method': self.get_generic_get_iter,
+                'kwargs': {
+                    'call': 'export-policy-get-iter',
+                    'attribute': 'export-policy-info',
+                    'field': ('vserver', 'policy-name'),
+                    'query': {'max-records': self.max_records},
+                },
+                'min_version': '0',
+            },
+            'export_rule_info': {
+                'method': self.get_generic_get_iter,
+                'kwargs': {
+                    'call': 'export-rule-get-iter',
+                    'attribute': 'export-rule-info',
+                    'field': ('vserver-name', 'policy-name', 'rule-index'),
+                    'query': {'max-records': self.max_records},
+                },
+                'min_version': '0',
+            },
+            'fcp_adapter_info': {
+                'method': self.get_generic_get_iter,
+                'kwargs': {
+                    'call': 'ucm-adapter-get-iter',
+                    'attribute': 'uc-adapter-info',
+                    'field': ('adapter-name', 'node-name'),
+                    'query': {'max-records': self.max_records},
+                },
+                'min_version': '0',
+            },
+            'fcp_alias_info': {
+                'method': self.get_generic_get_iter,
+                'kwargs': {
+                    'call': 'fcp-wwpnalias-get-iter',
+                    'attribute': 'aliases-info',
+                    'field': ('aliases-alias', 'vserver'),
+                    'query': {'max-records': self.max_records},
+                },
+                'min_version': '0',
+            },
+            'fcp_service_info': {
+                'method': self.get_generic_get_iter,
+                'kwargs': {
+                    'call': 'fcp-service-get-iter',
+                    'attribute': 'fcp-service-info',
+                    'field': ('vserver'),
+                    'query': {'max-records': self.max_records},
+                },
+                'min_version': '0',
+            },
+            'job_schedule_cron_info': {
+                'method': self.get_generic_get_iter,
+                'kwargs': {
+                    'call': 'job-schedule-cron-get-iter',
+                    'attribute': 'job-schedule-cron-info',
+                    'field': ('job-schedule-name', 'job-schedule-cluster'),
+                    'query': {'max-records': self.max_records},
+                },
+                'min_version': '0',
+            },
+            'kerberos_realm_info': {
+                'method': self.get_generic_get_iter,
+                'kwargs': {
+                    'call': 'kerberos-realm-get-iter',
+                    'attribute': 'kerberos-realm',
+                    'field': ('vserver-name', 'realm'),
+                    'query': {'max-records': self.max_records},
+                },
+                'min_version': '0',
+            },
+            'ldap_client': {
+                'method': self.get_generic_get_iter,
+                'kwargs': {
+                    'call': 'ldap-client-get-iter',
+                    'attribute': 'ldap-client',
+                    'field': ('vserver'),
+                    'query': {'max-records': self.max_records},
+                },
+                'min_version': '0',
+            },
+            'ldap_config': {
+                'method': self.get_generic_get_iter,
+                'kwargs': {
+                    'call': 'ldap-config-get-iter',
+                    'attribute': 'ldap-config',
+                    'field': ('vserver'),
+                    'query': {'max-records': self.max_records},
+                },
+                'min_version': '0',
+            },
+            'lun_map_info': {
+                'method': self.get_generic_get_iter,
+                'kwargs': {
+                    'call': 'lun-map-get-iter',
+                    'attribute': 'lun-map-info',
+                    'field': ('initiator-group', 'lun-id', 'node', 'path', 'vserver'),
+                    'query': {'max-records': self.max_records},
+                },
+                'min_version': '0',
+            },
+            'net_failover_group_info': {
+                'method': self.get_generic_get_iter,
+                'kwargs': {
+                    'call': 'net-failover-group-get-iter',
+                    'attribute': 'net-failover-group-info',
+                    'field': ('vserver', 'failover-group'),
+                    'query': {'max-records': self.max_records},
+                },
+                'min_version': '0',
+            },
+            'net_firewall_info': {
+                'method': self.get_generic_get_iter,
+                'kwargs': {
+                    'call': 'net-firewall-policy-get-iter',
+                    'attribute': 'net-firewall-policy-info',
+                    'field': ('policy', 'vserver', 'service'),
+                    'query': {'max-records': self.max_records},
+                },
+                'min_version': '0',
+            },
+            'net_ipspaces_info': {
+                'method': self.get_generic_get_iter,
+                'kwargs': {
+                    'call': 'net-ipspaces-get-iter',
+                    'attribute': 'net-ipspaces-info',
+                    'field': ('ipspace'),
+                    'query': {'max-records': self.max_records},
+                },
+                'min_version': '0',
+            },
+            'net_port_broadcast_domain_info': {
+                'method': self.get_generic_get_iter,
+                'kwargs': {
+                    'call': 'net-port-broadcast-domain-get-iter',
+                    'attribute': 'net-port-broadcast-domain-info',
+                    'field': ('broadcast-domain', 'ipspace'),
+                    'query': {'max-records': self.max_records},
+                },
+                'min_version': '0',
+            },
+            'net_routes_info': {
+                'method': self.get_generic_get_iter,
+                'kwargs': {
+                    'call': 'net-routes-get-iter',
+                    'attribute': 'net-vs-routes-info',
+                    'field': ('vserver', 'destination', 'gateway'),
+                    'query': {'max-records': self.max_records},
+                },
+                'min_version': '0',
+            },
+            'net_vlan_info': {
+                'method': self.get_generic_get_iter,
+                'kwargs': {
+                    'call': 'net-vlan-get-iter',
+                    'attribute': 'vlan-info',
+                    'field': ('interface-name', 'node'),
+                    'query': {'max-records': self.max_records},
+                },
+                'min_version': '0',
+            },
+            'nfs_info': {
+                'method': self.get_generic_get_iter,
+                'kwargs': {
+                    'call': 'nfs-service-get-iter',
+                    'attribute': 'nfs-info',
+                    'field': ('vserver'),
+                    'query': {'max-records': self.max_records},
+                },
+                'min_version': '0',
+            },
+            'ntfs_dacl_info': {
+                'method': self.get_generic_get_iter,
+                'kwargs': {
+                    'call': 'file-directory-security-ntfs-dacl-get-iter',
+                    'attribute': 'file-directory-security-ntfs-dacl',
+                    'field': ('vserver', 'ntfs-sd', 'account', 'access-type'),
+                    'query': {'max-records': self.max_records},
+                },
+                'min_version': '0',
+            },
+            'ntfs_sd_info': {
+                'method': self.get_generic_get_iter,
+                'kwargs': {
+                    'call': 'file-directory-security-ntfs-get-iter',
+                    'attribute': 'file-directory-security-ntfs',
+                    'field': ('vserver', 'ntfs-sd'),
+                    'query': {'max-records': self.max_records},
+                },
+                'min_version': '0',
+            },
+            'ntp_server_info': {
+                'method': self.get_generic_get_iter,
+                'kwargs': {
+                    'call': 'ntp-server-get-iter',
+                    'attribute': 'ntp-server-info',
+                    'field': ('server-name'),
+                    'query': {'max-records': self.max_records},
+                },
+                'min_version': '0',
+            },
+            'role_info': {
+                'method': self.get_generic_get_iter,
+                'kwargs': {
+                    'call': 'security-login-role-get-iter',
+                    'attribute': 'security-login-role-info',
+                    'field': ('vserver', 'role-name', 'access-level', 'command-directory-name'),
+                    'query': {'max-records': self.max_records},
+                },
+                'min_version': '0',
+            },
+            'service_processor_network_info': {
+                'method': self.get_generic_get_iter,
+                'kwargs': {
+                    'call': 'service-processor-network-get-iter',
+                    'attribute': 'service-processor-network-info',
+                    # don't use fields, as we cannot build a key with optional fields
+                    # without a key, we'll get a list of dictionaries
+                    'query': {'max-records': self.max_records},
+                },
+                'min_version': '0',
+            },
+            'sis_policy_info': {
+                'method': self.get_generic_get_iter,
+                'kwargs': {
+                    'call': 'sis-policy-get-iter',
+                    'attribute': 'sis-policy-info',
+                    'field': ('vserver', 'policy-name'),
+                    'query': {'max-records': self.max_records},
+                },
+                'min_version': '0',
+            },
+            'snapmirror_policy_info': {
+                'method': self.get_generic_get_iter,
+                'kwargs': {
+                    'call': 'snapmirror-policy-get-iter',
+                    'attribute': 'snapmirror-policy-info',
+                    'field': ('vserver-name', 'policy-name'),
+                    'query': {'max-records': self.max_records},
+                },
+                'min_version': '0',
+            },
+            'snapshot_policy_info': {
+                'method': self.get_generic_get_iter,
+                'kwargs': {
+                    'call': 'snapshot-policy-get-iter',
+                    'attribute': 'snapshot-policy-info',
+                    'field': ('vserver-name', 'policy'),
+                    'query': {'max-records': self.max_records},
+                },
+                'min_version': '0',
+            },
+            'vscan_info': {
+                'method': self.get_generic_get_iter,
+                'kwargs': {
+                    'call': 'vscan-status-get-iter',
+                    'attribute': 'vscan-status-info',
+                    'field': ('vserver'),
+                    'query': {'max-records': self.max_records},
+                },
+                'min_version': '0',
+            },
+            'vserver_peer_info': {
+                'method': self.get_generic_get_iter,
+                'kwargs': {
+                    'call': 'vserver-peer-get-iter',
+                    'attribute': 'vserver-peer-info',
+                    'field': ('vserver', 'remote-vserver-name'),
+                    'query': {'max-records': self.max_records},
+                },
+                'min_version': '0',
             },
         }
 
@@ -391,6 +869,26 @@ class NetAppONTAPGatherInfo(object):
             self.module.fail_json(msg="the python NetApp-Lib module is required")
         else:
             self.server = netapp_utils.setup_na_ontap_zapi(module=self.module)
+
+    def clock_get_clock(self):
+        """
+        Return the clock for the vsever or cluster
+        :return:
+        """
+        api = "clock-get-clock"
+        api_call = netapp_utils.zapi.NaElement(api)
+        try:
+            results = self.server.invoke_successfully(api_call, enable_tunneling=False)
+            local_time = results.get_child_content('local-time')
+            utc_time = results.get_child_content('utc-time')
+            return_value = {
+                'local_time': local_time,
+                'utc_time': utc_time,
+            }
+            return return_value
+        except netapp_utils.zapi.NaApiError as error:
+            self.module.fail_json(msg="Error calling API %s: %s" %
+                                  (api, to_native(error)), exception=traceback.format_exc())
 
     def ontapi(self):
         '''Method to get ontapi version'''
@@ -455,8 +953,7 @@ class NetAppONTAPGatherInfo(object):
         '''Method to run a generic get-iter call'''
 
         generic_call = self.call_api(call, query)
-
-        if call == 'net-port-ifgrp-get':
+        if call == 'net-port-ifgrp-get' or call == 'cluster-identity-get':
             children = 'attributes'
         else:
             children = 'attributes-list'
@@ -496,9 +993,12 @@ class NetAppONTAPGatherInfo(object):
     def get_all(self, gather_subset):
         '''Method to get all subsets'''
 
-        results = netapp_utils.get_cserver(self.server)
-        cserver = netapp_utils.setup_na_ontap_zapi(module=self.module, vserver=results)
-        netapp_utils.ems_log_event("na_ontap_info", cserver)
+        if self.module.params['vserver']:
+            netapp_utils.ems_log_event("na_ontap_info", self.server)
+        else:
+            results = netapp_utils.get_cserver(self.server)
+            cserver = netapp_utils.setup_na_ontap_zapi(module=self.module, vserver=results)
+            netapp_utils.ems_log_event("na_ontap_info", cserver)
 
         self.netapp_info['ontap_version'] = self.ontapi()
 
@@ -592,6 +1092,8 @@ def main():
     argument_spec.update(dict(
         state=dict(type='str', default='info', choices=['info']),
         gather_subset=dict(default=['all'], type='list'),
+        vserver=dict(type='str', default=None, required=False),
+        max_records=dict(type='int', default=1024, required=False)
     ))
 
     module = AnsibleModule(
@@ -609,7 +1111,8 @@ def main():
     gather_subset = module.params['gather_subset']
     if gather_subset is None:
         gather_subset = ['all']
-    gf_obj = NetAppONTAPGatherInfo(module)
+    max_records = module.params['max_records']
+    gf_obj = NetAppONTAPGatherInfo(module, max_records)
     gf_all = gf_obj.get_all(gather_subset)
     result = {'state': state, 'changed': False}
     module.exit_json(ontap_info=gf_all, **result)

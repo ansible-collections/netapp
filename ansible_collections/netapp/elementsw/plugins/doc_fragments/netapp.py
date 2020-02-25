@@ -3,6 +3,9 @@
 # Copyright: (c) 2018, NetApp Ansible Team <ng-ansibleteam@netapp.com>
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
+from __future__ import (absolute_import, division, print_function)
+__metaclass__ = type
+
 
 class ModuleDocFragment(object):
 
@@ -22,17 +25,20 @@ options:
       required: true
       description:
       - The hostname or IP address of the SolidFire cluster.
+      type: str
   username:
       required: true
       description:
       - Please ensure that the user has the adequate permissions. For more information, please read the official documentation
         U(https://mysupport.netapp.com/documentation/docweb/index.html?productID=62636&language=en-US).
       aliases: ['user']
+      type: str
   password:
       required: true
       description:
       - Password for the specified user.
       aliases: ['pass']
+      type: str
 
 requirements:
   - The modules were developed with SolidFire 10.1

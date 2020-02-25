@@ -17,7 +17,7 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 
 DOCUMENTATION = '''
 
-module: aws_netapp_cvs_FileSystems
+module: aws_netapp_cvs_filesystems
 
 short_description: NetApp AWS Cloud Volumes Service Manage FileSystem.
 extends_documentation_fragment:
@@ -109,7 +109,7 @@ options:
 
 EXAMPLES = """
 - name: Create FileSystem
-  aws_netapp_cvs_FileSystems:
+  aws_netapp_cvs_filesystems:
     state: present
     region: us-east-1
     creationToken: newVolume-1
@@ -128,7 +128,7 @@ EXAMPLES = """
     secret_key : U1FwdHdKSGRQQUhIdkIwMktMU1ZCV2x6WUowZWRD
 
 - name: Update FileSystem
-  aws_netapp_cvs_FileSystems:
+  aws_netapp_cvs_filesystems:
      state: present
      region: us-east-1
      creationToken: newVolume-1
@@ -147,7 +147,7 @@ EXAMPLES = """
      secret_key : U1FwdHdKSGRQQUhIdkIwMktMU1ZCV2x6WUowZWRD
 
 - name: Delete FileSystem
-  aws_netapp_cvs_FileSystems:
+  aws_netapp_cvs_filesystems:
      state: present
      region: us-east-1
      creationToken: newVolume-1

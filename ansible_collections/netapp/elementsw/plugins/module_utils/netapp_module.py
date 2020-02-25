@@ -214,6 +214,9 @@ class NetAppModule(object):
             not in the current state
             It is expected that all attributes of interest are listed in current and
             desired.
+            The same assumption holds true for any nested directory.
+            TODO: This is actually not true for the ElementSW 'attributes' directory.
+                  Practically it means you cannot add or remove a key in a modify.
             :param: current: current attributes in ONTAP
             :param: desired: attributes from playbook
             :param: get_list_diff: specifies whether to have a diff of desired list w.r.t current list for an attribute
@@ -239,6 +242,10 @@ class NetAppModule(object):
                     modified_list = self.compare_lists(value, desired[key], get_list_diff)  # get modified list from current and desired
                     if modified_list:
                         modified[key] = modified_list
+                elif type(value) is dict:
+                    modified_dict = self.get_modified_attributes(value, desired[key], get_list_diff)
+                    if modified_dict:
+                        modified[key] = modified_dict
                 elif cmp(value, desired[key]) != 0:
                     modified[key] = desired[key]
         if modified:

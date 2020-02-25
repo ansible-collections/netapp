@@ -31,31 +31,37 @@ options:
     - Whether the specified aggregate should exist or not.
     choices: ['present', 'absent']
     default: 'present'
+    type: str
 
   service_state:
     description:
     - Whether the specified aggregate should be enabled or disabled. Creates aggregate if doesnt exist.
     choices: ['online', 'offline']
+    type: str
 
   name:
-    required: true
     description:
     - The name of the aggregate to manage.
+    required: true
+    type: str
 
   from_name:
     description:
     - Name of the aggregate to be renamed.
+    type: str
     version_added: '2.7'
 
   nodes:
     description:
     - Node(s) for the aggregate to be created on.  If no node specified, mgmt lif home will be used.
     - If multiple nodes specified an aggr stripe will be made.
+    type: list
 
   disk_type:
     description:
     - Type of disk to use to build aggregate
     choices: ['ATA', 'BSAS', 'FCAL', 'FSAS', 'LUN', 'MSATA', 'SAS', 'SSD', 'VMDISK']
+    type: str
     version_added: '2.7'
 
   disk_count:
@@ -65,56 +71,61 @@ options:
     - The smallest disks in this pool join the aggregate first, unless the C(disk-size) argument is provided.
     - Either C(disk-count) or C(disks) must be supplied. Range [0..2^31-1].
     - Required when C(state=present).
+    type: int
 
   disk_size:
     description:
     - Disk size to use in 4K block size.  Disks within 10% of specified size will be used.
+    type: int
     version_added: '2.7'
 
   raid_size:
     description:
     - Sets the maximum number of drives per raid group.
+    type: int
     version_added: '2.7'
 
   raid_type:
     description:
     - Specifies the type of RAID groups to use in the new aggregate.
     choices: ['raid4', 'raid_dp', 'raid_tec']
+    type: str
     version_added: '2.7'
 
   unmount_volumes:
-    type: bool
     description:
     - If set to "TRUE", this option specifies that all of the volumes hosted by the given aggregate are to be unmounted
     - before the offline operation is executed.
     - By default, the system will reject any attempt to offline an aggregate that hosts one or more online volumes.
+    type: bool
 
   disks:
-    type: list
     description:
     - Specific list of disks to use for the new aggregate.
     - To create a "mirrored" aggregate with a specific list of disks, both 'disks' and 'mirror_disks' options must be supplied.
       Additionally, the same number of disks must be supplied in both lists.
+    type: list
     version_added: '2.8'
 
   is_mirrored:
-    type: bool
     description:
     - Specifies that the new aggregate be mirrored (have two plexes).
     - If set to true, then the indicated disks will be split across the two plexes. By default, the new aggregate will not be mirrored.
     - This option cannot be used when a specific list of disks is supplied with either the 'disks' or 'mirror_disks' options.
+    type: bool
     version_added: '2.8'
 
   mirror_disks:
-    type: list
     description:
     - List of mirror disks to use. It must contain the same number of disks specified in 'disks'.
+    type: list
     version_added: '2.8'
 
   spare_pool:
     description:
     - Specifies the spare pool from which to select spare disks to use in creation of a new aggregate.
     choices: ['Pool0', 'Pool1']
+    type: str
     version_added: '2.8'
 
   wait_for_online:
@@ -130,13 +141,22 @@ options:
     description:
       - time to wait for aggregate creation in seconds
       - default is set to 100 seconds
+    type: int
     default: 100
     version_added: "2.8"
 
   object_store_name:
     description:
       - Name of the object store configuration attached to the aggregate
+    type: str
     version_added: "2.9"
+
+  snaplock_type:
+    description:
+    - Type of snaplock for the aggregate being created.
+    choices: ['compliance', 'enterprise', 'non_snaplock']
+    type: str
+    version_added: '20.1.0'
 '''
 
 EXAMPLES = """
@@ -148,6 +168,7 @@ EXAMPLES = """
     disk_count: 1
     wait_for_online: True
     time_out: 300
+    snaplock_type: non_snaplock
     hostname: "{{ netapp_hostname }}"
     username: "{{ netapp_username }}"
     password: "{{ netapp_password }}"
@@ -231,7 +252,8 @@ class NetAppOntapAggregate(object):
             unmount_volumes=dict(required=False, type='bool'),
             wait_for_online=dict(required=False, type='bool', default=False),
             time_out=dict(required=False, type='int', default=100),
-            object_store_name=dict(required=False, type='str')
+            object_store_name=dict(required=False, type='str'),
+            snaplock_type=dict(required=False, type='str', choices=['compliance', 'enterprise', 'non_snaplock'])
         ))
 
         self.module = AnsibleModule(
@@ -249,6 +271,7 @@ class NetAppOntapAggregate(object):
         )
 
         self.na_helper = NetAppModule()
+        self.using_vserver_msg = None   # This module should be run as cluster admin
         self.parameters = self.na_helper.set_parameters(self.module.params)
         if self.parameters.get('mirror_disks') is not None and self.parameters.get('disks') is None:
             self.module.fail_json(mgs="mirror_disks require disks options to be set")
@@ -278,7 +301,10 @@ class NetAppOntapAggregate(object):
             if to_native(error.code) == "13040":
                 pass
             else:
-                self.module.fail_json(msg=to_native(error), exception=traceback.format_exc())
+                msg = to_native(error)
+                if self.using_vserver_msg is not None:
+                    msg += '.  Added info: %s.' % self.using_vserver_msg
+                self.module.fail_json(msg=msg, exception=traceback.format_exc())
         return result
 
     def get_aggr(self, name=None):
@@ -394,6 +420,8 @@ class NetAppOntapAggregate(object):
             options['spare-pool'] = self.parameters['spare_pool']
         if self.parameters.get('raid_type'):
             options['raid-type'] = self.parameters['raid_type']
+        if self.parameters.get('snaplock_type'):
+            options['snaplock-type'] = self.parameters['snaplock_type']
         aggr_create = netapp_utils.zapi.NaElement.create_node_with_children('aggr-create', **options)
         if self.parameters.get('nodes'):
             nodes_obj = netapp_utils.zapi.NaElement('nodes')
@@ -493,9 +521,14 @@ class NetAppOntapAggregate(object):
         :param event_name: Name of the event log
         :return: None
         """
-        results = netapp_utils.get_cserver(self.server)
-        cserver = netapp_utils.setup_na_ontap_zapi(module=self.module, vserver=results)
-        netapp_utils.ems_log_event(event_name, cserver)
+        cserver = netapp_utils.get_cserver(self.server)
+        if cserver is None:
+            server = self.server
+            self.using_vserver_msg = netapp_utils.ERROR_MSG['no_cserver']
+            event_name += ':error_no_cserver'
+        else:
+            server = netapp_utils.setup_na_ontap_zapi(module=self.module, vserver=cserver)
+        netapp_utils.ems_log_event(event_name, server)
 
     def apply(self):
         """

@@ -4,6 +4,7 @@
 ''' unit tests ONTAP Ansible module: na_ontap_cluster '''
 
 from __future__ import (absolute_import, division, print_function)
+__metaclass__ = type
 import json
 import pytest
 
@@ -63,6 +64,8 @@ class MockONTAPConnection(object):
         self.xml_in = xml
         if self.type == 'cluster':
             xml = self.build_cluster_info()
+        elif self.type == 'cluster_add':
+            xml = self.build_add_node_info()
         elif self.type == 'cluster_fail':
             raise netapp_utils.zapi.NaApiError(code='TEST', message="This exception is from the unit test")
         self.xml_out = xml
@@ -74,11 +77,32 @@ class MockONTAPConnection(object):
 
     @staticmethod
     def build_cluster_info():
-        ''' build xml data for cluster-info '''
+        ''' build xml data for cluster-create-join-progress-info '''
         xml = netapp_utils.zapi.NaElement('xml')
-        data = {'license-v2-status': {'package': 'cifs', 'method': 'site'}}
-        xml.translate_struct(data)
-        print(xml.to_string())
+        attributes = {
+            'attributes': {
+                'cluster-create-join-progress-info': {
+                    'is-complete': 'true',
+                    'status': 'success'
+                }
+            }
+        }
+        xml.translate_struct(attributes)
+        return xml
+
+    @staticmethod
+    def build_add_node_info():
+        ''' build xml data for cluster-create-add-node-status-info '''
+        xml = netapp_utils.zapi.NaElement('xml')
+        attributes = {
+            'attributes-list': {
+                'cluster-create-add-node-status-info': {
+                    'failure-msg': '',
+                    'status': 'success'
+                }
+            }
+        }
+        xml.translate_struct(attributes)
         return xml
 
 
@@ -96,31 +120,20 @@ class TestMyModule(unittest.TestCase):
 
     def set_default_args(self):
         if self.use_vsim:
-            hostname = '10.193.77.37'
+            hostname = '10.10.10.10'
             username = 'admin'
-            password = 'netapp1!'
-            license_package = 'CIFS'
-            node_serial_number = '123'
-            license_code = 'AAA'
+            password = 'password'
             cluster_name = 'abc'
         else:
-            hostname = '10.193.77.37'
+            hostname = '10.10.10.10'
             username = 'admin'
-            password = 'netapp1!'
-            license_package = 'CIFS'
-            node_serial_number = '123'
-            cluster_ip_address = '0.0.0.0'
-            license_code = 'AAA'
+            password = 'password'
             cluster_name = 'abc'
         return dict({
             'hostname': hostname,
             'username': username,
             'password': password,
-            'license_package': license_package,
-            'node_serial_number': node_serial_number,
-            'license_code': license_code,
-            'cluster_name': cluster_name,
-            'cluster_ip_address': cluster_ip_address
+            'cluster_name': cluster_name
         })
 
     def test_module_fail_when_required_args_missing(self):
@@ -130,28 +143,13 @@ class TestMyModule(unittest.TestCase):
             my_module()
         print('Info: %s' % exc.value.args[0]['msg'])
 
-    def test_ensure_license_get_called(self):
-        ''' fetching details of license '''
-        set_module_args(self.set_default_args())
-        my_obj = my_module()
-        my_obj.server = self.server
-        license_get = my_obj.get_licensing_status()
-        print('Info: test_license_get: %s' % repr(license_get))
-        assert not bool(license_get)
-
     def test_ensure_apply_for_cluster_called(self):
-        ''' creating license and checking idempotency '''
+        ''' creating cluster and checking idempotency '''
         module_args = {}
         module_args.update(self.set_default_args())
         set_module_args(module_args)
         my_obj = my_module()
         my_obj.autosupport_log = Mock(return_value=None)
-        if not self.use_vsim:
-            my_obj.server = self.server
-        with pytest.raises(AnsibleExitJson) as exc:
-            my_obj.apply()
-        print('Info: test_cluster_apply: %s' % repr(exc.value))
-        assert exc.value.args[0]['changed']
         if not self.use_vsim:
             my_obj.server = MockONTAPConnection('cluster')
         with pytest.raises(AnsibleExitJson) as exc:
@@ -174,6 +172,22 @@ class TestMyModule(unittest.TestCase):
         print('Info: test_cluster_apply: %s' % repr(exc.value))
         cluster_create.assert_called_with()
 
+    @patch('ansible_collections.netapp.ontap.plugins.modules.na_ontap_cluster.NetAppONTAPCluster.cluster_join')
+    def test_cluster_join_called(self, cluster_join):
+        ''' creating cluster_join'''
+        data = self.set_default_args()
+        del data['cluster_name']
+        data['cluster_ip_address'] = '10.10.10.10'
+        set_module_args(data)
+        my_obj = my_module()
+        my_obj.autosupport_log = Mock(return_value=None)
+        if not self.use_vsim:
+            my_obj.server = MockONTAPConnection('cluster_add')
+        with pytest.raises(AnsibleExitJson) as exc:
+            my_obj.apply()
+        print('Info: test_cluster_apply: %s' % repr(exc.value))
+        cluster_join.assert_called_with()
+
     def test_if_all_methods_catch_exception(self):
         module_args = {}
         module_args.update(self.set_default_args())
@@ -182,17 +196,14 @@ class TestMyModule(unittest.TestCase):
         if not self.use_vsim:
             my_obj.server = MockONTAPConnection('cluster_fail')
         with pytest.raises(AnsibleFailJson) as exc:
-            my_obj.get_licensing_status()
-        assert 'Error checking license status' in exc.value.args[0]['msg']
-        with pytest.raises(AnsibleFailJson) as exc:
             my_obj.create_cluster()
         assert 'Error creating cluster' in exc.value.args[0]['msg']
+        data = self.set_default_args()
+        data['cluster_ip_address'] = '10.10.10.10'
+        set_module_args(data)
+        my_obj = my_module()
+        if not self.use_vsim:
+            my_obj.server = MockONTAPConnection('cluster_fail')
         with pytest.raises(AnsibleFailJson) as exc:
             my_obj.cluster_join()
-        assert 'Error adding node to cluster' in exc.value.args[0]['msg']
-        with pytest.raises(AnsibleFailJson) as exc:
-            my_obj.license_v2_add()
-        assert 'Error adding license' in exc.value.args[0]['msg']
-        with pytest.raises(AnsibleFailJson) as exc:
-            my_obj.license_v2_delete()
-            assert 'Error deleting license' in exc.value.args[0]['msg']
+        assert 'Error adding node with ip' in exc.value.args[0]['msg']
