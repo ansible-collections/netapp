@@ -32,8 +32,11 @@ ansible-galaxy collection install netapp.aws
 
 ## Update History
 [Ontap](https://github.com/ansible/ansible_collections_netapp/blob/master/ansible_collections/netapp/ontap/README.md)
+
 [ElementSW](https://github.com/ansible-collections/ansible_collections_netapp/blob/master/ansible_collections/netapp/elementsw/README.md)
+
 [ANF for Azure](https://github.com/ansible-collections/ansible_collections_netapp/blob/master/ansible_collections/netapp/azure/README.md)
+
 [CVS for AWS](https://github.com/ansible-collections/ansible_collections_netapp/blob/master/ansible_collections/netapp/aws/README.md)
 
 ## Resource Supported
