@@ -131,13 +131,9 @@ class NetAppUMCluster(object):
         Apply action to the cluster listing
         :return: None
         """
-        current = None
-        if self.module.check_mode:
-            pass
-        else:
-            current = self.get_clusters()
-            if current is not None:
-                self.na_helper.changed = True
+        current = self.get_clusters()
+        if current is not None:
+            self.na_helper.changed = True
         self.module.exit_json(changed=self.na_helper.changed, msg=current)
 
 

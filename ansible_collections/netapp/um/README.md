@@ -26,3 +26,4 @@ Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 
 ### New Modules
 - na_um_list_clusters: list clusters.
+- na_um_list_aggregates: list aggregates.
