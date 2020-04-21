@@ -29,6 +29,12 @@ Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 - For authentication with Azure NetApp log in before you run your tasks or playbook with 'az login'.
 
 # Release Notes
+## 20.4.0
+
+### Bug Fixes
+- fix changes to azure-mgmt-netapp as per new release.
+- removed ONTAP dependency import.
+
 ## 20.2.0
 
 ### Bug Fixes

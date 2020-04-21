@@ -11,7 +11,7 @@ HAS_AZURE = True
 
 
 try:
-    from azure.mgmt.netapp.azure_net_app_files_management_client import AzureNetAppFilesManagementClient
+    from azure.mgmt.netapp import AzureNetAppFilesManagementClient
 except ImportError as exc:
     HAS_AZURE = False
 

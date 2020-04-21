@@ -31,8 +31,6 @@
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
-import ansible_collections.netapp.ontap.plugins.module_utils.netapp as netapp_utils
-
 
 def cmp(a, b):
     """
@@ -79,64 +77,6 @@ class NetAppModule(object):
             if ansible_params[param] is not None:
                 self.parameters[param] = ansible_params[param]
         return self.parameters
-
-    def get_value_for_bool(self, from_zapi, value):
-        """
-        Convert boolean values to string or vice-versa
-        If from_zapi = True, value is converted from string (as it appears in ZAPI) to boolean
-        If from_zapi = False, value is converted from boolean to string
-        For get() method, from_zapi = True
-        For modify(), create(), from_zapi = False
-        :param from_zapi: convert the value from ZAPI or to ZAPI acceptable type
-        :param value: value of the boolean attribute
-        :return: string or boolean
-        """
-        if value is None:
-            return None
-        if from_zapi:
-            return True if value == 'true' else False
-        else:
-            return 'true' if value else 'false'
-
-    def get_value_for_int(self, from_zapi, value):
-        """
-        Convert integer values to string or vice-versa
-        If from_zapi = True, value is converted from string (as it appears in ZAPI) to integer
-        If from_zapi = False, value is converted from integer to string
-        For get() method, from_zapi = True
-        For modify(), create(), from_zapi = False
-        :param from_zapi: convert the value from ZAPI or to ZAPI acceptable type
-        :param value: value of the integer attribute
-        :return: string or integer
-        """
-        if value is None:
-            return None
-        if from_zapi:
-            return int(value)
-        else:
-            return str(value)
-
-    def get_value_for_list(self, from_zapi, zapi_parent, zapi_child=None, data=None):
-        """
-        Convert a python list() to NaElement or vice-versa
-        If from_zapi = True, value is converted from NaElement (parent-children structure) to list()
-        If from_zapi = False, value is converted from list() to NaElement
-        :param zapi_parent: ZAPI parent key or the ZAPI parent NaElement
-        :param zapi_child: ZAPI child key
-        :param data: list() to be converted to NaElement parent-children object
-        :param from_zapi: convert the value from ZAPI or to ZAPI acceptable type
-        :return: list() or NaElement
-        """
-        if from_zapi:
-            if zapi_parent is None:
-                return []
-            else:
-                return [zapi_child.get_content() for zapi_child in zapi_parent.get_children()]
-        else:
-            zapi_parent = netapp_utils.zapi.NaElement(zapi_parent)
-            for item in data:
-                zapi_parent.add_new_child(zapi_child, item)
-            return zapi_parent
 
     def get_cd_action(self, current, desired):
         ''' takes a desired state and a current state, and return an action:
