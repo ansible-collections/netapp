@@ -13,20 +13,20 @@ ANSIBLE_METADATA = {'metadata_version': '1.1',
 
 
 DOCUMENTATION = '''
-module: na_um_list_clusters
-short_description: NetApp Unified Manager list cluster.
+module: na_um_list_nodes
+short_description: NetApp Unified Manager list nodes.
 extends_documentation_fragment:
     - netapp.um.netapp.um
 version_added: '20.5.0'
 author: NetApp Ansible Team (@carchi8py) <ng-ansibleteam@netapp.com>
 
 description:
-- List Cluster on AIQUM/OCUM.
+- List Nodes on AIQUM/OCUM.
 '''
 
 EXAMPLES = """
-- name: List Clusters
-  na_um_list_clusters:
+- name: List Nodes
+  na_um_list_nodes:
     hostname: "{{ hostname }}"
     username: "{{ username }}"
     password: "{{ password }}"
@@ -34,59 +34,52 @@ EXAMPLES = """
 
 RETURN = """
 records:
-    description: Returns list of Clusters information
+    description: Returns list of Nodes information
     returned: always
     type: list
-    sample: [{
-            'name': '...',
-            'version':
-                {
-                'generation': ...,
+    sample: [{'allFlashOptimized': ...,
+              'uptime': ...,
+              'vendor': '...',
+              'uuid': '...',
+              'nvramid': '...',
+              '_links':
+                {'self':
+                    {'href': '...'
+                    }
+                },
+              'cluster':
+                {'_links':
+                    {'self':
+                        {'href': '...'
+                        }
+                    },
+                'uuid': '...',
+                'key': '...',
+                'name': '...'
+                },
+              'version':
+                {'generation': ...,
                 'major': ...,
                 'full': '...',
                 'minor': ...
                 },
-            'management_ip': '...',
-            'contact': ...,
-            '_links':
-                {
-                'self':
-                    {
-                    'href': '...'
-                    }
+              'systemid': '...',
+              'location': '...',
+              'key': ...',
+              'is_all_flash_optimized': ...,
+              'serial_number': '...',
+              'model': '...',
+              'ha':
+                {'partners':
+                    [{'_links': {},
+                    'uuid': ...,
+                    'key': ...,
+                    'name': ...
+                    }]
                 },
-            'location': '...',
-            'key': '',
-            'nodes':
-                [
-                {
-                'uptime': ...,
-                'uuid': '...',
-                'version':
-                    {
-                    'generation': ...,
-                    'major': ...,
-                    'full': '...',
-                    'minor': ...
-                    },
-                '_links':
-                    {
-                    'self':
-                        {
-                        'href': '...'
-                        }
-                    },
-                'location': '...',
-                'key': '...',
-                'serial_number': '...',
-                'model': '...',
-                'name': '...'
-                }
-                ],
-            'isSanOptimized': ...,
-            'uuid': '...'
-            }
-            ]
+              'health': ...,
+              'name': '...'
+            }]
 """
 
 from ansible.module_utils.basic import AnsibleModule
@@ -95,8 +88,8 @@ from ansible_collections.netapp.um.plugins.module_utils.netapp_module import Net
 from ansible_collections.netapp.um.plugins.module_utils.netapp import UMRestAPI
 
 
-class NetAppUMCluster(object):
-    ''' cluster initialize and class methods '''
+class NetAppUMNode(object):
+    ''' nodes initialize and class methods '''
 
     def __init__(self):
         self.argument_spec = netapp_utils.na_um_host_argument_spec()
@@ -110,15 +103,15 @@ class NetAppUMCluster(object):
 
         self.restApi = UMRestAPI(self.module)
 
-    def get_clusters(self):
+    def get_nodes(self):
         """
-        Fetch details of clusters.
+        Fetch details of nodes.
         :return:
-            Dictionary of current details if clusters found
-            None if clusters is not found
+            Dictionary of current details if nodes found
+            None if nodes is not found
         """
         data = {}
-        api = "datacenter/cluster/clusters"
+        api = "datacenter/cluster/nodes"
         message, error = self.restApi.get(api, data)
         if error:
             self.module.fail_json(msg=error)
@@ -128,10 +121,10 @@ class NetAppUMCluster(object):
 
     def apply(self):
         """
-        Apply action to the cluster listing
+        Apply action to the nodes listing
         :return: None
         """
-        current = self.get_clusters()
+        current = self.get_nodes()
         if current is not None:
             self.na_helper.changed = True
         self.module.exit_json(changed=self.na_helper.changed, msg=current)
@@ -139,11 +132,11 @@ class NetAppUMCluster(object):
 
 def main():
     """
-    Create Cluster class instance and invoke apply
+    Create Node class instance and invoke apply
     :return: None
     """
-    list_cluster_obj = NetAppUMCluster()
-    list_cluster_obj.apply()
+    list_nodes_obj = NetAppUMNode()
+    list_nodes_obj.apply()
 
 
 if __name__ == '__main__':

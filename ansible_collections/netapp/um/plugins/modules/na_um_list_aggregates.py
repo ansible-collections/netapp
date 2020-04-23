@@ -135,7 +135,7 @@ class NetAppUMAggregate(object):
             self.module.fail_json(msg=error)
         if message['total_records'] != 0:
             return message['records']
-        return None
+        return []
 
     def apply(self):
         """
