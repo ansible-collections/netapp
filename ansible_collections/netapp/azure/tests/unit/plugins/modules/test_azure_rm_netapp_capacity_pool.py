@@ -93,12 +93,14 @@ class TestMyModule(unittest.TestCase):
         name = 'test1'
         location = 'abc'
         size = 1
+        service_level = 'Standard'
         return dict({
             'resource_group': resource_group,
             'account_name': account_name,
             'name': name,
             'location': location,
-            'size': size
+            'size': size,
+            'service_level': service_level
         })
 
     def test_module_fail_when_required_args_missing(self):

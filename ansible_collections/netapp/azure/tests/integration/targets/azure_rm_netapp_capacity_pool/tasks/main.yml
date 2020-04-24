@@ -1,10 +1,11 @@
 - name: Create Azure NetApp capacity pool
   azure_rm_netapp_capacity_pool:
-    resource_group: laurentngroupnodash
-    account_name: tests-netapp
+    resource_group: NetworkWatcherRG
+    account_name: ansibleazure
     name: tests-poolsss
     location: eastus
     size: 2
+    service_level: Standard
   register: output
 
 - assert:
@@ -12,11 +13,12 @@
 
 - name: Create Azure NetApp capacity pool (Idempotency)
   azure_rm_netapp_capacity_pool:
-    resource_group: laurentngroupnodash
-    account_name: tests-netapp
+    resource_group: NetworkWatcherRG
+    account_name: ansibleazure
     name: tests-poolsss
     location: eastus
     size: 2
+    service_level: Standard
     register: output
 
 - assert:
@@ -25,8 +27,8 @@
 - name: Delete Azure NetApp capacity pool
   azure_rm_netapp_capacity_pool:
     state: absent
-    resource_group: laurentngroupnodash
-    account_name: tests-netapp
+    resource_group: NetworkWatcherRG
+    account_name: ansibleazure
     name: tests-poolsss
   register: output
 
@@ -36,8 +38,8 @@
 - name: Delete Azure NetApp capacity pool (Idempotency)
   azure_rm_netapp_capacity_pool:
     state: absent
-    resource_group: laurentngroupnodash
-    account_name: tests-netapp
+    resource_group: NetworkWatcherRG
+    account_name: ansibleazure
     name: tests-poolsss
   register: output
 

@@ -29,6 +29,12 @@ Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 - For authentication with Azure NetApp log in before you run your tasks or playbook with 'az login'.
 
 # Release Notes
+
+## 20.5.0
+
+### New Options
+- azure_rm_netapp_capacity_pool: new option `service_level`.
+
 ## 20.4.0
 
 ### Bug Fixes

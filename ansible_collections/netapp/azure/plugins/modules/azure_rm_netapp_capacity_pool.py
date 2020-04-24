@@ -49,14 +49,19 @@ options:
             - Required for create.
         default: 1
         type: int
+    service_level:
+        description:
+            - The service level of the file system.
+            - Required for create.
+        choices: ['Standard', 'Premium', 'Ultra']
+        type: str
+        version_added: "20.5.0"
     state:
         description:
             - State C(present) will check that the capacity pool exists with the requested configuration.
             - State C(absent) will delete the capacity pool.
         default: present
-        choices:
-            - absent
-            - present
+        choices: ['present', 'absent']
         type: str
 
 '''
@@ -117,11 +122,12 @@ class AzureRMNetAppCapacityPool(AzureRMNetAppModuleBase):
             location=dict(type='str', required=False),
             state=dict(choices=['present', 'absent'], default='present', type='str'),
             size=dict(type='int', required=False, default=1),
+            service_level=dict(type='str', required=False, choices=['Standard', 'Premium', 'Ultra']),
         )
         self.module = AnsibleModule(
             argument_spec=self.module_arg_spec,
             required_if=[
-                ('state', 'present', ['location']),
+                ('state', 'present', ['location', 'service_level']),
             ],
             supports_check_mode=True
         )
@@ -152,7 +158,8 @@ class AzureRMNetAppCapacityPool(AzureRMNetAppModuleBase):
         """
         capacity_pool_body = CapacityPool(
             location=self.parameters['location'],
-            size=self.parameters['size'] * SIZE_POOL
+            size=self.parameters['size'] * SIZE_POOL,
+            service_level=self.parameters['service_level']
         )
         try:
             self.netapp_client.pools.create_or_update(body=capacity_pool_body, resource_group_name=self.parameters['resource_group'],
