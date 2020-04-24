@@ -52,6 +52,7 @@ MODIFY_ERROR = 'some_error_in_modify_access_group'
 
 VOLUME_ID = 777
 
+
 class MockSFConnection(object):
     ''' mock connection to ElementSW host '''
 
@@ -108,14 +109,15 @@ class TestMyModule(unittest.TestCase):
     ''' a group of related Unit Tests '''
 
     ARGS = {
-	'state': 'present',
-	'access_group': 'element_groupname',
-	'volumes': 'element_volumename',
-	'account_id': 'element_account_id',
-	'hostname': 'hostname',
-	'username': 'username',
-	'password': 'password',
+        'state': 'present',
+        'access_group': 'element_groupname',
+        'volumes': 'element_volumename',
+        'account_id': 'element_account_id',
+        'hostname': 'hostname',
+        'username': 'username',
+        'password': 'password',
     }
+
     def setUp(self):
         self.mock_module_helper = patch.multiple(basic.AnsibleModule,
                                                  exit_json=exit_json,
@@ -212,7 +214,6 @@ class TestMyModule(unittest.TestCase):
         print(exc.value.args[0])
         message = 'Error: Specified volume %s does not exist' % 'volume1'
         assert exc.value.args[0]['msg'] == message
-
 
     @patch('ansible_collections.netapp.elementsw.plugins.module_utils.netapp.create_sf_connection')
     def test_check_error_reporting_on_invalid_account_group_name(self, mock_create_sf_connection):
