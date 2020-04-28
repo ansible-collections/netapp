@@ -37,6 +37,13 @@ options:
             - Resource location.
             - Required for create.
         type: str
+    tags:
+        description:
+            - name/value pairs that enable you to categorize resources.
+            - view consolidated billing by applying the same tag to multiple resources and resource groups.
+            - Tag names are case-insensitive and tag values are case-sensitive.
+        type: dict
+        version_added: "20.5.0"
     state:
         description:
             - State C(present) will check that the NetApp account exists with the requested configuration.
@@ -55,6 +62,7 @@ EXAMPLES = '''
     resource_group: myResourceGroup
     name: testaccount
     location: eastus
+    tags: {'abc': 'xyz', 'cba': 'zyx'}
 
 - name: Delete NetApp Azure Account
   azure_rm_netapp_account:
@@ -96,11 +104,15 @@ class AzureRMNetAppAccount(AzureRMNetAppModuleBase):
         self.module_arg_spec = dict(
             resource_group=dict(type='str', required=True),
             name=dict(type='str', required=True),
-            location=dict(type='str'),
+            location=dict(type='str', required=False),
             state=dict(choices=['present', 'absent'], default='present', type='str'),
+            tags=dict(type='dict', required=False)
         )
         self.module = AnsibleModule(
             argument_spec=self.module_arg_spec,
+            required_if=[
+                ('state', 'present', ['location']),
+            ],
             supports_check_mode=True
         )
         self.na_helper = NetAppModule()
@@ -127,8 +139,15 @@ class AzureRMNetAppAccount(AzureRMNetAppModuleBase):
             Create an Azure NetApp Account
             :return: None
         """
+        location = ''
+        tags = {}
+        if self.parameters.get('location') is not None:
+            location = self.parameters['location']
+        if self.parameters.get('tags') is not None:
+            tags = self.parameters['tags']
         account_body = NetAppAccount(
-            location=self.parameters['location']
+            location=location,
+            tags=tags
         )
         try:
             self.netapp_client.accounts.create_or_update(body=account_body,

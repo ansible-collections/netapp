@@ -136,6 +136,7 @@ class TestMyModule(unittest.TestCase):
     def test_ensure_create_called(self, client_f, mock_create, mock_get, mock_base):
         data = self.set_default_args()
         data['name'] = 'create'
+        data['tags'] = {'ttt': 'tesssttt', 'abc': 'xyz'}
         set_module_args(data)
         mock_get.return_value = None
         mock_base.return_value = Mock()

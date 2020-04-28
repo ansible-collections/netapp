@@ -3,6 +3,7 @@
     resource_group: laurentngroupnodash
     name: tests-netapp1
     location: eastus
+    tags: {'test1': 'tesssttt', 'abc': 'xyz'}
   register: output
 
 - assert:
@@ -13,6 +14,7 @@
     resource_group: laurentngroupnodash
     name: tests-netapp1
     location: eastus
+    tags: {'test1': 'tesssttt', 'abc': 'xyz'}
   register: output
 
 - assert:

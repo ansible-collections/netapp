@@ -74,6 +74,7 @@ EXAMPLES = '''
     name: tests-pool
     location: eastus
     size: 2
+    service_level: Standard
 
 - name: Delete Azure NetApp capacity pool
   azure_rm_netapp_capacity_pool:
