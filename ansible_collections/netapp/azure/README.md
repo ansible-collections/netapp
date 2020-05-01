@@ -35,6 +35,7 @@ Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 ### New Options
 - azure_rm_netapp_account: new option `tags`.
 - azure_rm_netapp_capacity_pool: new option `service_level`.
+- azure_rm_netapp_volume: new option `size`.
 
 ## 20.4.0
 

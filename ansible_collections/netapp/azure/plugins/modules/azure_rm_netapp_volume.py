@@ -64,12 +64,19 @@ options:
     service_level:
         description:
             - The service level of the file system.
+            - default is Premium.
         type: str
-        default: Premium
         choices:
             - Premium
             - Standard
             - Ultra
+    size:
+        description:
+            - Provisioned size of the volume (in GiB).
+            - Minimum size is 100 GiB. Upper limit is 100TiB
+            - default is 100GiB.
+        version_added: "20.5.0"
+        type: int
     state:
         description:
             - State C(present) will check that the volume exists with the requested configuration.
@@ -94,6 +101,7 @@ EXAMPLES = '''
     virtual_network: myVirtualNetwork
     subnet_id: test
     service_level: Ultra
+    size: 100
 
 - name: Delete Azure NetApp volume
   azure_rm_netapp_volume:
@@ -129,6 +137,8 @@ try:
 except ImportError:
     HAS_AZURE_MGMT_NETAPP = False
 
+ONE_GIB = 1073741824
+
 
 class AzureRMNetAppVolume(AzureRMNetAppModuleBase):
 
@@ -144,7 +154,8 @@ class AzureRMNetAppVolume(AzureRMNetAppModuleBase):
             state=dict(choices=['present', 'absent'], default='present', type='str'),
             subnet_id=dict(type='str', required=False),
             virtual_network=dict(type='str', required=False),
-            service_level=dict(type='str', required=False, choices=['Premium', 'Standard', 'Ultra'], default='Premium')
+            size=dict(type='int', required=False),
+            service_level=dict(type='str', required=False, choices=['Premium', 'Standard', 'Ultra'])
         )
         self.module = AnsibleModule(
             argument_spec=self.module_arg_spec,
@@ -180,7 +191,8 @@ class AzureRMNetAppVolume(AzureRMNetAppModuleBase):
         volume_body = Volume(
             location=self.parameters['location'],
             creation_token=self.parameters['file_path'],
-            service_level=self.parameters['service_level'],
+            service_level=self.parameters['service_level'] if self.parameters.get('service_level') is not None else 'Premium',
+            usage_threshold=(self.parameters['size'] if self.parameters.get('size') is not None else 100) * ONE_GIB,
             subnet_id='/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Network/virtualNetworks/%s/subnets/%s'
                       % (self.netapp_client.config.subscription_id, self.parameters['resource_group'],
                          self.parameters['virtual_network'], self.parameters['subnet_id'])

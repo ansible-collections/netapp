@@ -1,14 +1,15 @@
 - name: Create Azure NetApp volume
   azure_rm_netapp_volume:
-    resource_group: laurentngroupnodash
-    account_name: tests-netapp
+    resource_group: NetworkWatcherRG
+    account_name: ansibleazure
     pool_name: tests-pool
     name: tests-volume2
     location: eastus
+    size: 150
     file_path: tests-volume2
-    virtual_network: laurentngroupnodash-vnet
-    subnet_id: default
-    service_level: Ultra
+    virtual_network: azure_ansible
+    subnet_id: test
+    service_level: Standard
   register: output
 
 - assert:
@@ -16,15 +17,16 @@
 
 - name: Create Azure NetApp volume (Idempotency)
   azure_rm_netapp_volume:
-    resource_group: laurentngroupnodash
-    account_name: tests-netapp
+    resource_group: NetworkWatcherRG
+    account_name: ansibleazure
     pool_name: tests-pool
     name: tests-volume2
     location: eastus
+    size: 150
     file_path: tests-volume2
-    virtual_network: laurentngroupnodash-vnet
-    subnet_id: default
-    service_level: Ultra
+    virtual_network: azure_ansible
+    subnet_id: test
+    service_level: Standard
   register: output
 
 - assert:
@@ -33,8 +35,8 @@
 - name: Delete Azure NetApp volume
   azure_rm_netapp_volume:
     state: absent
-    resource_group: laurentngroupnodash
-    account_name: tests-netapp
+    resource_group: NetworkWatcherRG
+    account_name: ansibleazure
     pool_name: tests-pool
     name: tests-volume2
   register: output
@@ -45,8 +47,8 @@
 - name: Delete Azure NetApp volume (Idempotency)
   azure_rm_netapp_volume:
     state: absent
-    resource_group: laurentngroupnodash
-    account_name: tests-netapp
+    resource_group: NetworkWatcherRG
+    account_name: ansibleazure
     pool_name: tests-pool
     name: tests-volume2
   register: output

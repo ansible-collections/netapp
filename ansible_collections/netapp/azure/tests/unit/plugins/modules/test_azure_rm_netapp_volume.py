@@ -96,6 +96,7 @@ class TestMyModule(unittest.TestCase):
         file_path = 'azure'
         subnet_id = 'azure'
         virtual_network = 'azure'
+        size = 100
         return dict({
             'resource_group': resource_group,
             'account_name': account_name,
@@ -104,7 +105,8 @@ class TestMyModule(unittest.TestCase):
             'location': location,
             'file_path': file_path,
             'subnet_id': subnet_id,
-            'virtual_network': virtual_network
+            'virtual_network': virtual_network,
+            'size': size
         })
 
     def test_module_fail_when_required_args_missing(self):
