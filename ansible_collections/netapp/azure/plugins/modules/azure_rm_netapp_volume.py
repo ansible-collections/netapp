@@ -114,6 +114,11 @@ EXAMPLES = '''
 '''
 
 RETURN = '''
+mount_path:
+    description: Returns mount_path of the Volume
+    returned: always
+    type: str
+
 '''
 
 try:
@@ -239,7 +244,11 @@ class AzureRMNetAppVolume(AzureRMNetAppModuleBase):
                 elif cd_action == 'delete':
                     self.delete_azure_netapp_volume()
 
-        self.module.exit_json(changed=self.na_helper.changed)
+        return_info = ''
+        if self.parameters['state'] == 'present':
+            return_info = self.get_azure_netapp_volume()
+            return_info = return_info.creation_token if return_info is not None else ''
+        self.module.exit_json(changed=self.na_helper.changed, msg=str(return_info))
 
 
 def main():

@@ -36,6 +36,7 @@ Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 - azure_rm_netapp_account: new option `tags`.
 - azure_rm_netapp_capacity_pool: new option `service_level`.
 - azure_rm_netapp_volume: new option `size`.
+- azure_rm_netapp_volume: now returns mount_path of the volume specified.
 
 ## 20.4.0
 
