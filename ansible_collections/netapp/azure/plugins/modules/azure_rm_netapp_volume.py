@@ -66,10 +66,13 @@ options:
             - The service level of the file system.
             - default is Premium.
         type: str
-        choices:
-            - Premium
-            - Standard
-            - Ultra
+        choices: ['Premium', 'Standard', 'Ultra']
+    vnet_resource_group_for_subnet:
+        description:
+            - Only required if virtual_network to be used is of different resource_group.
+            - Name of the resource group for virtual_network and subnet_id to be used.
+        type: str
+        version_added: "20.5.0"
     size:
         description:
             - Provisioned size of the volume (in GiB).
@@ -82,9 +85,7 @@ options:
             - State C(present) will check that the volume exists with the requested configuration.
             - State C(absent) will delete the volume.
         default: present
-        choices:
-            - absent
-            - present
+        choices: ['present', 'absent']
         type: str
 
 '''
@@ -99,6 +100,7 @@ EXAMPLES = '''
     location: eastus
     file_path: tests-volume2
     virtual_network: myVirtualNetwork
+    vnet_resource_group_for_subnet: myVirtualNetworkResourceGroup
     subnet_id: test
     service_level: Ultra
     size: 100
@@ -160,6 +162,7 @@ class AzureRMNetAppVolume(AzureRMNetAppModuleBase):
             subnet_id=dict(type='str', required=False),
             virtual_network=dict(type='str', required=False),
             size=dict(type='int', required=False),
+            vnet_resource_group_for_subnet=dict(type='str', required=False),
             service_level=dict(type='str', required=False, choices=['Premium', 'Standard', 'Ultra'])
         )
         self.module = AnsibleModule(
@@ -199,7 +202,9 @@ class AzureRMNetAppVolume(AzureRMNetAppModuleBase):
             service_level=self.parameters['service_level'] if self.parameters.get('service_level') is not None else 'Premium',
             usage_threshold=(self.parameters['size'] if self.parameters.get('size') is not None else 100) * ONE_GIB,
             subnet_id='/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Network/virtualNetworks/%s/subnets/%s'
-                      % (self.netapp_client.config.subscription_id, self.parameters['resource_group'],
+                      % (self.netapp_client.config.subscription_id,
+                         self.parameters['resource_group'] if self.parameters.get('vnet_resource_group_for_subnet') is None
+                         else self.parameters['vnet_resource_group_for_subnet'],
                          self.parameters['virtual_network'], self.parameters['subnet_id'])
         )
         try:
@@ -210,8 +215,8 @@ class AzureRMNetAppVolume(AzureRMNetAppModuleBase):
             while result.done() is not True:
                 result.result(10)
         except CloudError as error:
-            self.module.fail_json(msg='Error creating volume %s for Azure NetApp account %s: %s'
-                                      % (self.parameters['name'], self.parameters['account_name'], to_native(error)),
+            self.module.fail_json(msg='Error creating volume %s for Azure NetApp account %s and subnet ID %s: %s'
+                                      % (self.parameters['name'], self.parameters['account_name'], self.parameters['subnet_id'], to_native(error)),
                                   exception=traceback.format_exc())
 
     def delete_azure_netapp_volume(self):

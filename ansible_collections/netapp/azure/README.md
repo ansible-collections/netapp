@@ -37,6 +37,7 @@ Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 - azure_rm_netapp_capacity_pool: new option `service_level`.
 - azure_rm_netapp_volume: new option `size`.
 - azure_rm_netapp_volume: now returns mount_path of the volume specified.
+- azure_rm_netapp_volume: new option `vnet_resource_group_for_subnet`, resource group for virtual_network and subnet_id to be used.
 
 ## 20.4.0
 
