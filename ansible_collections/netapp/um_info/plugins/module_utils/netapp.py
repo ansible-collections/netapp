@@ -30,7 +30,7 @@
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
-from ansible.module_utils.basic import AnsibleModule, missing_required_lib
+from ansible.module_utils.basic import missing_required_lib
 
 try:
     from ansible.module_utils.ansible_release import __version__ as ansible_version
@@ -44,11 +44,6 @@ try:
     HAS_REQUESTS = True
 except ImportError:
     HAS_REQUESTS = False
-
-try:
-    from urlparse import urlparse, urlunparse
-except ImportError:
-    from urllib.parse import urlparse, urlunparse
 
 ERROR_MSG = dict(
     no_cserver='This module is expected to run as cluster admin'

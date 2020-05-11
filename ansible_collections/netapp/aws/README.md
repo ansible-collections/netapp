@@ -30,6 +30,12 @@ They require a subscription to the service and your API access keys.
 The modules currently support Active Directory, Pool, FileSystem (Volume), and Snapshot services.
 
 # Release Notes
+
+## 20.6.0
+
+### Bug Fixes
+- galaxy.xml: fix repository and homepage links.
+
 ## 20.2.0
 
 ### Bug Fixes

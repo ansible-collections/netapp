@@ -19,6 +19,10 @@ Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
                                          
 #Release Notes
 
+## 20.6.0
+### Bug Fixes
+- galaxy.xml: fix repository and homepage links
+
 ## 20.2.0
 ### Bug Fixes
 - galaxy.yml: fix path to github repository.

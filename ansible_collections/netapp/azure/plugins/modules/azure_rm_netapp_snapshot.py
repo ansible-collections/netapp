@@ -89,8 +89,6 @@ RETURN = '''
 
 try:
     from msrestazure.azure_exceptions import CloudError
-    from msrestazure.tools import parse_resource_id
-    from msrest.polling import LROPoller
 except ImportError:
     # This is handled in azure_rm_common
     pass
