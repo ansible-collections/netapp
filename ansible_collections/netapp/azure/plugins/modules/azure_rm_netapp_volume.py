@@ -250,7 +250,7 @@ class AzureRMNetAppVolume(AzureRMNetAppModuleBase):
         return_info = ''
         if self.parameters['state'] == 'present':
             return_info = self.get_azure_netapp_volume()
-            return_info = return_info.creation_token if return_info is not None else ''
+            return_info = ('%s:/%s' % (return_info.mount_targets[0].ip_address, return_info.creation_token)) if return_info is not None else ''
         self.module.exit_json(changed=self.na_helper.changed, msg=str(return_info))
 
 

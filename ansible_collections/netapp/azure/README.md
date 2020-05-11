@@ -30,6 +30,11 @@ Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 
 # Release Notes
 
+## 20.6.0
+
+### New Options
+- azure_rm_netapp_volume: now returns complete mount_path of the volume specified.
+
 ## 20.5.0
 
 ### New Options
