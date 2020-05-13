@@ -22,6 +22,11 @@ Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 
 # Release Notes
 
+## 20.6.0
+
+### New Modules
+- na_um_list_volumes: list volumes.
+
 ## 20.5.0
 
 ### New Modules
