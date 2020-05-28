@@ -23,6 +23,7 @@ author: NetApp Ansible Team (@carchi8py) <ng-ansibleteam@netapp.com>
 description:
     - Create and delete NetApp Azure capacity pool.
       Provide the Resource group name for the capacity pool to be created.
+    - Resize NetApp Azure capacity pool
 extends_documentation_fragment:
     - netapp.azure.netapp.azure_rm_netapp
 
@@ -74,6 +75,15 @@ EXAMPLES = '''
     name: tests-pool
     location: eastus
     size: 2
+    service_level: Standard
+
+- name: Resize Azure NetApp capacity pool
+  azure_rm_netapp_capacity_pool:
+    resource_group: myResourceGroup
+    account_name: tests-netapp
+    name: tests-pool
+    location: eastus
+    size: 3
     service_level: Standard
 
 - name: Delete Azure NetApp capacity pool
@@ -169,6 +179,26 @@ class AzureRMNetAppCapacityPool(AzureRMNetAppModuleBase):
                                       % (self.parameters['name'], self.parameters['account_name'], to_native(error)),
                                   exception=traceback.format_exc())
 
+    def modify_azure_netapp_capacity_pool(self, modify):
+        """
+            Modify a capacity pool for the given Azure NetApp Account
+            :return: None
+        """
+        capacity_pool_body = CapacityPool(
+            location=self.parameters['location'],
+            service_level=self.parameters['service_level']
+        )
+        if 'size' in modify:
+            capacity_pool_body.size = modify['size'] * SIZE_POOL
+        try:
+            self.netapp_client.pools.update(body=capacity_pool_body, resource_group_name=self.parameters['resource_group'],
+                                            account_name=self.parameters['account_name'],
+                                            pool_name=self.parameters['name'])
+        except CloudError as error:
+            self.module.fail_json(msg='Error modifying capacity pool %s for Azure NetApp account %s: %s'
+                                      % (self.parameters['name'], self.parameters['account_name'], to_native(error)),
+                                  exception=traceback.format_exc())
+
     def delete_azure_netapp_capacity_pool(self):
         """
             Delete a capacity pool for the given Azure NetApp Account
@@ -183,8 +213,16 @@ class AzureRMNetAppCapacityPool(AzureRMNetAppModuleBase):
                                   exception=traceback.format_exc())
 
     def exec_module(self, **kwargs):
+        modify = {}
         current = self.get_azure_netapp_capacity_pool()
         cd_action = self.na_helper.get_cd_action(current, self.parameters)
+        if cd_action is None:
+            current = vars(current)
+            # to match with the unit of size input
+            current['size'] = int(current['size'] / SIZE_POOL)
+            # get_azure_netapp_capacity_pool() returns pool name with account name appended in front of it like 'account/pool'
+            current['name'] = self.parameters['name']
+            modify = self.na_helper.get_modified_attributes(current, self.parameters)
 
         if self.na_helper.changed:
             if self.module.check_mode:
@@ -194,6 +232,8 @@ class AzureRMNetAppCapacityPool(AzureRMNetAppModuleBase):
                     self.create_azure_netapp_capacity_pool()
                 elif cd_action == 'delete':
                     self.delete_azure_netapp_capacity_pool()
+                elif modify:
+                    self.modify_azure_netapp_capacity_pool(modify)
 
         self.module.exit_json(changed=self.na_helper.changed)
 

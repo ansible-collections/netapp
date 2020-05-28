@@ -73,6 +73,9 @@ class MockAzureClient(object):
     def create_or_update(self, body, resource_group, account_name, pool_name):  # pylint: disable=unused-argument
         return None
 
+    def update(self, body, resource_group, account_name, pool_name):  # pylint: disable=unused-argument
+        return None
+
 
 class TestMyModule(unittest.TestCase):
     ''' a group of related Unit Tests '''
@@ -149,6 +152,25 @@ class TestMyModule(unittest.TestCase):
             my_obj.exec_module()
         assert exc.value.args[0]['changed']
         mock_create.assert_called_with()
+
+    @patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.__init__')
+    @patch('ansible_collections.netapp.azure.plugins.modules.azure_rm_netapp_capacity_pool.AzureRMNetAppCapacityPool.get_azure_netapp_capacity_pool')
+    @patch('ansible_collections.netapp.azure.plugins.modules.azure_rm_netapp_capacity_pool.AzureRMNetAppCapacityPool.create_azure_netapp_capacity_pool')
+    @patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.netapp_client')
+    def test_ensure_modify_called(self, client_f, mock_modify, mock_get, mock_base):
+        data = self.set_default_args()
+        data['name'] = 'create'
+        data['size'] = 3
+        set_module_args(data)
+        mock_get.return_value = None
+        mock_base.return_value = Mock()
+        client_f.return_value = Mock()
+        my_obj = capacity_pool_module()
+        my_obj.netapp_client.pools = self.netapp_client.pools
+        with pytest.raises(AnsibleExitJson) as exc:
+            my_obj.exec_module()
+        assert exc.value.args[0]['changed']
+        mock_modify.assert_called_with()
 
     @patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.__init__')
     @patch('ansible_collections.netapp.azure.plugins.modules.azure_rm_netapp_capacity_pool.AzureRMNetAppCapacityPool.get_azure_netapp_capacity_pool')
