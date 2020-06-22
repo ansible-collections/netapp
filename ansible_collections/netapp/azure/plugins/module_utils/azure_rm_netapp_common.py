@@ -8,7 +8,7 @@ from ansible.module_utils.azure_rm_common import AzureRMModuleBase
 
 
 HAS_AZURE = True
-
+COLLECTION_VERSION = "20.6.0"
 
 try:
     from azure.mgmt.netapp import AzureNetAppFilesManagementClient

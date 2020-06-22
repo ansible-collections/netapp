@@ -61,6 +61,8 @@ try:
 except Exception:
     HAS_SF_SDK = False
 
+COLLECTION_VERSION = "20.6.0"
+
 
 def has_sf_sdk():
     return HAS_SF_SDK
