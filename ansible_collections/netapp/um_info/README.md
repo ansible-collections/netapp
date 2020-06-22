@@ -22,6 +22,10 @@ Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 
 # Release Notes
 
+## 20.7.0
+- na_um_list_aggregates: Now sort by performance_capacity.used
+- na_um_list_nodes: Now sort by performance_capacity.used
+
 ## 20.6.0
 
 ### New Modules

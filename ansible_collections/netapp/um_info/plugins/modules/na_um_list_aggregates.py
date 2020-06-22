@@ -129,7 +129,7 @@ class NetAppUMAggregate(object):
             None if aggregates is not found
         """
         data = {}
-        api = "datacenter/storage/aggregates"
+        api = "datacenter/storage/aggregates?order_by=performance_capacity.used"
         message, error = self.restApi.get(api, data)
         if error:
             self.module.fail_json(msg=error)

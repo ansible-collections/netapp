@@ -111,7 +111,7 @@ class NetAppUMNode(object):
             None if nodes is not found
         """
         data = {}
-        api = "datacenter/cluster/nodes"
+        api = "datacenter/cluster/nodes?order_by=performance_capacity.used"
         message, error = self.restApi.get(api, data)
         if error:
             self.module.fail_json(msg=error)
