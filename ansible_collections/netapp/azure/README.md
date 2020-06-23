@@ -30,6 +30,11 @@ Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 
 # Release Notes
 
+## 20.7.0
+
+### Bug Fixes
+- azure_rm_netapp_capacity_pool: fixed idempotency for delete operation.
+
 ## 20.6.0
 
 ### New Options

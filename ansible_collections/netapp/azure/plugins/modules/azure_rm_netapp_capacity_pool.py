@@ -216,7 +216,7 @@ class AzureRMNetAppCapacityPool(AzureRMNetAppModuleBase):
         modify = {}
         current = self.get_azure_netapp_capacity_pool()
         cd_action = self.na_helper.get_cd_action(current, self.parameters)
-        if cd_action is None:
+        if cd_action is None and self.parameters['state'] == 'present':
             current = vars(current)
             # to match with the unit of size input
             current['size'] = int(current['size'] / SIZE_POOL)
