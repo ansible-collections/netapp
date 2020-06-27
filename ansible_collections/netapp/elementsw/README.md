@@ -19,6 +19,10 @@ Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
                                          
 #Release Notes
 
+## 20.8.0
+### Bug Fixes
+- na_elementsw_snapshot_schedule: ignore schedules being deleted (idempotency), remove default values and fix documentation.
+
 ## 20.6.0
 ### Bug Fixes
 - galaxy.xml: fix repository and homepage links

@@ -24,8 +24,6 @@ plugins/modules/na_elementsw_node.py validate-modules:doc-missing-type
 plugins/modules/na_elementsw_snapshot.py validate-modules:parameter-type-not-in-doc
 plugins/modules/na_elementsw_snapshot.py validate-modules:doc-missing-type
 plugins/modules/na_elementsw_snapshot_restore.py validate-modules:parameter-type-not-in-doc
-plugins/modules/na_elementsw_snapshot_schedule.py validate-modules:parameter-type-not-in-doc
-plugins/modules/na_elementsw_snapshot_schedule.py validate-modules:doc-missing-type
 plugins/modules/na_elementsw_vlan.py validate-modules:parameter-type-not-in-doc
 plugins/modules/na_elementsw_vlan.py validate-modules:doc-missing-type
 plugins/modules/na_elementsw_volume.py validate-modules:parameter-invalid

@@ -23,7 +23,7 @@ extends_documentation_fragment:
 version_added: '2.7'
 author: NetApp Ansible Team (@carchi8py) <ng-ansibleteam@netapp.com>
 description:
-- Create, destroy, or update accounts on ElementSW
+- Create, destroy, or update snapshot schedules on ElementSW
 
 options:
 
@@ -32,6 +32,7 @@ options:
         - Whether the specified schedule should exist or not.
         required: true
         choices: ['present', 'absent']
+        type: str
 
     paused:
         description:
@@ -47,40 +48,43 @@ options:
         description:
         - Schedule type for creating schedule.
         choices: ['DaysOfWeekFrequency','DaysOfMonthFrequency','TimeIntervalFrequency']
+        type: str
 
     time_interval_days:
         description: Time interval in days.
-        default: 1
+        type: int
 
     time_interval_hours:
         description: Time interval in hours.
-        default: 0
+        type: int
 
     time_interval_minutes:
         description: Time interval in minutes.
-        default: 0
+        type: int
 
     days_of_week_weekdays:
         description: List of days of the week (Sunday to Saturday)
+        type: list
 
     days_of_week_hours:
         description: Time specified in hours
-        default: 0
+        type: int
 
     days_of_week_minutes:
         description:  Time specified in minutes.
-        default: 0
+        type: int
 
     days_of_month_monthdays:
         description: List of days of the month (1-31)
+        type: list
 
     days_of_month_hours:
         description: Time specified in hours
-        default: 0
+        type: int
 
     days_of_month_minutes:
         description:  Time specified in minutes.
-        default: 0
+        type: int
 
     name:
         description:
@@ -88,15 +92,18 @@ options:
         - It accepts either schedule_id or schedule_name
         - if name is digit, it will consider as schedule_id
         - If name is string, it will consider as schedule_name
+        type: str
 
     snapshot_name:
         description:
         - Name for the created snapshots.
+        type: str
 
     volumes:
         description:
         - Volume IDs that you want to set the snapshot schedule for.
         - It accepts both volume_name and volume_id
+        type: list
 
     account_id:
         description:
@@ -104,30 +111,20 @@ options:
         - It accepts either account_name or account_id
         - if account_id is digit, it will consider as account_id
         - If account_id is string, it will consider as account_name
+        type: str
 
     retention:
         description:
         - Retention period for the snapshot.
         - Format is 'HH:mm:ss'.
+        type: str
 
     starting_date:
         description:
         - Starting date for the schedule.
         - Required when C(state=present).
         - "Format: C(2016-12-01T00:00:00Z)"
-
-
-    password:
-        description:
-        - Element SW access account password
-        aliases:
-        - pass
-
-    username:
-        description:
-        - Element SW access account user-name
-        aliases:
-        - user
+        type: str
 '''
 
 EXAMPLES = """
@@ -210,17 +207,17 @@ class ElementSWSnapShotSchedule(object):
             name=dict(required=True, type='str'),
             schedule_type=dict(required=False, choices=['DaysOfWeekFrequency', 'DaysOfMonthFrequency', 'TimeIntervalFrequency']),
 
-            time_interval_days=dict(required=False, type='int', default=1),
-            time_interval_hours=dict(required=False, type='int', default=0),
-            time_interval_minutes=dict(required=False, type='int', default=0),
+            time_interval_days=dict(required=False, type='int'),
+            time_interval_hours=dict(required=False, type='int'),
+            time_interval_minutes=dict(required=False, type='int'),
 
             days_of_week_weekdays=dict(required=False, type='list'),
-            days_of_week_hours=dict(required=False, type='int', default=0),
-            days_of_week_minutes=dict(required=False, type='int', default=0),
+            days_of_week_hours=dict(required=False, type='int'),
+            days_of_week_minutes=dict(required=False, type='int'),
 
             days_of_month_monthdays=dict(required=False, type='list'),
-            days_of_month_hours=dict(required=False, type='int', default=0),
-            days_of_month_minutes=dict(required=False, type='int', default=0),
+            days_of_month_hours=dict(required=False, type='int'),
+            days_of_month_minutes=dict(required=False, type='int'),
 
             paused=dict(required=False, type='bool'),
             recurring=dict(required=False, type='bool'),
@@ -308,6 +305,9 @@ class ElementSWSnapShotSchedule(object):
             return None
 
         for schedule in schedule_list.schedules:
+            if schedule.to_be_deleted:
+                # skip this schedule if it is being deleted, it can as well not exist
+                continue
             if str(schedule.schedule_id) == self.name:
                 self.name = schedule.name
                 return schedule
@@ -341,18 +341,31 @@ class ElementSWSnapShotSchedule(object):
         frequency = None
         if self.schedule_type is not None and self.schedule_type == 'DaysOfWeekFrequency':
             if self.weekdays is not None:
-                frequency = DaysOfWeekFrequency(weekdays=self.weekdays,
-                                                hours=self.days_of_week_hours,
-                                                minutes=self.days_of_week_minutes)
+                params = dict(weekdays=self.weekdays)
+                if self.days_of_week_hours is not None:
+                    params['hours'] = self.days_of_week_hours
+                if self.days_of_week_minutes is not None:
+                    params['minutes'] = self.days_of_week_minutes
+                frequency = DaysOfWeekFrequency(**params)
         elif self.schedule_type is not None and self.schedule_type == 'DaysOfMonthFrequency':
             if self.days_of_month_monthdays is not None:
-                frequency = DaysOfMonthFrequency(monthdays=self.days_of_month_monthdays,
-                                                 hours=self.days_of_month_hours,
-                                                 minutes=self.days_of_month_minutes)
+                params = dict(monthdays=self.days_of_month_monthdays)
+                if self.days_of_month_hours is not None:
+                    params['hours'] = self.days_of_month_hours
+                if self.days_of_month_minutes is not None:
+                    params['minutes'] = self.days_of_month_minutes
+                frequency = DaysOfMonthFrequency(**params)
         elif self.schedule_type is not None and self.schedule_type == 'TimeIntervalFrequency':
-            frequency = netapp_utils.TimeIntervalFrequency(days=self.time_interval_days,
-                                                           hours=self.time_interval_hours,
-                                                           minutes=self.time_interval_minutes)
+            params = dict()
+            if self.time_interval_days is not None:
+                params['days'] = self.time_interval_days
+            if self.time_interval_hours is not None:
+                params['hours'] = self.time_interval_hours
+            if self.time_interval_minutes is not None:
+                params['minutes'] = self.time_interval_minutes
+            if not params or sum(params.values()) == 0:
+                self.module.fail_json(msg='Specify at least one non zero value with TimeIntervalFrequency.')
+            frequency = netapp_utils.TimeIntervalFrequency(**params)
         return frequency
 
     def is_same_schedule_type(self, schedule_detail):
@@ -385,7 +398,7 @@ class ElementSWSnapShotSchedule(object):
             self.create_schedule_result = self.sfe.create_schedule(sched)
 
         except Exception as e:
-            self.module.fail_json(msg='Error creating schedule %s: %s' % (self.name, to_native(e.message)),
+            self.module.fail_json(msg='Error creating schedule %s: %s' % (self.name, to_native(e)),
                                   exception=traceback.format_exc())
 
     def delete_schedule(self, schedule_id):
@@ -397,7 +410,7 @@ class ElementSWSnapShotSchedule(object):
             self.sfe.modify_schedule(schedule=sched)
 
         except Exception as e:
-            self.module.fail_json(msg='Error deleting schedule %s: %s' % (self.name, to_native(e.message)),
+            self.module.fail_json(msg='Error deleting schedule %s: %s' % (self.name, to_native(e)),
                                   exception=traceback.format_exc())
 
     def update_schedule(self, schedule_id):
@@ -427,7 +440,7 @@ class ElementSWSnapShotSchedule(object):
             self.sfe.modify_schedule(schedule=sched)
 
         except Exception as e:
-            self.module.fail_json(msg='Error updating schedule %s: %s' % (self.name, to_native(e.message)),
+            self.module.fail_json(msg='Error updating schedule %s: %s' % (self.name, to_native(e)),
                                   exception=traceback.format_exc())
 
     def apply(self):
@@ -458,7 +471,7 @@ class ElementSWSnapShotSchedule(object):
             if self.state == 'absent':
                 changed = True
             else:
-                # Check if we need to update the account
+                # Check if we need to update the snapshot schedule
                 if self.retention is not None and schedule_detail.schedule_info.retention != self.retention:
                     update_schedule = True
                     changed = True
