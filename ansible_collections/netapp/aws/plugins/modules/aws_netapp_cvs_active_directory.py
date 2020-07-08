@@ -21,7 +21,7 @@ module: aws_netapp_cvs_active_directory
 short_description: NetApp AWS CloudVolumes Service Manage Active Directory.
 extends_documentation_fragment:
     - netapp.aws.netapp.awscvs
-version_added: '2.9'
+version_added: 2.9.0
 author: NetApp Ansible Team (@carchi8py) <ng-ansibleteam@netapp.com>
 description:
     - Create, Update, Delete ActiveDirectory on AWS Cloud Volumes Service.

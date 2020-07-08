@@ -19,7 +19,7 @@ module: na_elementsw_admin_users
 short_description: NetApp Element Software Manage Admin Users
 extends_documentation_fragment:
     - netapp.elementsw.netapp.solidfire
-version_added: '2.7'
+version_added: 2.7.0
 author: NetApp Ansible Team (@carchi8py) <ng-ansibleteam@netapp.com>
 description:
 - Create, destroy, or update admin users on SolidFire

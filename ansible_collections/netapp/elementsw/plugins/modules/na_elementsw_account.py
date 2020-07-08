@@ -23,7 +23,7 @@ module: na_elementsw_account
 short_description: NetApp Element Software Manage Accounts
 extends_documentation_fragment:
     - netapp.elementsw.netapp.solidfire
-version_added: '2.7'
+version_added: 2.7.0
 author: NetApp Ansible Team (@carchi8py) <ng-ansibleteam@netapp.com>
 description:
 - Create, destroy, or update accounts on Element SW
@@ -47,7 +47,7 @@ options:
         description:
         - ID or Name of the account to rename.
         - Required to create an account called 'element_username' by renaming 'from_name'.
-        version_added: '2.8'
+        version_added: 2.8.0
 
     initiator_secret:
         description:

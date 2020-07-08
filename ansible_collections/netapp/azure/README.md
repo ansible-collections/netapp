@@ -30,6 +30,11 @@ Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 
 # Release Notes
 
+## 20.8.0
+
+### Module documentation changes
+- use a three group format for `version_added`.  So 2.7 becomes 2.7.0.  Same thing for 2.8 and 2.9.
+
 ## 20.7.0
 
 ### Bug Fixes

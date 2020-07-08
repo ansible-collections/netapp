@@ -1,10 +1,8 @@
-plugins/modules/na_elementsw_access_group.py validate-modules:deprecation-either-date-or-version
 plugins/modules/na_elementsw_access_group.py validate-modules:parameter-list-no-elements
 plugins/modules/na_elementsw_access_group.py validate-modules:parameter-type-not-in-doc
 plugins/modules/na_elementsw_access_group.py validate-modules:doc-missing-type
 plugins/modules/na_elementsw_access_group_volumes.py validate-modules:doc-required-mismatch
 plugins/modules/na_elementsw_access_group_volumes.py validate-modules:parameter-list-no-elements
-plugins/modules/na_elementsw_account.py validate-modules:deprecation-either-date-or-version
 plugins/modules/na_elementsw_account.py validate-modules:parameter-type-not-in-doc
 plugins/modules/na_elementsw_account.py validate-modules:doc-missing-type
 plugins/modules/na_elementsw_admin_users.py validate-modules:parameter-list-no-elements

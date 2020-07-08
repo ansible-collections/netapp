@@ -17,7 +17,7 @@ DOCUMENTATION = '''
 module: azure_rm_netapp_account
 
 short_description: Manage NetApp Azure Files Account
-version_added: "2.9"
+version_added: 2.9.0
 author: NetApp Ansible Team (@carchi8py) <ng-ansibleteam@netapp.com>
 
 description:

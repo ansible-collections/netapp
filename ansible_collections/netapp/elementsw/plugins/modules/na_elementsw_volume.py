@@ -21,7 +21,7 @@ module: na_elementsw_volume
 short_description: NetApp Element Software Manage Volumes
 extends_documentation_fragment:
     - netapp.elementsw.netapp.solidfire
-version_added: '2.7'
+version_added: 2.7.0
 author: NetApp Ansible Team (@carchi8py) <ng-ansibleteam@netapp.com>
 description:
 - Create, destroy, or update volumes on ElementSW

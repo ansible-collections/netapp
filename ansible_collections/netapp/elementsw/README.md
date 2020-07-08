@@ -20,8 +20,12 @@ Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 #Release Notes
 
 ## 20.8.0
+
 ### Bug Fixes
 - na_elementsw_snapshot_schedule: ignore schedules being deleted (idempotency), remove default values and fix documentation.
+
+### Module documentation changes
+- use a three group format for `version_added`.  So 2.7 becomes 2.7.0.  Same thing for 2.8 and 2.9.
 
 ## 20.6.0
 ### Bug Fixes

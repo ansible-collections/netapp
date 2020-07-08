@@ -22,7 +22,7 @@ module: na_elementsw_cluster_snmp
 short_description: Configure Element SW Cluster SNMP
 extends_documentation_fragment:
     - netapp.elementsw.netapp.solidfire
-version_added: '2.8'
+version_added: 2.8.0
 author: NetApp Ansible Team (@carchi8py) <ng-ansibleteam@netapp.com>
 description:
 - Configure Element Software cluster SNMP.

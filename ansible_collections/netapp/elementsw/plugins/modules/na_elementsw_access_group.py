@@ -24,7 +24,7 @@ module: na_elementsw_access_group
 short_description: NetApp Element Software Manage Access Groups
 extends_documentation_fragment:
     - netapp.elementsw.netapp.solidfire
-version_added: '2.7'
+version_added: 2.7.0
 author: NetApp Ansible Team (@carchi8py) <ng-ansibleteam@netapp.com>
 description:
 - Create, destroy, or update access groups on Element Software Cluster.
@@ -41,7 +41,7 @@ options:
         description:
         - ID or Name of the access group to rename.
         - Required to create a new access group called 'name' by renaming 'from_name'.
-        version_added: '2.8'
+        version_added: 2.8.0
 
     name:
         description:
@@ -65,7 +65,7 @@ options:
         - It accepts either account_name or account_id
         - if account_id is digit, it will consider as account_id
         - If account_id is string, it will consider as account_name
-        version_added: '2.8'
+        version_added: 2.8.0
 
     virtual_network_id:
         description:

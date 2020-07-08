@@ -22,7 +22,7 @@ module: aws_netapp_cvs_filesystems
 short_description: NetApp AWS Cloud Volumes Service Manage FileSystem.
 extends_documentation_fragment:
     - netapp.aws.netapp.awscvs
-version_added: '2.9'
+version_added: 2.9.0
 author: NetApp Ansible Team (@carchi8py) <ng-ansibleteam@netapp.com>
 description:
 - Create, Update, Delete fileSystem on AWS Cloud Volumes Service.

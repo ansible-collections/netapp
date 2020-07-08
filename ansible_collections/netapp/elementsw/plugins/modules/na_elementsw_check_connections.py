@@ -19,7 +19,7 @@ module: na_elementsw_check_connections
 short_description: NetApp Element Software Check connectivity to MVIP and SVIP.
 extends_documentation_fragment:
     - netapp.elementsw.netapp.solidfire
-version_added: '2.7'
+version_added: 2.7.0
 author: NetApp Ansible Team (@carchi8py) <ng-ansibleteam@netapp.com>
 description:
 - Used to test the management connection to the cluster.

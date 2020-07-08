@@ -21,7 +21,7 @@ module: aws_netapp_cvs_pool
 short_description: NetApp AWS Cloud Volumes Service Manage Pools.
 extends_documentation_fragment:
     - netapp.aws.netapp.awscvs
-version_added: '2.9'
+version_added: 2.9.0
 author: NetApp Ansible Team (@carchi8py) <ng-ansibleteam@netapp.com>
 description:
     - Create, Update, Delete Pool on AWS Cloud Volumes Service.

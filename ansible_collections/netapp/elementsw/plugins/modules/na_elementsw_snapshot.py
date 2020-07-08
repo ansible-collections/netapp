@@ -22,7 +22,7 @@ module: na_elementsw_snapshot
 short_description: NetApp Element Software Manage Snapshots
 extends_documentation_fragment:
     - netapp.elementsw.netapp.solidfire
-version_added: '2.7'
+version_added: 2.7.0
 author: NetApp Ansible Team (@carchi8py) <ng-ansibleteam@netapp.com>
 description:
     - Create, Modify or Delete Snapshot on Element OS Cluster.
