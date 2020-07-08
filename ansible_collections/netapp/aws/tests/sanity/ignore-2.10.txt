@@ -1,0 +1,3 @@
+plugins/modules/aws_netapp_cvs_active_directory.py validate-modules:doc-required-mismatch
+plugins/modules/aws_netapp_cvs_filesystems.py validate-modules:parameter-list-no-elements
+plugins/modules/aws_netapp_cvs_snapshots.py validate-modules:required_if-key-in-requirements
