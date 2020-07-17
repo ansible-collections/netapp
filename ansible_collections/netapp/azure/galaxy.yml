@@ -6,6 +6,8 @@ authors:
 license: "GPL-2.0-or-later"
 readme: README.md
 description: Azure NetApp Files (ANF)
+dependencies:
+    "azure.azcollection": "*"
 repository: https://github.com/ansible-collections/netapp
 homepage: https://netapp.io/configuration-management-and-automation/
 tags:
