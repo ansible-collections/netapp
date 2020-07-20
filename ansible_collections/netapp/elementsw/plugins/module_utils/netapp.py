@@ -77,20 +77,25 @@ def ontap_sf_host_argument_spec():
     )
 
 
-def create_sf_connection(module, port=None, raise_on_connection_error=False):
+def create_sf_connection(module, port=None, raise_on_connection_error=False, timeout=None):
     hostname = module.params['hostname']
     username = module.params['username']
     password = module.params['password']
+    options = dict()
+    if port is not None:
+        options['port'] = port
+    if timeout is not None:
+        options['timeout'] = timeout
 
-    if HAS_SF_SDK and hostname and username and password:
+    if HAS_SF_SDK:
         try:
-            return_val = ElementFactory.create(hostname, username, password, port=port)
+            return_val = ElementFactory.create(hostname, username, password, **options)
             return return_val
-        except solidfire.common.ApiConnectionError as exc:
+        except (solidfire.common.ApiConnectionError, solidfire.common.ApiServerError) as exc:
             if raise_on_connection_error:
                 raise exc
             module.fail_json(msg=repr(exc))
         except Exception as exc:
             raise Exception("Unable to create SF connection: %s" % repr(exc))
-    else:
-        module.fail_json(msg="the python SolidFire SDK module is required")
+
+    module.fail_json(msg="the python SolidFire SDK module is required")

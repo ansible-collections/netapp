@@ -25,33 +25,42 @@ extends_documentation_fragment:
 version_added: 2.7.0
 author: NetApp Ansible Team (@carchi8py) <ng-ansibleteam@netapp.com>
 description:
-- Initialize Element Software node ownership to form a cluster.
+  - Initialize Element Software node ownership to form a cluster.
+  - If the cluster does not exist, username/password are still required but ignored for initial creation.
+  - username/password are used as the node credentials to see if the cluster already exists.
+  - username/password can also be used to set the cluster credentials.
+  - If the cluster already exists, no error is returned, but changed is set to false.
 
 options:
     management_virtual_ip:
         description:
         - Floating (virtual) IP address for the cluster on the management network.
         required: true
+        type: str
 
     storage_virtual_ip:
         description:
         - Floating (virtual) IP address for the cluster on the storage (iSCSI) network.
         required: true
+        type: str
 
     replica_count:
         description:
         - Number of replicas of each piece of data to store in the cluster.
-        default: '2'
+        default: 2
+        type: int
 
     cluster_admin_username:
         description:
         - Username for the cluster admin.
-        - If not provided, default to login username.
+        - If not provided, default to username.
+        type: str
 
     cluster_admin_password:
         description:
         - Initial password for the cluster admin account.
-        - If not provided, default to login password.
+        - If not provided, default to password.
+        type: str
 
     accept_eula:
         description:
@@ -64,10 +73,30 @@ options:
         - Storage IP (SIP) addresses of the initial set of nodes making up the cluster.
         - nodes IP must be in the list.
         required: true
+        type: list
+        elements: str
 
     attributes:
         description:
         - List of name-value pairs in JSON object format.
+        type: dict
+
+    timeout:
+        description:
+          - Time to wait for cluster creation to complete.
+        default: 100
+        type: int
+        version_added: 20.8.0
+
+    fail_if_cluster_already_exists_with_larger_ensemble:
+        description:
+          - If the cluster exists, the default is to verify that I(nodes) is a superset of the existing ensemble.
+          - A superset is accepted because some nodes may have a different role.
+          - But the module reports an error if the existing ensemble contains a node not listed in I(nodes).
+          - This checker is disabled when this option is set to false.
+        default: true
+        type: bool
+        version_added: 20.8.0
 '''
 
 EXAMPLES = """
@@ -116,12 +145,14 @@ class ElementSWCluster(object):
         self.argument_spec.update(dict(
             management_virtual_ip=dict(required=True, type='str'),
             storage_virtual_ip=dict(required=True, type='str'),
-            replica_count=dict(required=False, type='str', default='2'),
+            replica_count=dict(required=False, type='int', default=2),
             cluster_admin_username=dict(required=False, type='str'),
             cluster_admin_password=dict(required=False, type='str', no_log=True),
             accept_eula=dict(required=False, type='bool'),
-            nodes=dict(required=True, type=list),
-            attributes=dict(required=False, type='dict', default=None)
+            nodes=dict(required=True, type='list', elements='str'),
+            attributes=dict(required=False, type='dict', default=None),
+            timeout=dict(required=False, type='int', default=100),
+            fail_if_cluster_already_exists_with_larger_ensemble=dict(required=False, type='bool', default=True),
         ))
 
         self.module = AnsibleModule(
@@ -137,21 +168,87 @@ class ElementSWCluster(object):
         self.accept_eula = input_params.get('accept_eula')
         self.attributes = input_params.get('attributes')
         self.nodes = input_params['nodes']
-        self.cluster_admin_username = input_params.get('cluster_admin_username')
-        self.cluster_admin_password = input_params.get('cluster_admin_password')
+        self.cluster_admin_username = input_params['username'] if input_params.get('cluster_admin_username') is None else input_params['cluster_admin_username']
+        self.cluster_admin_password = input_params['password'] if input_params.get('cluster_admin_password') is None else input_params['cluster_admin_password']
+        self.fail_if_cluster_already_exists_with_larger_ensemble = input_params['fail_if_cluster_already_exists_with_larger_ensemble']
 
         if HAS_SF_SDK is False:
             self.module.fail_json(msg="Unable to import the SolidFire Python SDK")
-        else:
-            self.sfe = netapp_utils.create_sf_connection(module=self.module)
 
-        self.elementsw_helper = NaElementSWModule(self.sfe)
+        # 442 for node APIs, 443 (default) for cluster APIs
+        for port in [442, 443]:
+            try:
+                # even though username/password should be optional, create_sf_connection fails if not set
+                conn = netapp_utils.create_sf_connection(module=self.module, raise_on_connection_error=True, port=port, timeout=input_params['timeout'])
+                if port == 442:
+                    self.sfe_node = conn
+                else:
+                    self.sfe_cluster = conn
+            except netapp_utils.solidfire.common.ApiConnectionError as exc:
+                if str(exc) == "Bad Credentials":
+                    msg = 'Most likely the cluster is already created.'
+                    msg += '  Make sure to use valid %s credentials for username and password.' % 'node' if port == 442 else 'cluster'
+                    msg += '  Even though credentials are not required for the first create, they are needed to check whether the cluster already exists.'
+                    msg += '  Cluster reported: %s' % repr(exc)
+                else:
+                    msg = repr(exc)
+                self.module.fail_json(msg=msg)
+
+        self.elementsw_helper = NaElementSWModule(self.sfe_cluster)
 
         # add telemetry attributes
         if self.attributes is not None:
             self.attributes.update(self.elementsw_helper.set_element_attributes(source='na_elementsw_cluster'))
         else:
             self.attributes = self.elementsw_helper.set_element_attributes(source='na_elementsw_cluster')
+
+    def get_cluster_info(self):
+        """
+        Get Cluster Info - using node API
+        """
+        try:
+            info = self.sfe_node.get_config()
+            return info.config.cluster, None
+        except Exception as exc:
+            return None, repr(exc)
+
+    def check_cluster_exists(self):
+        """
+        validate if cluster exists with list of nodes
+        error out if something is found but with different nodes
+        return a tuple (found, info)
+            found is True if found, False if not found
+        """
+        info, error = self.get_cluster_info()
+        if info is None:
+            return False, error
+        ensemble = getattr(info, 'ensemble', None)
+        if not ensemble:
+            return False, repr(info)
+        # format is 'id:IP'
+        nodes = [x.split(':', 1)[1] for x in ensemble]
+        current_ensemble_nodes = set(nodes) if ensemble else set()
+        requested_nodes = set(self.nodes) if self.nodes else set()
+        extra_ensemble_nodes = current_ensemble_nodes - requested_nodes
+        # TODO: the cluster may have more nodes than what is reported in ensemble:
+        # nodes_not_in_ensemble = requested_nodes - current_ensemble_nodes
+        # So it's OK to find some missing nodes, but not very deterministic.
+        # eg some kind of backup nodes could be in nodes_not_in_ensemble.
+        if extra_ensemble_nodes and self.fail_if_cluster_already_exists_with_larger_ensemble:
+            msg = 'Error: found existing cluster with more nodes in ensemble.  Cluster: %s, extra nodes: %s' %\
+                  (getattr(info, 'cluster', 'not found'), extra_ensemble_nodes)
+            msg += '.  Cluster info: %s' % repr(info)
+            self.module.fail_json(msg=msg)
+        msg = repr(info)
+        extra = ''
+        if extra_ensemble_nodes:
+            extra = ".  Extra ensemble nodes: %s" % extra_ensemble_nodes
+        nodes_not_in_ensemble = requested_nodes - current_ensemble_nodes
+        if nodes_not_in_ensemble:
+            extra += ".  Extra requested nodes not in ensemble: %s" % nodes_not_in_ensemble
+        if extra:
+            msg += '%s.' % extra
+        return True, msg
 
     def create_cluster(self):
         """
@@ -163,35 +260,23 @@ class ElementSWCluster(object):
             'rep_count': self.replica_count,
             'accept_eula': self.accept_eula,
             'nodes': self.nodes,
-            'attributes': self.attributes
+            'attributes': self.attributes,
+            'username': self.cluster_admin_username,
+            'password': self.cluster_admin_password
         }
-        if self.cluster_admin_username is not None:
-            options['username'] = self.cluster_admin_username
-        if self.cluster_admin_password is not None:
-            options['password'] = self.cluster_admin_password
+        return_msg = 'created'
         try:
-            self.sfe.create_cluster(**options)
-        except Exception as exception_object:
-            self.module.fail_json(msg='Error create cluster %s' % (to_native(exception_object)),
-                                  exception=traceback.format_exc())
-
-    def check_connection(self):
-        """
-        Check connections to mvip, svip  address.
-        :description: To test connection to given IP addressed for mvip and svip
-
-        :rtype: bool
-        """
-        try:
-            mvip_test = self.sfe.test_connect_mvip(mvip=self.management_virtual_ip)
-            svip_test = self.sfe.test_connect_svip(svip=self.storage_virtual_ip)
-
-            if mvip_test.details.connected and svip_test.details.connected:
-                return True
-            else:
-                return False
-        except Exception as e:
-            return False
+            # does not work as node even though documentation says otherwise
+            # running as node, this error is reported: 500 xUnknownAPIMethod  method=CreateCluster
+            self.sfe_cluster.create_cluster(**options)
+        except netapp_utils.solidfire.common.ApiServerError as exc:
+            # not sure how this can happen, but the cluster may already exists
+            if 'xClusterAlreadyCreated' not in str(exc.message):
+                self.module.fail_json(msg='Error creating cluster %s' % to_native(exc), exception=traceback.format_exc())
+            return_msg = 'already_exists: %s' % str(exc.message)
+        except Exception as exc:
+            self.module.fail_json(msg='Error creating cluster %s' % to_native(exc), exception=traceback.format_exc())
+        return return_msg
 
     def apply(self):
         """
@@ -199,15 +284,16 @@ class ElementSWCluster(object):
         """
         changed = False
         result_message = None
-        if self.module.supports_check_mode and self.accept_eula:
-            if self.check_connection():
-                self.create_cluster()
-                changed = True
-            else:
-                self.module.fail_json(msg='Error connecting mvip and svip address')
+        exists, info = self.check_cluster_exists()
+        if exists:
+            result_message = "cluster already exists"
         else:
-            result_message = "Skipping changes, No change requested"
-        self.module.exit_json(changed=changed, msg=result_message)
+            changed = True
+            if not self.module.check_mode:
+                result_message = self.create_cluster()
+                if result_message.startswith('already_exists:'):
+                    changed = False
+        self.module.exit_json(changed=changed, msg=result_message, debug=info)
 
 
 def main():

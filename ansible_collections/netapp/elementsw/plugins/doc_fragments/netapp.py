@@ -25,6 +25,7 @@ options:
       required: true
       description:
       - The hostname or IP address of the SolidFire cluster.
+      - For na_elementsw_cluster, the Management IP (MIP) or hostname of the node to initiate the cluster creation from.
       type: str
   username:
       required: true
