@@ -29,17 +29,20 @@ options:
     state:
         description:
         - Whether the specified account should exist or not.
-        required: true
         choices: ['present', 'absent']
+        default: present
+        type: str
 
     element_username:
         description:
         - Unique username for this account. (May be 1 to 64 characters in length).
         required: true
+        type: str
 
     element_password:
         description:
         - The password for the new admin account. Setting the password attribute will always reset your password, even if the password is the same
+        type: str
 
     acceptEula:
         description:
@@ -111,7 +114,7 @@ class NetAppElementSWAdminUser(object):
         """
         self.argument_spec = netapp_utils.ontap_sf_host_argument_spec()
         self.argument_spec.update(dict(
-            state=dict(required=True, choices=['present', 'absent']),
+            state=dict(required=False, type='str', choices=['present', 'absent'], default='present'),
             element_username=dict(required=True, type='str'),
             element_password=dict(required=False, type='str', no_log=True),
             acceptEula=dict(required=False, type='bool'),

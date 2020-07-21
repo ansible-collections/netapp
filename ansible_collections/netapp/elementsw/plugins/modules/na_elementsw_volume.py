@@ -31,14 +31,16 @@ options:
     state:
         description:
         - Whether the specified volume should exist or not.
-        required: true
         choices: ['present', 'absent']
+        default: present
+        type: str
 
     name:
         description:
         - The name of the volume to manage.
         - It accepts volume_name or volume_id
         required: true
+        type: str
 
     account_id:
         description:
@@ -56,20 +58,24 @@ options:
 
     qos:
         description: Initial quality of service settings for this volume. Configure as dict in playbooks.
+        type: dict
 
     attributes:
         description: A YAML dictionary of attributes that you would like to apply on this volume.
+        type: dict
 
     size:
         description:
         - The size of the volume in (size_unit).
         - Required when C(state = present).
+        type: int
 
     size_unit:
         description:
         - The unit used to interpret the size parameter.
         choices: ['bytes', 'b', 'kb', 'mb', 'gb', 'tb', 'pb', 'eb', 'zb', 'yb']
         default: 'gb'
+        type: str
 
     access:
         description:
@@ -81,19 +87,7 @@ options:
         - If the volume is not paired, the access status is locked.
         - If unspecified, the access settings of the clone will be the same as the source.
         choices: ['readOnly', 'readWrite', 'locked', 'replicationTarget']
-
-    password:
-        description:
-        - ElementSW access account password
-        aliases:
-        - pass
-
-    username:
-        description:
-        - ElementSW access account user-name
-        aliases:
-        - user
-
+        type: str
 '''
 
 EXAMPLES = """
@@ -168,7 +162,7 @@ class ElementOSVolume(object):
 
         self.argument_spec = netapp_utils.ontap_sf_host_argument_spec()
         self.argument_spec.update(dict(
-            state=dict(required=True, choices=['present', 'absent']),
+            state=dict(required=False, type='str', choices=['present', 'absent'], default='present'),
             name=dict(required=True, type='str'),
             account_id=dict(required=True),
             enable512e=dict(type='bool', aliases=['512emulation']),

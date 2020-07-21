@@ -35,22 +35,25 @@ options:
         description:
         - ID or Name of source active volume.
         required: true
+        type: str
 
     src_snapshot_id:
         description:
         - ID or Name of an existing snapshot.
         required: true
+        type: str
 
     dest_volume_name:
         description:
         - New Name of destination for restoring the snapshot
         required: true
+        type: str
 
     account_id:
         description:
         - Account ID or Name of Parent/Source Volume.
         required: true
-
+        type: str
 '''
 
 EXAMPLES = """

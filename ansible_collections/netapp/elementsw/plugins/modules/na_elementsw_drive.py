@@ -32,6 +32,7 @@ options:
         description:
         - Drive ID or Serial Name of Node drive.
         - If not specified, add and remove action will be performed on all drives of node_id
+        type: str
 
     state:
         description:
@@ -46,6 +47,7 @@ options:
         description:
         - ID or Name of cluster node.
         required: true
+        type: str
 
     force_during_upgrade:
         description:

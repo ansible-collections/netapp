@@ -34,14 +34,16 @@ options:
     state:
         description:
         - Whether the specified access group should exist or not.
-        required: true
         choices: ['present', 'absent']
+        default: present
+        type: str
 
     from_name:
         description:
         - ID or Name of the access group to rename.
         - Required to create a new access group called 'name' by renaming 'from_name'.
         version_added: 2.8.0
+        type: str
 
     name:
         description:
@@ -49,6 +51,7 @@ options:
         required: True
         aliases:
         - src_access_group_id
+        type: str
 
     initiators:
         description:
@@ -70,10 +73,12 @@ options:
         - if account_id is digit, it will consider as account_id
         - If account_id is string, it will consider as account_name
         version_added: 2.8.0
+        type: str
 
     virtual_network_id:
         description:
         - The ID of the Element SW Software Cluster Virtual Network to associate the access group with.
+        type: int
 
     virtual_network_tags:
         description:
@@ -83,6 +88,7 @@ options:
 
     attributes:
         description: List of Name/Value pairs in JSON object format.
+        type: dict
 
 '''
 
@@ -157,7 +163,7 @@ class ElementSWAccessGroup(object):
 
         self.argument_spec = netapp_utils.ontap_sf_host_argument_spec()
         self.argument_spec.update(dict(
-            state=dict(required=True, choices=['present', 'absent']),
+            state=dict(required=False, type='str', choices=['present', 'absent'], default='present'),
             from_name=dict(required=False, type='str'),
             name=dict(required=True, aliases=["src_access_group_id"], type='str'),
             initiators=dict(required=False, type='list', elements='str'),

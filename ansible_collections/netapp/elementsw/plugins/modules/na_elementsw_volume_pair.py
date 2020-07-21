@@ -34,42 +34,50 @@ options:
       description:
       - Source volume name or volume ID
       required: true
+      type: str
 
     src_account:
       description:
       - Source account name or ID
       required: true
+      type: str
 
     dest_volume:
       description:
       - Destination volume name or volume ID
       required: true
+      type: str
 
     dest_account:
       description:
       - Destination account name or ID
       required: true
+      type: str
 
     mode:
       description:
       - Mode to start the volume pairing
       choices: ['async', 'sync', 'snapshotsonly']
       default: async
+      type: str
 
     dest_mvip:
       description:
       - Destination IP address of the paired cluster.
       required: true
+      type: str
 
     dest_username:
       description:
       - Destination username for the paired cluster
       - Optional if this is same as source cluster username.
+      type: str
 
     dest_password:
       description:
       - Destination password for the paired cluster
       - Optional if this is same as source cluster password.
+      type: str
 
 '''
 

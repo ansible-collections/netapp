@@ -35,17 +35,20 @@ options:
       description:
       - Virtual Network Tag
       required: true
+      type: str
 
     name:
       description:
       - User defined name for the new VLAN
       - Name of the vlan is unique
       - Required for create
+      type: str
 
     svip:
       description:
       - Storage virtual IP which is unique
       - Required for create
+      type: str
 
     address_blocks:
       description:
@@ -59,10 +62,12 @@ options:
       description:
       - Netmask for the VLAN
       - Required for create
+      type: str
 
     gateway:
       description:
       - Gateway for the VLAN
+      type: str
 
     namespace:
       description:
@@ -72,6 +77,7 @@ options:
     attributes:
       description:
       - Dictionary of attributes with name and value for each attribute
+      type: dict
 
 '''
 

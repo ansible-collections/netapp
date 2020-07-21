@@ -30,8 +30,8 @@ options:
     state:
         description:
         - Whether the specified schedule should exist or not.
-        required: true
         choices: ['present', 'absent']
+        default: present
         type: str
 
     paused:
@@ -94,6 +94,7 @@ options:
         - It accepts either schedule_id or schedule_name
         - if name is digit, it will consider as schedule_id
         - If name is string, it will consider as schedule_name
+        required: true
         type: str
 
     snapshot_name:
@@ -206,7 +207,7 @@ class ElementSWSnapShotSchedule(object):
         """
         self.argument_spec = netapp_utils.ontap_sf_host_argument_spec()
         self.argument_spec.update(dict(
-            state=dict(required=True, choices=['present', 'absent']),
+            state=dict(required=False, type='str', choices=['present', 'absent'], default='present'),
             name=dict(required=True, type='str'),
             schedule_type=dict(required=False, choices=['DaysOfWeekFrequency', 'DaysOfMonthFrequency', 'TimeIntervalFrequency']),
 

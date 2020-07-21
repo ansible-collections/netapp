@@ -38,68 +38,83 @@ options:
         - static - Used to define Ethernet interfaces with statically allocated IPv4 addresses.
         choices: ['loopback', 'manual', 'dhcp', 'static']
         required: true
+        type: str
 
     ip_address_1g:
         description:
         - IP address for the 1G network.
         required: true
+        type: str
 
     ip_address_10g:
         description:
         - IP address for the 10G network.
         required: true
+        type: str
 
     subnet_1g:
         description:
         - 1GbE Subnet Mask.
         required: true
+        type: str
 
     subnet_10g:
         description:
         - 10GbE Subnet Mask.
         required: true
+        type: str
 
     gateway_address_1g:
         description:
         - Router network address to send packets out of the local network.
         required: true
+        type: str
 
     gateway_address_10g:
         description:
         - Router network address to send packets out of the local network.
         required: true
+        type: str
 
     mtu_1g:
         description:
         - Maximum Transmission Unit for 1GbE, Largest packet size that a network protocol can transmit.
         - Must be greater than or equal to 1500 bytes.
         default: '1500'
+        type: str
 
     mtu_10g:
         description:
         - Maximum Transmission Unit for 10GbE, Largest packet size that a network protocol can transmit.
         - Must be greater than or equal to 1500 bytes.
         default: '1500'
+        type: str
 
     dns_nameservers:
         description:
         - List of addresses for domain name servers.
+        type: list
+        elements: str
 
     dns_search_domains:
         description:
         - List of DNS search domains.
+        type: list
+        elements: str
 
     bond_mode_1g:
         description:
         - Bond mode for 1GbE configuration.
         choices: ['ActivePassive', 'ALB', 'LACP']
         default: 'ActivePassive'
+        type: str
 
     bond_mode_10g:
         description:
         - Bond mode for 10GbE configuration.
         choices: ['ActivePassive', 'ALB', 'LACP']
         default: 'ActivePassive'
+        type: str
 
     lacp_1g:
         description:
@@ -108,6 +123,7 @@ options:
         - Fast - Packets are transmitted in 1 second intervals.
         choices: ['Fast', 'Slow']
         default: 'Slow'
+        type: str
 
     lacp_10g:
         description:
@@ -116,10 +132,12 @@ options:
         - Fast - Packets are transmitted in 1 second intervals.
         choices: ['Fast', 'Slow']
         default: 'Slow'
+        type: str
 
     virtual_network_tag:
         description:
         - This is the primary network tag. All nodes in a cluster have the same VLAN tag.
+        type: str
 
 '''
 
@@ -186,8 +204,8 @@ class ElementSWNetworkInterfaces(object):
             gateway_address_10g=dict(required=True, type='str'),
             mtu_1g=dict(required=False, type='str', default='1500'),
             mtu_10g=dict(required=False, type='str', default='1500'),
-            dns_nameservers=dict(required=False, type=list),
-            dns_search_domains=dict(required=False, type=list),
+            dns_nameservers=dict(required=False, type='list', elements='str'),
+            dns_search_domains=dict(required=False, type='list', elements='str'),
             bond_mode_1g=dict(required=False, type='str', choices=['ActivePassive', 'ALB', 'LACP'], default='ActivePassive'),
             bond_mode_10g=dict(required=False, type='str', choices=['ActivePassive', 'ALB', 'LACP'], default='ActivePassive'),
             lacp_1g=dict(required=False, type='str', choices=['Fast', 'Slow'], default='Slow'),

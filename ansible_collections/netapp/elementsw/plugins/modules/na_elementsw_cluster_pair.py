@@ -35,16 +35,19 @@ options:
       description:
       - Destination IP address of the cluster to be paired.
       required: true
+      type: str
 
     dest_username:
       description:
       - Destination username for the cluster to be paired.
       - Optional if this is same as source cluster username.
+      type: str
 
     dest_password:
       description:
       - Destination password for the cluster to be paired.
       - Optional if this is same as source cluster password.
+      type: str
 
 '''
 

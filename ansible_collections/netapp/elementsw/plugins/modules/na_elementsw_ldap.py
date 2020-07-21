@@ -28,50 +28,61 @@ options:
     state:
         description:
         - Whether the specified volume should exist or not.
-        required: true
         choices: ['present', 'absent']
+        default: present
+        type: str
 
     authType:
         description:
         - Identifies which user authentication method to use.
         choices: ['DirectBind', 'SearchAndBind']
+        type: str
 
     groupSearchBaseDn:
         description:
         - The base DN of the tree to start the group search (will do a subtree search from here)
+        type: str
 
     groupSearchType:
         description:
         - Controls the default group search filter used
         choices: ['NoGroup', 'ActiveDirectory', 'MemberDN']
+        type: str
 
     serverURIs:
         description:
         - A comma-separated list of LDAP server URIs
+        type: str
 
     userSearchBaseDN:
         description:
         - The base DN of the tree to start the search (will do a subtree search from here)
+        type: str
 
     searchBindDN:
         description:
         - A dully qualified DN to log in with to perform an LDAp search for the user (needs read access to the LDAP directory).
+        type: str
 
     searchBindPassword:
         description:
         - The password for the searchBindDN account used for searching
+        type: str
 
     userSearchFilter:
         description:
         - the LDAP Filter to use
+        type: str
 
     userDNTemplate:
         description:
         - A string that is used form a fully qualified user DN.
+        type: str
 
     groupSearchCustomFilter:
         description:
         - For use with the CustomFilter Search type
+        type: str
 '''
 
 EXAMPLES = """
@@ -117,7 +128,7 @@ class NetappElementLdap(object):
     def __init__(self):
         self.argument_spec = netapp_utils.ontap_sf_host_argument_spec()
         self.argument_spec.update(
-            state=dict(type='str', required=True, choices=['absent', 'present']),
+            state=dict(required=False, type='str', choices=['present', 'absent'], default='present'),
             authType=dict(type='str', choices=['DirectBind', 'SearchAndBind']),
             groupSearchBaseDn=dict(type='str'),
             groupSearchType=dict(type='str', choices=['NoGroup', 'ActiveDirectory', 'MemberDN']),

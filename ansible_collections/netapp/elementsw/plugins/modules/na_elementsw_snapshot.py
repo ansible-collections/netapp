@@ -32,6 +32,7 @@ options:
         description:
         - Name of new snapshot create.
         - If unspecified, date and time when the snapshot was taken is used.
+        type: str
 
     state:
         description:
@@ -43,16 +44,19 @@ options:
         description:
         - ID or Name of active volume.
         required: true
+        type: str
 
     account_id:
         description:
         - Account ID or Name of Parent/Source Volume.
         required: true
+        type: str
 
     retention:
         description:
         - Retention period for the snapshot.
         - Format is 'HH:mm:ss'.
+        type: str
 
     src_snapshot_id:
         description:
@@ -60,6 +64,7 @@ options:
         - Required when C(state=present), to modify snapshot properties.
         - Required when C(state=present), to create snapshot from another snapshot in the volume.
         - Required when C(state=absent), to delete snapshot.
+        type: str
 
     enable_remote_replication:
         description:
@@ -70,23 +75,12 @@ options:
     snap_mirror_label:
         description:
         - Label used by SnapMirror software to specify snapshot retention policy on SnapMirror endpoint.
+        type: str
 
     expiration_time:
         description:
         - The date and time (format ISO 8601 date string) at which this snapshot will expire.
-
-    password:
-        description:
-        - Element OS access account password
-        aliases:
-        - pass
-
-    username:
-        description:
-        - Element OS access account user-name
-        aliases:
-        - user
-
+        type: str
 '''
 
 EXAMPLES = """

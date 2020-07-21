@@ -34,14 +34,14 @@ options:
     state:
         description:
         - Whether the specified volumes should exist or not for this access group.
-        required: true
         choices: ['present', 'absent']
+        default: present
         type: str
 
     access_group:
         description:
         - Name or id for the access group to add volumes to, or remove volumes from
-        required: True
+        required: true
         type: str
 
     volumes:
@@ -58,6 +58,7 @@ options:
         - It accepts either account_name or account_id
         - if account_id is numeric, look up for account_id first, then look up for account_name
         - If account_id is not numeric, look up for account_name
+        required: true
         type: str
 '''
 
@@ -115,7 +116,7 @@ class ElementSWAccessGroupVolumes(object):
 
         self.argument_spec = netapp_utils.ontap_sf_host_argument_spec()
         self.argument_spec.update(dict(
-            state=dict(required=True, choices=['present', 'absent']),
+            state=dict(required=False, type='str', choices=['present', 'absent'], default='present'),
             access_group=dict(required=True, type='str'),
             volumes=dict(required=True, type='list', elements='str'),
             account_id=dict(required=True, type='str'),

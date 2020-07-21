@@ -27,6 +27,9 @@ Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 
 ### Module documentation changes
 - use a three group format for `version_added`.  So 2.7 becomes 2.7.0.  Same thing for 2.8 and 2.9.
+- add type: str (or int, dict) where missing in documentation section.
+- add required: true where missing.
+- remove required: true for state and use present as default.
 
 ## 20.6.0
 ### Bug Fixes

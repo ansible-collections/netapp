@@ -33,29 +33,34 @@ options:
         required: true
         aliases:
         - volume_id
+        type: str
 
     dest_hostname:
         description:
         - hostname for the backup source cluster
         - will be set equal to hostname if not specified
         required: false
+        type: str
 
     dest_username:
         description:
         - username for the backup destination cluster
         - will be set equal to username if not specified
         required: false
+        type: str
 
     dest_password:
         description:
         - password for the backup destination cluster
         - will be set equal to password if not specified
         required: false
+        type: str
 
     dest_volume_id:
         description:
         - ID of the backup destination volume
         required: true
+        type: str
 
     format:
         description:
@@ -68,11 +73,13 @@ options:
         description:
         - the backup script to be executed
         required: false
+        type: str
 
     script_parameters:
         description:
         - the backup script parameters
         required: false
+        type: dict
 
 '''
 

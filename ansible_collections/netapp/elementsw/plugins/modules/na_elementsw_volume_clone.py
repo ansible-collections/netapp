@@ -50,16 +50,19 @@ options:
 
     attributes:
         description: A YAML dictionary of attributes that you would like to apply on this cloned volume.
+        type: dict
 
     size:
         description:
         - The size of the cloned volume in (size_unit).
+        type: int
 
     size_unit:
         description:
         - The unit used to interpret the size parameter.
         choices: ['bytes', 'b', 'kb', 'mb', 'gb', 'tb', 'pb', 'eb', 'zb', 'yb']
         default: 'gb'
+        type: str
 
     access:
         choices: ['readOnly', 'readWrite', 'locked', 'replicationTarget']
@@ -70,6 +73,7 @@ options:
         - readWrite - Reads and writes are allowed.
         - locked - No reads or writes are allowed.
         - replicationTarget - Identify a volume as the target volume for a paired set of volumes. If the volume is not paired, the access status is locked.
+        type: str
 
 '''
 
@@ -128,14 +132,11 @@ class ElementOSVolumeClone(object):
             src_volume_id=dict(required=True),
             src_snapshot_id=dict(),
             account_id=dict(required=True),
-
             attributes=dict(type='dict', default=None),
-
             size=dict(type='int'),
             size_unit=dict(default='gb',
                            choices=['bytes', 'b', 'kb', 'mb', 'gb', 'tb',
                                     'pb', 'eb', 'zb', 'yb'], type='str'),
-
             access=dict(type='str',
                         default=None, choices=['readOnly', 'readWrite',
                                                'locked', 'replicationTarget']),

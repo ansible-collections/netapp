@@ -38,19 +38,22 @@ options:
             stage3_block_threshold_percent:
                 description:
                 - The percentage below the "Error" threshold that triggers a cluster "Warning" alert
-
+                type: int
             max_metadata_over_provision_factor:
                 description:
                 - The number of times metadata space can be overprovisioned relative to the amount of space available
-
+                type: int
             stage2_aware_threshold:
                 description:
                 - The number of nodes of capacity remaining in the cluster before the system triggers a notification
+                type: int
+        type: dict
 
     encryption_at_rest:
         description:
         - enable or disable the Advanced Encryption Standard (AES) 256-bit encryption at rest on the cluster
         choices: ['present', 'absent']
+        type: str
 
     set_ntp_info:
         description:
@@ -62,12 +65,12 @@ options:
                 - list of NTP servers to add to each nodes NTP configuration
                 type: list
                 elements: str
-
             broadcastclient:
                 type: bool
                 default: False
                 description:
                 - Enables every node in the cluster as a broadcast client
+        type: dict
 
     enable_virtual_volumes:
         type: bool

@@ -33,8 +33,9 @@ options:
     state:
         description:
         - Whether the specified account should exist or not.
-        required: true
         choices: ['present', 'absent']
+        default: present
+        type: str
 
     element_username:
         description:
@@ -42,6 +43,7 @@ options:
         required: true
         aliases:
         - account_id
+        type: str
 
     from_name:
         description:
@@ -54,6 +56,7 @@ options:
         - CHAP secret to use for the initiator. Should be 12-16 characters long and impenetrable.
         - The CHAP initiator secrets must be unique and cannot be the same as the target CHAP secret.
         - If not specified, a random secret is created.
+        type: str
 
     target_secret:
         description:
@@ -61,13 +64,16 @@ options:
         - Should be 12-16 characters long and impenetrable.
         - The CHAP target secrets must be unique and cannot be the same as the initiator CHAP secret.
         - If not specified, a random secret is created.
+        type: str
 
     attributes:
         description: List of Name/Value pairs in JSON object format.
+        type: dict
 
     status:
         description:
         - Status of the account.
+        type: str
 
 '''
 
@@ -139,11 +145,11 @@ class ElementSWAccount(object):
     def __init__(self):
         self.argument_spec = netapp_utils.ontap_sf_host_argument_spec()
         self.argument_spec.update(dict(
-            state=dict(required=True, choices=['present', 'absent']),
+            state=dict(required=False, type='str', choices=['present', 'absent'], default='present'),
             element_username=dict(required=True, aliases=["account_id"], type='str'),
             from_name=dict(required=False, default=None),
-            initiator_secret=dict(required=False, type='str'),
-            target_secret=dict(required=False, type='str'),
+            initiator_secret=dict(required=False, type='str', no_log=True),
+            target_secret=dict(required=False, type='str', no_log=True),
             attributes=dict(required=False, type='dict'),
             status=dict(required=False, type='str'),
         ))

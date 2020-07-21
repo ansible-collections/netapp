@@ -31,16 +31,19 @@ options:
     description:
     - Skip checking connection to SVIP or MVIP.
     choices: ['svip', 'mvip']
+    type: str
 
   mvip:
     description:
     - Optionally, use to test connection of a different MVIP.
     - This is not needed to test the connection to the target cluster.
+    type: str
 
   svip:
     description:
     - Optionally, use to test connection of a different SVIP.
     - This is not needed to test the connection to the target cluster.
+    type: str
 
 '''
 

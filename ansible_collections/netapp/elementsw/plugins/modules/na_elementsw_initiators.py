@@ -33,12 +33,16 @@ options:
         suboptions:
             name:
                 description: The name of the initiator.
+                type: str
+                required: true
 
             alias:
                 description: The friendly name assigned to this initiator.
+                type: str
 
             initiator_id:
                 description: The numeric ID of the initiator.
+                type: int
 
             volume_access_groups:
                 description: A list of volumeAccessGroupIDs to which this initiator belongs.
@@ -47,6 +51,7 @@ options:
 
             attributes:
                 description: A set of JSON attributes to assign to this initiator.
+                type: dict
         type: list
         elements: dict
 
@@ -55,6 +60,7 @@ options:
         - Whether the specified initiator should exist or not.
         choices: ['present', 'absent']
         default: present
+        type: str
 '''
 
 EXAMPLES = """
