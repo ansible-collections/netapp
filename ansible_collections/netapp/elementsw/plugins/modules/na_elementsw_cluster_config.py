@@ -60,6 +60,8 @@ options:
             ntp_servers:
                 description:
                 - list of NTP servers to add to each nodes NTP configuration
+                type: list
+                elements: str
 
             broadcastclient:
                 type: bool
@@ -136,7 +138,7 @@ class ElementSWClusterConfig(object):
                 type='dict',
                 options=dict(
                     broadcastclient=dict(type='bool', default=False),
-                    ntp_servers=dict(type='list')
+                    ntp_servers=dict(type='list', elements='str')
                 )
             ),
             enable_virtual_volumes=dict(type='bool', default=True)

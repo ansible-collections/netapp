@@ -160,7 +160,7 @@ class TestMyModule(unittest.TestCase):
         initiator_dict = {
             "state": "present",
             "initiators": [{
-                "initiator_name": "a",
+                "name": "a",
                 "alias": "a3",
                 "attributes": {"key": "value"}
             }]

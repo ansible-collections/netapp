@@ -18,7 +18,6 @@ plugins/modules/na_elementsw_initiators.py validate-modules:parameter-type-not-i
 plugins/modules/na_elementsw_initiators.py validate-modules:doc-missing-type
 plugins/modules/na_elementsw_ldap.py validate-modules:parameter-type-not-in-doc
 plugins/modules/na_elementsw_network_interfaces.py validate-modules:parameter-type-not-in-doc
-plugins/modules/na_elementsw_node.py validate-modules:parameter-type-not-in-doc
 plugins/modules/na_elementsw_node.py validate-modules:doc-missing-type
 plugins/modules/na_elementsw_snapshot.py validate-modules:parameter-type-not-in-doc
 plugins/modules/na_elementsw_snapshot.py validate-modules:doc-missing-type

@@ -171,19 +171,22 @@ class ElementSWCluster(object):
         self.cluster_admin_username = input_params['username'] if input_params.get('cluster_admin_username') is None else input_params['cluster_admin_username']
         self.cluster_admin_password = input_params['password'] if input_params.get('cluster_admin_password') is None else input_params['cluster_admin_password']
         self.fail_if_cluster_already_exists_with_larger_ensemble = input_params['fail_if_cluster_already_exists_with_larger_ensemble']
+        self.debug = list()
 
         if HAS_SF_SDK is False:
             self.module.fail_json(msg="Unable to import the SolidFire Python SDK")
 
         # 442 for node APIs, 443 (default) for cluster APIs
-        for port in [442, 443]:
+        for role, port in [('node', 442), ('cluster', 443)]:
             try:
                 # even though username/password should be optional, create_sf_connection fails if not set
                 conn = netapp_utils.create_sf_connection(module=self.module, raise_on_connection_error=True, port=port, timeout=input_params['timeout'])
-                if port == 442:
+                if role == 'node':
                     self.sfe_node = conn
+                    self.debug.append('created node cx: port sent: %d, port read: %s' % (port, str(self.sfe_node._port)))
                 else:
                     self.sfe_cluster = conn
+                    self.debug.append('created cluster cx: port sent: %d, port read: %s' % (port, str(self.sfe_cluster._port)))
             except netapp_utils.solidfire.common.ApiConnectionError as exc:
                 if str(exc) == "Bad Credentials":
                     msg = 'Most likely the cluster is already created.'
@@ -191,8 +194,10 @@ class ElementSWCluster(object):
                     msg += '  Even though credentials are not required for the first create, they are needed to check whether the cluster already exists.'
                     msg += '  Cluster reported: %s' % repr(exc)
                 else:
-                    msg = repr(exc)
+                    msg = 'Failed to create connection: %s' % repr(exc)
                 self.module.fail_json(msg=msg)
+            except Exception as exc:
+                self.module.fail_json(msg='Failed to connect: %s' % repr(exc))
 
         self.elementsw_helper = NaElementSWModule(self.sfe_cluster)
 
@@ -208,9 +213,11 @@ class ElementSWCluster(object):
         """
         try:
             info = self.sfe_node.get_config()
-            return info.config.cluster, None
+            self.debug.append(repr(info.config.cluster))
+            return info.config.cluster
         except Exception as exc:
-            return None, repr(exc)
+            self.debug.append("port: %s, %s" % (str(self.sfe_node._port), repr(exc)))
+            return None
 
     def check_cluster_exists(self):
         """
@@ -219,12 +226,12 @@ class ElementSWCluster(object):
         return a tuple (found, info)
             found is True if found, False if not found
         """
-        info, error = self.get_cluster_info()
+        info = self.get_cluster_info()
         if info is None:
-            return False, error
+            return False
         ensemble = getattr(info, 'ensemble', None)
         if not ensemble:
-            return False, repr(info)
+            return False
         # format is 'id:IP'
         nodes = [x.split(':', 1)[1] for x in ensemble]
         current_ensemble_nodes = set(nodes) if ensemble else set()
@@ -239,16 +246,12 @@ class ElementSWCluster(object):
                   (getattr(info, 'cluster', 'not found'), extra_ensemble_nodes)
             msg += '.  Cluster info: %s' % repr(info)
             self.module.fail_json(msg=msg)
-        msg = repr(info)
-        extra = ''
         if extra_ensemble_nodes:
-            extra = ".  Extra ensemble nodes: %s" % extra_ensemble_nodes
+            self.debug.append("Extra ensemble nodes: %s" % extra_ensemble_nodes)
         nodes_not_in_ensemble = requested_nodes - current_ensemble_nodes
         if nodes_not_in_ensemble:
-            extra += ".  Extra requested nodes not in ensemble: %s" % nodes_not_in_ensemble
-        if extra:
-            msg += '%s.' % extra
-        return True, msg
+            self.debug.append("Extra requested nodes not in ensemble: %s" % nodes_not_in_ensemble)
+        return True
 
     def create_cluster(self):
         """
@@ -284,7 +287,7 @@ class ElementSWCluster(object):
         """
         changed = False
         result_message = None
-        exists, info = self.check_cluster_exists()
+        exists = self.check_cluster_exists()
         if exists:
             result_message = "cluster already exists"
         else:
@@ -293,7 +296,7 @@ class ElementSWCluster(object):
                 result_message = self.create_cluster()
                 if result_message.startswith('already_exists:'):
                     changed = False
-        self.module.exit_json(changed=changed, msg=result_message, debug=info)
+        self.module.exit_json(changed=changed, msg=result_message, debug=self.debug)
 
 
 def main():

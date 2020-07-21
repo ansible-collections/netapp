@@ -39,6 +39,8 @@ options:
     node_id:
         description:
         - List of IDs or Names or IP Address of nodes from cluster used for operation.
+        type: list
+        elements: str
         required: true
 
 '''
@@ -103,7 +105,7 @@ class ElementSWNode(object):
         self.argument_spec = netapp_utils.ontap_sf_host_argument_spec()
         self.argument_spec.update(dict(
             state=dict(required=False, choices=['present', 'absent'], default='present'),
-            node_id=dict(required=True, type='list'),
+            node_id=dict(required=True, type='list', elements='str'),
         ))
 
         self.module = AnsibleModule(

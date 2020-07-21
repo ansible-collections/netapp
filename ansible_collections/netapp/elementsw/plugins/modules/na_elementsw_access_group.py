@@ -53,11 +53,15 @@ options:
     initiators:
         description:
         - List of initiators to include in the access group. If unspecified, the access group will start out without configured initiators.
+        type: list
+        elements: str
 
     volumes:
         description:
         - List of volumes to initially include in the volume access group. If unspecified, the access group will start without any volumes.
         - It accepts either volume_name or volume_id
+        type: list
+        elements: str
 
     account_id:
         description:
@@ -69,11 +73,13 @@ options:
 
     virtual_network_id:
         description:
-        - The ID of the Element SW Software Cluster Virtual Network ID to associate the access group with.
+        - The ID of the Element SW Software Cluster Virtual Network to associate the access group with.
 
     virtual_network_tags:
         description:
-        - The ID of the VLAN Virtual Network Tag to associate the access group with.
+        - The tags of VLAN Virtual Network Tag to associate the access group with.
+        type: list
+        elements: str
 
     attributes:
         description: List of Name/Value pairs in JSON object format.
@@ -154,11 +160,11 @@ class ElementSWAccessGroup(object):
             state=dict(required=True, choices=['present', 'absent']),
             from_name=dict(required=False, type='str'),
             name=dict(required=True, aliases=["src_access_group_id"], type='str'),
-            initiators=dict(required=False, type='list'),
-            volumes=dict(required=False, type='list'),
+            initiators=dict(required=False, type='list', elements='str'),
+            volumes=dict(required=False, type='list', elements='str'),
             account_id=dict(required=False, type='str'),
-            virtual_network_id=dict(required=False, type='list'),
-            virtual_network_tags=dict(required=False, type='list'),
+            virtual_network_id=dict(required=False, type='int'),
+            virtual_network_tags=dict(required=False, type='list', elements='str'),
             attributes=dict(required=False, type='dict'),
         ))
 
@@ -225,7 +231,7 @@ class ElementSWAccessGroup(object):
         except solidfire.common.ApiServerError:
             return None
 
-    def get_volume_id(self):
+    def get_volume_ids(self):
         # Validate volume_ids
         # Return volume ids if found, fail if not found
         volume_ids = []
@@ -307,7 +313,7 @@ class ElementSWAccessGroup(object):
             self.account_id = self.get_account_id()
         if self.state == 'present' and self.volumes is not None:
             if self.account_id:
-                self.volumes = self.get_volume_id()
+                self.volumes = self.get_volume_ids()
             else:
                 self.module.fail_json(msg='Error: Specified account id "%s" does not exist.' % str(input_account_id))
 

@@ -50,6 +50,7 @@ options:
         - It accepts either volume_name or volume_id
         required: True
         type: list
+        elements: str
 
     account_id:
         description:
@@ -116,7 +117,7 @@ class ElementSWAccessGroupVolumes(object):
         self.argument_spec.update(dict(
             state=dict(required=True, choices=['present', 'absent']),
             access_group=dict(required=True, type='str'),
-            volumes=dict(required=True, type='list'),
+            volumes=dict(required=True, type='list', elements='str'),
             account_id=dict(required=True, type='str'),
         ))
 

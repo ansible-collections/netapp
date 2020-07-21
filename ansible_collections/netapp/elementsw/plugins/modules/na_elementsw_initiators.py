@@ -42,9 +42,13 @@ options:
 
             volume_access_groups:
                 description: A list of volumeAccessGroupIDs to which this initiator belongs.
+                type: list
+                elements: int
 
             attributes:
                 description: A set of JSON attributes to assign to this initiator.
+        type: list
+        elements: dict
 
     state:
         description:
@@ -108,11 +112,12 @@ class ElementSWInitiators(object):
         self.argument_spec.update(dict(
             initiators=dict(
                 type='list',
+                elements='dict',
                 options=dict(
                     name=dict(type='str', required=True),
                     alias=dict(type='str', default=None),
                     initiator_id=dict(type='int', default=None),
-                    volume_access_groups=dict(type='list', default=None),
+                    volume_access_groups=dict(type='list', elements='int', default=None),
                     volume_access_group_id=dict(type='int', default=None),
                     attributes=dict(type='dict', default=None),
                 )
@@ -138,7 +143,7 @@ class ElementSWInitiators(object):
         # iterate over each user-provided initiator
         for initiator in self.parameters.get('initiators'):
             # add telemetry attributes
-            if 'attributes' in initiator:
+            if 'attributes' in initiator and initiator['attributes']:
                 initiator['attributes'].update(self.elementsw_helper.set_element_attributes(source='na_elementsw_initiators'))
             else:
                 initiator['attributes'] = self.elementsw_helper.set_element_attributes(source='na_elementsw_initiators')
@@ -256,7 +261,6 @@ class ElementSWInitiators(object):
         configure initiators
         """
         changed = False
-        modify = None
         result_message = None
 
         # get all user provided initiators

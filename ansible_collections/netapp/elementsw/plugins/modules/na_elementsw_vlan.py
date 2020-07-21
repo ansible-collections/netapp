@@ -52,6 +52,8 @@ options:
       - List of address blocks for the VLAN
       - Each address block contains the starting IP address and size for the block
       - Required for create
+      type: list
+      elements: dict
 
     netmask:
       description:
@@ -134,7 +136,7 @@ class ElementSWVlan(object):
             gateway=dict(required=False, type='str'),
             namespace=dict(required=False, type='bool'),
             attributes=dict(required=False, type='dict'),
-            address_blocks=dict(required=False, type='list')
+            address_blocks=dict(required=False, type='list', elements='dict')
         ))
 
         self.module = AnsibleModule(

@@ -48,7 +48,9 @@ options:
 
     access:
         description:
-        - A list of type the admin has access to
+        - A list of types the admin has access to
+        type: list
+        elements: str
 '''
 
 EXAMPLES = """
@@ -113,7 +115,7 @@ class NetAppElementSWAdminUser(object):
             element_username=dict(required=True, type='str'),
             element_password=dict(required=False, type='str', no_log=True),
             acceptEula=dict(required=False, type='bool'),
-            access=dict(required=False, type='list')
+            access=dict(required=False, type='list', elements='str')
         ))
 
         self.module = AnsibleModule(

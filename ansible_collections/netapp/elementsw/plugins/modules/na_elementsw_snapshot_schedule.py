@@ -65,6 +65,7 @@ options:
     days_of_week_weekdays:
         description: List of days of the week (Sunday to Saturday)
         type: list
+        elements: str
 
     days_of_week_hours:
         description: Time specified in hours
@@ -77,6 +78,7 @@ options:
     days_of_month_monthdays:
         description: List of days of the month (1-31)
         type: list
+        elements: int
 
     days_of_month_hours:
         description: Time specified in hours
@@ -104,6 +106,7 @@ options:
         - Volume IDs that you want to set the snapshot schedule for.
         - It accepts both volume_name and volume_id
         type: list
+        elements: str
 
     account_id:
         description:
@@ -211,11 +214,11 @@ class ElementSWSnapShotSchedule(object):
             time_interval_hours=dict(required=False, type='int'),
             time_interval_minutes=dict(required=False, type='int'),
 
-            days_of_week_weekdays=dict(required=False, type='list'),
+            days_of_week_weekdays=dict(required=False, type='list', elements='str'),
             days_of_week_hours=dict(required=False, type='int'),
             days_of_week_minutes=dict(required=False, type='int'),
 
-            days_of_month_monthdays=dict(required=False, type='list'),
+            days_of_month_monthdays=dict(required=False, type='list', elements='int'),
             days_of_month_hours=dict(required=False, type='int'),
             days_of_month_minutes=dict(required=False, type='int'),
 
@@ -225,7 +228,7 @@ class ElementSWSnapShotSchedule(object):
             starting_date=dict(required=False, type='str'),
 
             snapshot_name=dict(required=False, type='str'),
-            volumes=dict(required=False, type='list'),
+            volumes=dict(required=False, type='list', elements='str'),
             account_id=dict(required=False, type='str'),
             retention=dict(required=False, type='str'),
         ))
