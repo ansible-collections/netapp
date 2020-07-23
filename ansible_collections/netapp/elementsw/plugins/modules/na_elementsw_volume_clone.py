@@ -33,20 +33,24 @@ options:
         description:
         - The name of the clone.
         required: true
+        type: str
 
     src_volume_id:
         description:
         - The id of the src volume to clone. id may be a numeric identifier or a volume name.
         required: true
+        type: str
 
     src_snapshot_id:
         description:
         - The id of the snapshot to clone. id may be a numeric identifier or a snapshot name.
+        type: str
 
     account_id:
         description:
         - Account ID for the owner of this cloned volume. id may be a numeric identifier or an account name.
         required: true
+        type: str
 
     attributes:
         description: A YAML dictionary of attributes that you would like to apply on this cloned volume.

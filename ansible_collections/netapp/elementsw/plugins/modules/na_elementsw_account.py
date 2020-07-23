@@ -50,6 +50,7 @@ options:
         - ID or Name of the account to rename.
         - Required to create an account called 'element_username' by renaming 'from_name'.
         version_added: 2.8.0
+        type: str
 
     initiator_secret:
         description:

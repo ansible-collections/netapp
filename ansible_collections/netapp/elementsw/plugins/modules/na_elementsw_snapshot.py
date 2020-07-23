@@ -39,6 +39,7 @@ options:
         - Whether the specified snapshot should exist or not.
         choices: ['present', 'absent']
         default: 'present'
+        type: str
 
     src_volume_id:
         description:
@@ -292,9 +293,6 @@ class ElementOSSnapshot(object):
         Check, process and initiate snapshot operation
         """
         changed = False
-        snapshot_delete = False
-        snapshot_create = False
-        snapshot_modify = False
         result_message = None
         self.get_account_id()
 

@@ -44,10 +44,9 @@ options:
                 description: The numeric ID of the initiator.
                 type: int
 
-            volume_access_groups:
-                description: A list of volumeAccessGroupIDs to which this initiator belongs.
-                type: list
-                elements: int
+            volume_access_group_id:
+                description: volumeAccessGroupID to which this initiator belongs.
+                type: int
 
             attributes:
                 description: A set of JSON attributes to assign to this initiator.
@@ -76,15 +75,12 @@ EXAMPLES = """
       - name: a
         alias: a1
         initiator_id: 1
-        volume_access_groups:
-        - 1
-        - 2
+        volume_access_group_id: 1
         attributes: {"key": "value"}
       - name: b
         alias: b2
         initiator_id: 2
-        volume_access_groups:
-        - 2
+        volume_access_group_id: 2
     state: present
 """
 
@@ -123,7 +119,6 @@ class ElementSWInitiators(object):
                     name=dict(type='str', required=True),
                     alias=dict(type='str', default=None),
                     initiator_id=dict(type='int', default=None),
-                    volume_access_groups=dict(type='list', elements='int', default=None),
                     volume_access_group_id=dict(type='int', default=None),
                     attributes=dict(type='dict', default=None),
                 )
@@ -180,7 +175,7 @@ class ElementSWInitiators(object):
         known_params = ['initiator_name',
                         'alias',
                         'initiator_id',
-                        'volume_access_groups',
+                        'volume_access_groups',     # TODO suspect
                         'volume_access_group_id',
                         'attributes']
         initiator_dict = {}

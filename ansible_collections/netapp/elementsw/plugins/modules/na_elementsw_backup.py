@@ -68,6 +68,7 @@ options:
         choices: ['native','uncompressed']
         required: false
         default: 'native'
+        type: str
 
     script:
         description:

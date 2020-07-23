@@ -47,6 +47,7 @@ options:
         - Account ID for the owner of this volume.
         - It accepts Account_id or Account_name
         required: true
+        type: str
 
     enable512e:
         description:
@@ -54,7 +55,7 @@ options:
         - Should the volume provide 512-byte sector emulation?
         type: bool
         aliases:
-        - 512emulation
+        - enable512emulation
 
     qos:
         description: Initial quality of service settings for this volume. Configure as dict in playbooks.
@@ -165,7 +166,7 @@ class ElementOSVolume(object):
             state=dict(required=False, type='str', choices=['present', 'absent'], default='present'),
             name=dict(required=True, type='str'),
             account_id=dict(required=True),
-            enable512e=dict(type='bool', aliases=['512emulation']),
+            enable512e=dict(type='bool', aliases=['enable512emulation']),
             qos=dict(required=False, type='dict', default=None),
             attributes=dict(required=False, type='dict', default=None),
             size=dict(type='int'),
@@ -274,7 +275,7 @@ class ElementOSVolume(object):
 
         except Exception as err:
             # Throwing the exact error message instead of generic error message
-            self.module.fail_json(msg=err.message,
+            self.module.fail_json(msg=to_native(err),
                                   exception=to_native(err))
 
     def update_volume(self, volume_id):
@@ -294,7 +295,7 @@ class ElementOSVolume(object):
 
         except Exception as err:
             # Throwing the exact error message instead of generic error message
-            self.module.fail_json(msg=err.message,
+            self.module.fail_json(msg=to_native(err),
                                   exception=to_native(err))
 
     def apply(self):

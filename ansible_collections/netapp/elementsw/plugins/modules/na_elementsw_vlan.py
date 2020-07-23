@@ -30,6 +30,7 @@ options:
       - Whether the specified vlan should exist or not.
       choices: ['present', 'absent']
       default: present
+      type: str
 
     vlan_tag:
       description:

@@ -35,6 +35,7 @@ options:
         - absent  - To remove node from active cluster.  A node cannot be removed if active drives are present.
         choices: ['present', 'absent']
         default: 'present'
+        type: str
 
     node_id:
         description:

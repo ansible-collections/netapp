@@ -29,6 +29,7 @@ options:
       - Whether the specified volume pair should exist or not.
       choices: ['present', 'absent']
       default: present
+      type: str
 
     src_volume:
       description:

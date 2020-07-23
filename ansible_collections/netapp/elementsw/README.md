@@ -23,7 +23,11 @@ Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 
 ### Bug Fixes
 - na_elementsw_cluster: create cluster if it does not exist.  Do not expect MVIP or SVIP to exist before create.
+- na_elementsw_cluster_snmp: double exception because of AttributeError.
+- na_elementsw_ldap: double exception because of AttributeError.
 - na_elementsw_snapshot_schedule: ignore schedules being deleted (idempotency), remove default values and fix documentation.
+- na_elementsw_volume: double exception because of AttributeError.
+- na_elementsw_volume: Argument '512emulation' in argument_spec is not a valid python identifier - renamed to enable512emulation.
 
 ### Module documentation changes
 - use a three group format for `version_added`.  So 2.7 becomes 2.7.0.  Same thing for 2.8 and 2.9.

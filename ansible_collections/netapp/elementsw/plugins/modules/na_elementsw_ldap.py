@@ -194,7 +194,7 @@ class NetappElementLdap(object):
                                                 user_search_filter=self.userSearchFilter,
                                                 user_dntemplate=self.userDNTemplate)
         except solidfire.common.ApiServerError as error:
-            self.module.fail_json(msg='Error enabling LDAP %s: %s' % (self.account_id, to_native(error)),
+            self.module.fail_json(msg='Error enabling LDAP: %s' % (to_native(error)),
                                   exception=traceback.format_exc())
 
     def check_config(self, ldap_config):

@@ -30,6 +30,7 @@ options:
       - Whether the specified cluster pair should exist or not.
       choices: ['present', 'absent']
       default: present
+      type: str
 
     dest_mvip:
       description:

@@ -257,7 +257,7 @@ class ElementSWClusterSnmp(object):
             self.sfe.set_snmp_acl(networks=[actual_networks], usm_users=[actual_usm_users])
 
         except Exception as exception_object:
-            self.module.fail_json(msg='Error Configuring snmp feature %s' % to_native(exception_object.message),
+            self.module.fail_json(msg='Error Configuring snmp feature %s' % to_native(exception_object),
                                   exception=traceback.format_exc())
 
     def apply(self):

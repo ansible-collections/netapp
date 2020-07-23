@@ -170,7 +170,6 @@ class ElementOSSnapshotRestore(object):
         """
         changed = False
         result_message = None
-        snapshot_detail = None
         self.get_account_id()
         src_vol_id = self.elementsw_helper.volume_exists(self.src_volume_id, self.account_id)
 

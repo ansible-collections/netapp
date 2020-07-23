@@ -42,6 +42,7 @@ options:
         - clean   - Clean-up any residual data persistent on a *removed* drive in a secured method.
         choices: ['present', 'absent', 'clean']
         default: 'present'
+        type: str
 
     node_id:
         description:
