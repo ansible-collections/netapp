@@ -312,7 +312,7 @@ class ElementSWAccessGroup(object):
         Process the access group operation on the Element Software Cluster
         """
         changed = False
-        update_group = False
+        action = None
 
         input_account_id = self.account_id
         if self.account_id is not None:
@@ -330,7 +330,7 @@ class ElementSWAccessGroup(object):
             self.group_id = group_detail.volume_access_group_id
 
             if self.state == "absent":
-                self.delete_access_group()
+                action = 'delete'
                 changed = True
             else:
                 # If state - present, check for any parameter of exising group needs modification.
@@ -338,25 +338,22 @@ class ElementSWAccessGroup(object):
                     # Compare the volume list
                     if not group_detail.volumes:
                         # If access group does not have any volume attached
-                        update_group = True
+                        action = 'update'
                         changed = True
                     else:
                         for volumeID in group_detail.volumes:
                             if volumeID not in self.volumes:
-                                update_group = True
+                                action = 'update'
                                 changed = True
                                 break
 
                 elif self.initiators is not None and group_detail.initiators != self.initiators:
-                    update_group = True
+                    action = 'update'
                     changed = True
 
                 elif self.virtual_network_id is not None or self.virtual_network_tags is not None:
-                    update_group = True
+                    action = 'update'
                     changed = True
-
-                if update_group:
-                    self.update_access_group()
 
         else:
             # access_group does not exist
@@ -365,15 +362,25 @@ class ElementSWAccessGroup(object):
                 if group_detail is not None:
                     # If resource pointed by from_name exists, rename the access_group to name
                     self.from_group_id = group_detail.volume_access_group_id
-                    self.rename_access_group()
+                    action = 'rename'
                     changed = True
                 else:
                     # If resource pointed by from_name does not exists, error out
                     self.module.fail_json(msg="Resource does not exist : %s" % self.from_name)
             elif self.state == "present":
                 # If from_name is not defined, Create from scratch.
-                self.create_access_group()
+                action = 'create'
                 changed = True
+
+        if changed and not self.module.check_mode:
+            if action == 'create':
+                self.create_access_group()
+            elif action == 'rename':
+                self.rename_access_group()
+            elif action == 'update':
+                self.update_access_group()
+            elif action == 'delete':
+                self.delete_access_group()
 
         self.module.exit_json(changed=changed)
 
