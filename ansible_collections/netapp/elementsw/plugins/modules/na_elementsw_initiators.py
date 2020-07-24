@@ -133,6 +133,7 @@ class ElementSWInitiators(object):
 
         self.na_helper = NetAppModule()
         self.parameters = self.na_helper.set_parameters(self.module.params)
+        self.debug = list()
 
         if HAS_SF_SDK is False:
             self.module.fail_json(msg="Unable to import the SolidFire Python SDK")
@@ -156,16 +157,22 @@ class ElementSWInitiators(object):
         """
         if user_initiator is None or existing_initiator is None:
             return False
+        changed = False
         for param in user_initiator:
             # lookup initiator_name instead of name
             if param == 'name':
                 if user_initiator['name'] == existing_initiator['initiator_name']:
                     pass
+            elif param == 'initiator_id':
+                # can't change the key
+                pass
             elif user_initiator[param] == existing_initiator[param]:
                 pass
             else:
-                return True
-        return False
+                self.debug.append('Initiator: %s.  Changed: %s from: %s to %s' %
+                                  (user_initiator['name'], param, str(existing_initiator[param]), str(user_initiator[param])))
+                changed = True
+        return changed
 
     def initiator_to_dict(self, initiator_obj):
         """
@@ -175,7 +182,7 @@ class ElementSWInitiators(object):
         known_params = ['initiator_name',
                         'alias',
                         'initiator_id',
-                        'volume_access_groups',     # TODO suspect
+                        'volume_access_groups',
                         'volume_access_group_id',
                         'attributes']
         initiator_dict = {}
@@ -184,6 +191,12 @@ class ElementSWInitiators(object):
         # so assign defaults
         for param in known_params:
             initiator_dict[param] = getattr(initiator_obj, param, None)
+        if initiator_dict['volume_access_groups'] is not None:
+            if len(initiator_dict['volume_access_groups']) == 1:
+                initiator_dict['volume_access_group_id'] = initiator_dict['volume_access_groups'][0]
+            elif len(initiator_dict['volume_access_groups']) > 1:
+                self.module.fail_json(msg="Only 1 access group is supported, found: %s" % repr(initiator_obj))
+        del initiator_dict['volume_access_groups']
         return initiator_dict
 
     def find_initiator(self, id=None, name=None):
@@ -209,12 +222,17 @@ class ElementSWInitiators(object):
                 initiator_details = self.all_existing_initiators
         return initiator_details
 
-    def create_initiators(self, initiator):
+    @staticmethod
+    def rename_key(obj, old_name, new_name):
+        obj[new_name] = obj.pop(old_name)
+
+    def create_initiator(self, initiator):
         """
-        create initiators
+        create initiator
         """
+        # SF SDK is using camelCase for this one
+        self.rename_key(initiator, 'volume_access_group_id', 'volumeAccessGroupID')
         # create_initiators needs an array
-        # so enclose this initiator in an array
         initiator_list = [initiator]
         try:
             self.sfe.create_initiators(initiator_list)
@@ -222,12 +240,11 @@ class ElementSWInitiators(object):
             self.module.fail_json(msg='Error creating initiator %s' % (to_native(exception_object)),
                                   exception=traceback.format_exc())
 
-    def delete_initiators(self, initiator):
+    def delete_initiator(self, initiator):
         """
-        delete initiators
+        delete initiator
         """
         # delete_initiators needs an array
-        # so enclose this initiator in an array
         initiator_id_array = [initiator]
         try:
             self.sfe.delete_initiators(initiator_id_array)
@@ -235,13 +252,15 @@ class ElementSWInitiators(object):
             self.module.fail_json(msg='Error deleting initiator %s' % (to_native(exception_object)),
                                   exception=traceback.format_exc())
 
-    def modify_initiators(self, initiator, existing_initiator):
+    def modify_initiator(self, initiator, existing_initiator):
         """
-        modify initiators
+        modify initiator
         """
         # create the new initiator dict
         # by merging old and new values
         merged_initiator = existing_initiator.copy()
+        # can't change the key
+        del initiator['initiator_id']
         merged_initiator.update(initiator)
 
         # we MUST create an object before sending
@@ -254,7 +273,7 @@ class ElementSWInitiators(object):
         try:
             self.sfe.modify_initiators(initiators=initiator_list)
         except Exception as exception_object:
-            self.module.fail_json(msg='Error modifying initiator %s' % (to_native(exception_object)),
+            self.module.fail_json(msg='Error modifying initiator: %s' % (to_native(exception_object)),
                                   exception=traceback.format_exc())
 
     def apply(self):
@@ -280,18 +299,18 @@ class ElementSWInitiators(object):
                     if self.compare_initiators(in_initiator, self.find_initiator(id=in_initiator['initiator_id'])):
                         changed = True
                         result_message = 'modifying initiator(s)'
-                        self.modify_initiators(in_initiator, self.find_initiator(id=in_initiator['initiator_id']))
+                        self.modify_initiator(in_initiator, self.find_initiator(id=in_initiator['initiator_id']))
                 # otherwise check if name is provided and exists
                 elif 'name' in in_initiator and in_initiator['name'] is not None and self.find_initiator(name=in_initiator['name']) is not None:
                     if self.compare_initiators(in_initiator, self.find_initiator(name=in_initiator['name'])):
                         changed = True
                         result_message = 'modifying initiator(s)'
-                        self.modify_initiators(in_initiator, self.find_initiator(name=in_initiator['name']))
+                        self.modify_initiator(in_initiator, self.find_initiator(name=in_initiator['name']))
                 # this is a create op if initiator doesn't exist
                 else:
                     changed = True
                     result_message = 'creating initiator(s)'
-                    self.create_initiators(in_initiator)
+                    self.create_initiator(in_initiator)
             elif self.parameters.get('state') == 'absent':
                 # delete_initiators only processes ids
                 # so pass ids of initiators to method
@@ -299,14 +318,16 @@ class ElementSWInitiators(object):
                         self.find_initiator(name=in_initiator['name']) is not None:
                     changed = True
                     result_message = 'deleting initiator(s)'
-                    self.delete_initiators(self.find_initiator(name=in_initiator['name'])['initiator_id'])
+                    self.delete_initiator(self.find_initiator(name=in_initiator['name'])['initiator_id'])
                 elif 'initiator_id' in in_initiator and in_initiator['initiator_id'] is not None and \
                         self.find_initiator(id=in_initiator['initiator_id']) is not None:
                     changed = True
                     result_message = 'deleting initiator(s)'
-                    self.delete_initiators(in_initiator['initiator_id'])
+                    self.delete_initiator(in_initiator['initiator_id'])
         if self.module.check_mode is True:
             result_message = "Check mode, skipping changes"
+        if self.debug:
+            result_message += ".  %s" % self.debug
         self.module.exit_json(changed=changed, msg=result_message)
 
 

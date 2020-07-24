@@ -62,15 +62,18 @@ class MockSFConnection(object):
 
     def list_initiators(self):
         ''' build initiator Obj '''
-        all_initiators = {
-            "initiators": [{
-                "initiator_name": "a",
-                "initiator_id": 13,
-                "alias": "a2",
-                "attributes": {"key": "value"}
-            }]
-        }
-        return json.loads(json.dumps(all_initiators), object_hook=self.Initiator)
+        initiator = self.Bunch(
+            initiator_name="a",
+            initiator_id=13,
+            alias="a2",
+            # Note: 'config-mgmt' and 'event-source' are added for telemetry
+            attributes={'key': 'value', 'config-mgmt': 'ansible', 'event-source': 'na_elementsw_initiators'},
+            volume_access_groups=[1]
+        )
+        initiators = self.Bunch(
+            initiators=[initiator]
+        )
+        return initiators
 
     def create_initiators(self, *args, **kwargs):  # pylint: disable=unused-argument
         ''' mock method '''
@@ -111,7 +114,7 @@ class TestMyModule(unittest.TestCase):
         print('Info: %s' % exc.value.args[0]['msg'])
 
     @patch('ansible_collections.netapp.elementsw.plugins.module_utils.netapp.create_sf_connection')
-    def test_create_initiators(self, mock_create_sf_connection):
+    def test_create_initiator(self, mock_create_sf_connection):
         ''' test if create initiator is called '''
         module_args = {}
         module_args.update(self.set_default_args())
@@ -133,7 +136,7 @@ class TestMyModule(unittest.TestCase):
         assert exc.value.args[0]['changed']
 
     @patch('ansible_collections.netapp.elementsw.plugins.module_utils.netapp.create_sf_connection')
-    def test_delete_initiators(self, mock_create_sf_connection):
+    def test_delete_initiator(self, mock_create_sf_connection):
         ''' test if delete initiator is called '''
         module_args = {}
         module_args.update(self.set_default_args())
@@ -153,7 +156,7 @@ class TestMyModule(unittest.TestCase):
         assert exc.value.args[0]['changed']
 
     @patch('ansible_collections.netapp.elementsw.plugins.module_utils.netapp.create_sf_connection')
-    def test_modify_initiators(self, mock_create_sf_connection):
+    def test_modify_initiator(self, mock_create_sf_connection):
         ''' test if modify initiator is called '''
         module_args = {}
         module_args.update(self.set_default_args())
@@ -173,3 +176,26 @@ class TestMyModule(unittest.TestCase):
             my_obj.apply()
         print('Info: test_modify_initiators: %s' % repr(exc.value))
         assert exc.value.args[0]['changed']
+
+    @patch('ansible_collections.netapp.elementsw.plugins.module_utils.netapp.create_sf_connection')
+    def test_modify_initiator_idempotent(self, mock_create_sf_connection):
+        ''' test if modify initiator is called '''
+        module_args = {}
+        module_args.update(self.set_default_args())
+        initiator_dict = {
+            "state": "present",
+            "initiators": [{
+                "name": "a",
+                "alias": "a2",
+                "attributes": {"key": "value"},
+                "volume_access_group_id": 1
+            }]
+        }
+        module_args.update(initiator_dict)
+        set_module_args(module_args)
+        mock_create_sf_connection.return_value = MockSFConnection()
+        my_obj = my_module()
+        with pytest.raises(AnsibleExitJson) as exc:
+            my_obj.apply()
+        print('Info: test_modify_initiators: %s' % repr(exc.value))
+        assert not exc.value.args[0]['changed']
