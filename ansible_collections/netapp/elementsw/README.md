@@ -23,6 +23,7 @@ Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 
 ### Bug Fixes
 - na_elementsw_access_group: fix check_mode so that no action is taken.
+- na_elementsw_admin_users: fix check_mode so that no action is taken.
 - na_elementsw_cluster: create cluster if it does not exist.  Do not expect MVIP or SVIP to exist before create.
 - na_elementsw_cluster_snmp: double exception because of AttributeError.
 - na_elementsw_initiators: volume_access_group_id was ignored.  volume_access_groups was ignored and redundant.

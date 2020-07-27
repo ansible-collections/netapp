@@ -178,7 +178,7 @@ class NetAppElementSWAdminUser(object):
             for access in self.access:
                 if access not in admin_user.access:
                     changed = True
-        if changed:
+        if changed and not self.module.check_mode:
             self.sfe.modify_cluster_admin(cluster_admin_id=admin_user.cluster_admin_id,
                                           access=self.access,
                                           password=self.element_password,
@@ -215,11 +215,13 @@ class NetAppElementSWAdminUser(object):
             if self.does_admin_user_exist():
                 changed = self.modify_admin_user()
             else:
-                self.add_admin_user()
+                if not self.module.check_mode:
+                    self.add_admin_user()
                 changed = True
         else:
             if self.does_admin_user_exist():
-                self.delete_admin_user()
+                if not self.module.check_mode:
+                    self.delete_admin_user()
                 changed = True
 
         self.module.exit_json(changed=changed)

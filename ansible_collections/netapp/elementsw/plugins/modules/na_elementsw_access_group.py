@@ -220,7 +220,7 @@ class ElementSWAccessGroup(object):
         group_obj = None
 
         for group in access_groups_list.volume_access_groups:
-            # Check  and get access_group object for a given name
+            # Check and get access_group object for a given name
             if str(group.volume_access_group_id) == name:
                 group_obj = group
             elif group.name == name:
