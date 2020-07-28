@@ -239,9 +239,7 @@ class ElementSWVlan(object):
                 vlan_details['gateway'] = vlan.gateway
                 vlan_details['netmask'] = vlan.netmask
                 vlan_details['namespace'] = vlan.namespace
-                vlan_details['attributes'] = dict()
-                for key in vlan.attributes.__dict__.keys():
-                    vlan_details['attributes'][key] = vlan.attributes.key
+                vlan_details['attributes'] = vlan.attributes
                 return vlan_details
         return None
 
@@ -253,12 +251,13 @@ class ElementSWVlan(object):
         # calling helper to determine action
         cd_action = self.na_helper.get_cd_action(network, self.parameters)
         modify = self.na_helper.get_modified_attributes(network, self.parameters)
-        if cd_action == "create":
-            self.create_network()
-        elif cd_action == "delete":
-            self.delete_network()
-        elif modify:
-            self.modify_network(modify)
+        if not self.module.check_mode:
+            if cd_action == "create":
+                self.create_network()
+            elif cd_action == "delete":
+                self.delete_network()
+            elif modify:
+                self.modify_network(modify)
         self.module.exit_json(changed=self.na_helper.changed)
 
 

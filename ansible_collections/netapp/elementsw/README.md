@@ -21,14 +21,20 @@ Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 
 ## 20.8.0
 
+### New Options
+- na_elementsw_drive: add all drives in a cluster, allow for a list of nodes or a list of drives.
+
 ### Bug Fixes
 - na_elementsw_access_group: fix check_mode so that no action is taken.
 - na_elementsw_admin_users: fix check_mode so that no action is taken.
 - na_elementsw_cluster: create cluster if it does not exist.  Do not expect MVIP or SVIP to exist before create.
 - na_elementsw_cluster_snmp: double exception because of AttributeError.
+- na_elementsw_drive: node_id or drive_id were not handled properly when using numeric ids.
 - na_elementsw_initiators: volume_access_group_id was ignored.  volume_access_groups was ignored and redundant.
 - na_elementsw_ldap: double exception because of AttributeError.
 - na_elementsw_snapshot_schedule: ignore schedules being deleted (idempotency), remove default values and fix documentation.
+- na_elementsw_vlan: AttributeError if VLAN already exists.
+- na_elementsw_vlan: fix check_mode so that no action is taken.
 - na_elementsw_volume: double exception because of AttributeError.
 - na_elementsw_volume: Argument '512emulation' in argument_spec is not a valid python identifier - renamed to enable512emulation.
 

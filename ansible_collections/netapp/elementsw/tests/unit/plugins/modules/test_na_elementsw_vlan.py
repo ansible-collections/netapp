@@ -71,24 +71,34 @@ class MockSFConnection(object):
     def list_virtual_networks(self, virtual_network_tag=None):  # pylint: disable=unused-argument
         ''' list of vlans '''
         if virtual_network_tag == '1':
-            vlans = {
-                "virtual_networks": [{
-                    "attributes": {'key': 'value'},
-                    "name": "test",
-                    "address_blocks": [
-                        {"start": '2.2.2.2', "size": 4},
-                        {"start": '3.3.3.3', "size": 4}],
-                    "svip": '192.168.1.2',
-                    "gateway": '0.0.0.0',
-                    "netmask": '255.255.248.0',
-                    "namespace": False
-                }]
-            }
+            add1 = self.Bunch(
+                start='2.2.2.2',
+                size=4
+            )
+            add2 = self.Bunch(
+                start='3.3.3.3',
+                size=4
+            )
+            vlan = self.Bunch(
+                attributes={'key': 'value'},
+                name="test",
+                address_blocks=[
+                    add1,
+                    add2
+                ],
+                svip='192.168.1.2',
+                gateway='0.0.0.0',
+                netmask='255.255.248.0',
+                namespace=False
+            )
+            vlans = self.Bunch(
+                virtual_networks=[vlan]
+            )
         else:
-            vlans = {
-                "virtual_networks": []
-            }
-        return json.loads(json.dumps(vlans), object_hook=self.Vlan)
+            vlans = self.Bunch(
+                virtual_networks=[]
+            )
+        return vlans
 
     def add_virtual_network(self, virtual_network_tag=None, **create):  # pylint: disable=unused-argument
         ''' We don't check the return code, but could force an exception '''
@@ -127,7 +137,7 @@ class TestMyModule(unittest.TestCase):
         print('Info: %s' % exc.value.args[0]['msg'])
 
     def mock_args(self):
-        return {
+        args = {
             'state': 'present',
             'name': 'test',
             'vlan_tag': 1,
@@ -142,6 +152,7 @@ class TestMyModule(unittest.TestCase):
             'namespace': False,
             'svip': '192.168.1.2'
         }
+        return dict(args)
 
     @patch('ansible_collections.netapp.elementsw.plugins.module_utils.netapp.create_sf_connection')
     @patch('ansible_collections.netapp.elementsw.plugins.module_utils.netapp_elementsw_module.NaElementSWModule.set_element_attributes')
@@ -286,3 +297,48 @@ class TestMyModule(unittest.TestCase):
             my_obj.validate_keys()
         msg = "One or more required fields ['address_blocks', 'svip', 'netmask', 'name'] for creating VLAN is missing"
         assert exc.value.args[0]['msg'] == msg
+
+    @patch('ansible_collections.netapp.elementsw.plugins.module_utils.netapp.create_sf_connection')
+    def test_successful_modify_idempotent(self, mock_create_sf_connection):
+        ''' successful modify'''
+        data = self.mock_args()
+        data['address_blocks'] = [{'start': '2.2.2.2', 'size': 4},
+                                  {'start': '3.3.3.3', 'size': 4}]
+        set_module_args(data)
+        # my_obj.sfe will be assigned a MockSFConnection object:
+        mock_create_sf_connection.return_value = MockSFConnection()
+        my_obj = vlan()
+        with pytest.raises(AnsibleExitJson) as exc:
+            my_obj.apply()
+        assert not exc.value.args[0]['changed']
+
+    @patch('ansible_collections.netapp.elementsw.plugins.module_utils.netapp.create_sf_connection')
+    def test_successful_modify_attribute_value(self, mock_create_sf_connection):
+        ''' successful modify'''
+        data = self.mock_args()
+        data['address_blocks'] = [{'start': '2.2.2.2', 'size': 4},
+                                  {'start': '3.3.3.3', 'size': 4}]
+        data['attributes'] = {'key': 'value2'}
+        set_module_args(data)
+        # my_obj.sfe will be assigned a MockSFConnection object:
+        mock_create_sf_connection.return_value = MockSFConnection()
+        my_obj = vlan()
+        with pytest.raises(AnsibleExitJson) as exc:
+            my_obj.apply()
+        assert exc.value.args[0]['changed']
+
+    @patch('ansible_collections.netapp.elementsw.plugins.module_utils.netapp.create_sf_connection')
+    def test_successful_modify_attribute_key(self, mock_create_sf_connection):
+        ''' successful modify'''
+        data = self.mock_args()
+        data['address_blocks'] = [{'start': '2.2.2.2', 'size': 4},
+                                  {'start': '3.3.3.3', 'size': 4}]
+        data['attributes'] = {'key2': 'value2'}
+        set_module_args(data)
+        # my_obj.sfe will be assigned a MockSFConnection object:
+        mock_create_sf_connection.return_value = MockSFConnection()
+        my_obj = vlan()
+        with pytest.raises(AnsibleExitJson) as exc:
+            my_obj.apply()
+        # TODO: JIRA-3018: issue with get_modified_attributes and dictionaries
+        assert not exc.value.args[0]['changed']

@@ -28,11 +28,13 @@ description:
     - Add, Erase or Remove drive for nodes on Element Software Cluster.
 
 options:
-    drive_id:
+    drive_ids:
         description:
-        - Drive ID or Serial Name of Node drive.
+        - List of Drive IDs or Serial Names of Node drives.
         - If not specified, add and remove action will be performed on all drives of node_id
-        type: str
+        type: list
+        elements: str
+        aliases: ['drive_id']
 
     state:
         description:
@@ -44,11 +46,15 @@ options:
         default: 'present'
         type: str
 
-    node_id:
+    node_ids:
         description:
-        - ID or Name of cluster node.
-        required: true
-        type: str
+        - List of IDs or Names of cluster nodes.
+        - If node_ids and drive_ids are not specified, all available drives in the cluster are added if state is present.
+        - If node_ids and drive_ids are not specified, all active drives in the cluster are removed if state is absent.
+        required: false
+        type: list
+        elements: str
+        aliases: ['node_id']
 
     force_during_upgrade:
         description:
@@ -70,10 +76,10 @@ EXAMPLES = """
        username: "{{ elementsw_username }}"
        password: "{{ elementsw_password }}"
        state: present
-       drive_id: scsi-SATA_SAMSUNG_MZ7LM48S2UJNX0J3221807
+       drive_ids: scsi-SATA_SAMSUNG_MZ7LM48S2UJNX0J3221807
        force_during_upgrade: false
        force_during_bin_sync: false
-       node_id: sf4805-meg-03
+       node_ids: sf4805-meg-03
 
    - name: Remove active drive from cluster
      tags:
@@ -84,8 +90,7 @@ EXAMPLES = """
        password: "{{ elementsw_password }}"
        state: absent
        force_during_upgrade: false
-       node_id: sf4805-meg-03
-       drive_id: scsi-SATA_SAMSUNG_MZ7LM48S2UJNX0J321208
+       drive_ids: scsi-SATA_SAMSUNG_MZ7LM48S2UJNX0J321208
 
    - name: Secure Erase drive
      tags:
@@ -95,10 +100,10 @@ EXAMPLES = """
        username: "{{ elementsw_username }}"
        password: "{{ elementsw_password }}"
        state: clean
-       drive_id: scsi-SATA_SAMSUNG_MZ7LM48S2UJNX0J432109
-       node_id: sf4805-meg-03
+       drive_ids: scsi-SATA_SAMSUNG_MZ7LM48S2UJNX0J432109
+       node_ids: sf4805-meg-03
 
-   - name: Add all the drives of a node to cluster
+   - name: Add all the drives of all nodes to cluster
      tags:
      - elementsw_add_node
      na_elementsw_drive:
@@ -108,7 +113,6 @@ EXAMPLES = """
        state: present
        force_during_upgrade: false
        force_during_bin_sync: false
-       node_id: sf4805-meg-03
 
 """
 
@@ -139,8 +143,8 @@ class ElementSWDrive(object):
         self.argument_spec = netapp_utils.ontap_sf_host_argument_spec()
         self.argument_spec.update(dict(
             state=dict(required=False, choices=['present', 'absent', 'clean'], default='present'),
-            drive_id=dict(required=False, type='str'),
-            node_id=dict(required=True, type='str'),
+            drive_ids=dict(required=False, type='list', elements='str', aliases=['drive_id']),
+            node_ids=dict(required=False, type='list', elements='str', aliases=['node_id']),
             force_during_upgrade=dict(required=False, type='bool'),
             force_during_bin_sync=dict(required=False, type='bool')
         ))
@@ -153,10 +157,12 @@ class ElementSWDrive(object):
         input_params = self.module.params
 
         self.state = input_params['state']
-        self.drive_id = input_params['drive_id']
-        self.node_id = input_params['node_id']
+        self.drive_ids = input_params['drive_ids']
+        self.node_ids = input_params['node_ids']
         self.force_during_upgrade = input_params['force_during_upgrade']
         self.force_during_bin_sync = input_params['force_during_bin_sync']
+        self.list_nodes = None
+        self.debug = list()
 
         if HAS_SF_SDK is False:
             self.module.fail_json(
@@ -164,7 +170,7 @@ class ElementSWDrive(object):
         else:
             self.sfe = netapp_utils.create_sf_connection(module=self.module)
 
-    def get_node_id(self):
+    def get_node_id(self, node_id):
         """
             Get Node ID
             :description: Find and retrieve node_id from the active cluster
@@ -172,66 +178,95 @@ class ElementSWDrive(object):
             :return: node_id (None if not found)
             :rtype: node_id
         """
-        if self.node_id is not None:
-            list_nodes = self.sfe.list_active_nodes()
-            for current_node in list_nodes.nodes:
-                if self.node_id == str(current_node.node_id):
-                    return current_node.node_id
-                elif current_node.name == self.node_id:
-                    self.node_id = current_node.node_id
-                    return current_node.node_id
-        self.node_id = None
-        return self.node_id
+        if self.list_nodes is None:
+            self.list_nodes = self.sfe.list_active_nodes()
+        for current_node in self.list_nodes.nodes:
+            if node_id == str(current_node.node_id):
+                return current_node.node_id
+            elif node_id == current_node.name:
+                return current_node.node_id
+        self.module.fail_json(msg='unable to find node for node_id=%s' % node_id)
 
-    def get_drives_listby_status(self):
+    def get_drives_listby_status(self, node_num_ids):
         """
             Capture list of drives based on status for a given node_id
             :description: Capture list of active, failed and available drives from a given node_id
 
             :return: None
         """
-        if self.node_id is not None:
-            list_drives = self.sfe.list_drives()
-            for drive in list_drives.drives:
-                if drive.node_id == self.node_id:
-                    if drive.status in ['active', 'failed']:
-                        self.active_drives[drive.serial] = drive.drive_id
-                    elif drive.status == "available":
-                        self.available_drives[drive.serial] = drive.drive_id
-        return None
+        self.active_drives = dict()
+        self.available_drives = dict()
+        self.other_drives = dict()
+        self.all_drives = self.sfe.list_drives()
 
-    def get_active_drives(self, drive_id=None):
+        for drive in self.all_drives.drives:
+            # get all drives if no node is given, or match the node_ids
+            if node_num_ids is None or drive.node_id in node_num_ids:
+                if drive.status in ['active', 'failed']:
+                    self.active_drives[drive.serial] = drive.drive_id
+                elif drive.status == "available":
+                    self.available_drives[drive.serial] = drive.drive_id
+                else:
+                    self.other_drives[drive.serial] = (drive.drive_id, drive.status)
+
+        self.debug.append('available: %s' % self.available_drives)
+        self.debug.append('active: %s' % self.active_drives)
+        self.debug.append('other: %s' % self.other_drives)
+
+    def get_drive_id(self, drive_id, node_num_ids):
+        """
+            Get Drive ID
+            :description: Find and retrieve drive_id from the active cluster
+            Assumes self.all_drives is already populated
+
+            :return: node_id (None if not found)
+            :rtype: node_id
+        """
+        for drive in self.all_drives.drives:
+            if drive_id == str(drive.drive_id):
+                break
+            elif drive_id == drive.serial:
+                break
+        else:
+            self.module.fail_json(msg='unable to find drive for drive_id=%s.  Debug=%s' % (drive_id, self.debug))
+        if node_num_ids and drive.node_id not in node_num_ids:
+            self.module.fail_json(msg='drive for drive_id=%s belongs to another node, with node_id=%d.  Debug=%s' % (drive_id, drive.node_id, self.debug))
+        return drive.drive_id, drive.status
+
+    def get_active_drives(self, drives):
         """
         return a list of active drives
-        if drive_id is specified, only [] or [drive_id] is returned
-        else all available drives for this node are returned
+        if drives is specified, only [] or a subset of disks in drives are returned
+        else all available drives for this node or cluster are returned
         """
-        action_list = list()
-        if self.drive_id is not None:
-            if self.drive_id in self.active_drives.values():
-                action_list.append(int(self.drive_id))
-            if self.drive_id in self.active_drives:
-                action_list.append(self.active_drives[self.drive_id])
-        else:
-            action_list.extend(self.active_drives.values())
+        if drives is None:
+            return self.active_drives.values()
+        return [drive_id for drive_id, status in drives if status in ['active', 'failed']]
 
-        return action_list
-
-    def get_available_drives(self, drive_id=None):
+    def get_available_drives(self, drives, action):
         """
         return a list of available drives (not active)
-        if drive_id is specified, only [] or [drive_id] is returned
-        else all available drives for this node are returned
+        if drives is specified, only [] or a subset of disks in drives are returned
+        else all available drives for this node or cluster are returned
         """
+        if drives is None:
+            return self.available_drives.values()
         action_list = list()
-        if self.drive_id is not None:
-            if self.drive_id in self.available_drives.values():
-                action_list.append(int(self.drive_id))
-            if self.drive_id in self.available_drives:
-                action_list.append(self.available_drives[self.drive_id])
-        else:
-            action_list.extend(self.available_drives.values())
-
+        for drive_id, drive_status in drives:
+            if drive_status == 'available':
+                action_list.append(drive_id)
+            elif drive_status in ['active', 'failed']:
+                # already added
+                pass
+            elif drive_status == 'erasing' and action == 'erase':
+                # already erasing
+                pass
+            elif drive_status == 'removing':
+                self.module.fail_json(msg='Error - cannot %s drive while it is being removed.  Debug: %s' % (action, self.debug))
+            elif drive_status == 'erasing' and action == 'add':
+                self.module.fail_json(msg='Error - cannot %s drive while it is being erased.  Debug: %s' % (action, self.debug))
+            else:
+                self.module.fail_json(msg='Error - cannot %s drive while it is in %s state.  Debug: %s' % (action, drive_status, self.debug))
         return action_list
 
     def add_drive(self, drives=None):
@@ -272,43 +307,35 @@ class ElementSWDrive(object):
         Check, process and initiate Drive operation
         """
         changed = False
-        result_message = None
-        self.active_drives = {}
-        self.available_drives = {}
+
         action_list = []
-        self.get_node_id()
-        self.get_drives_listby_status()
+        node_num_ids = None
+        drives = None
+        if self.node_ids:
+            node_num_ids = [self.get_node_id(node_id) for node_id in self.node_ids]
 
-        if self.module.check_mode is False and self.node_id is not None:
+        self.get_drives_listby_status(node_num_ids)
+        if self.drive_ids:
+            drives = [self.get_drive_id(drive_id, node_num_ids) for drive_id in self.drive_ids]
+
+        if self.state == "present":
+            action_list = self.get_available_drives(drives, 'add')
+        elif self.state == "absent":
+            action_list = self.get_active_drives(drives)
+        elif self.state == "clean":
+            action_list = self.get_available_drives(drives, 'erase')
+
+        if len(action_list) > 0:
+            changed = True
+        if not self.module.check_mode and changed:
             if self.state == "present":
-                action_list = self.get_available_drives(self.drive_id)
-                if len(action_list) > 0:
-                    self.add_drive(action_list)
-                    changed = True
-                elif self.drive_id is not None and (self.drive_id in self.active_drives.values() or self.drive_id in self.active_drives):
-                    changed = False  # No action, so setting changed to false
-                elif self.drive_id is None and len(self.active_drives) > 0:
-                    changed = False  # No action, so setting changed to false
-                else:
-                    self.module.fail_json(msg='Error - no drive(s) in available state on node to be included in cluster')
-
+                self.add_drive(action_list)
             elif self.state == "absent":
-                action_list = self.get_active_drives(self.drive_id)
-                if len(action_list) > 0:
-                    self.remove_drive(action_list)
-                    changed = True
-
+                self.remove_drive(action_list)
             elif self.state == "clean":
-                action_list = self.get_available_drives(self.drive_id)
-                if len(action_list) > 0:
-                    self.secure_erase(action_list)
-                    changed = True
-                else:
-                    self.module.fail_json(msg='Error - no drive(s) in available state on node to be cleaned')
+                self.secure_erase(action_list)
 
-        else:
-            result_message = "Skipping changes, No change requested"
-        self.module.exit_json(changed=changed, msg=result_message)
+        self.module.exit_json(changed=changed)
 
 
 def main():
