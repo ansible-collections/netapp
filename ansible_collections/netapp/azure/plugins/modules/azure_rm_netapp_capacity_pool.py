@@ -186,10 +186,9 @@ class AzureRMNetAppCapacityPool(AzureRMNetAppModuleBase):
         """
         capacity_pool_body = CapacityPool(
             location=self.parameters['location'],
-            service_level=self.parameters['service_level']
+            service_level=self.parameters['service_level'],
+            size=self.parameters['size'] * SIZE_POOL
         )
-        if 'size' in modify:
-            capacity_pool_body.size = modify['size'] * SIZE_POOL
         try:
             self.netapp_client.pools.update(body=capacity_pool_body, resource_group_name=self.parameters['resource_group'],
                                             account_name=self.parameters['account_name'],

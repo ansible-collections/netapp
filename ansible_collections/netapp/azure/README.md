@@ -33,6 +33,7 @@ Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 ## 20.8.0
 
 ### Module documentation changes
+- azure_rm_netapp_capacity_pool: Updated ANF capacity pool modify function for `size` parameter mandatory issue.
 - use a three group format for `version_added`.  So 2.7 becomes 2.7.0.  Same thing for 2.8 and 2.9.
 
 ## 20.7.0
