@@ -80,7 +80,7 @@ class MockSFConnection(object):
                 size=4
             )
             vlan = self.Bunch(
-                attributes={'key': 'value'},
+                attributes={'key': 'value', 'config-mgmt': 'ansible', 'event-source': 'na_elementsw_vlan'},
                 name="test",
                 address_blocks=[
                     add1,
@@ -340,5 +340,4 @@ class TestMyModule(unittest.TestCase):
         my_obj = vlan()
         with pytest.raises(AnsibleExitJson) as exc:
             my_obj.apply()
-        # TODO: JIRA-3018: issue with get_modified_attributes and dictionaries
-        assert not exc.value.args[0]['changed']
+        assert exc.value.args[0]['changed']

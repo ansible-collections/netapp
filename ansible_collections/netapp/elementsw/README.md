@@ -35,6 +35,7 @@ Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 - na_elementsw_snapshot_schedule: ignore schedules being deleted (idempotency), remove default values and fix documentation.
 - na_elementsw_vlan: AttributeError if VLAN already exists.
 - na_elementsw_vlan: fix check_mode so that no action is taken.
+- na_elementsw_vlan: change in attributes was ignored.
 - na_elementsw_volume: double exception because of AttributeError.
 - na_elementsw_volume: Argument '512emulation' in argument_spec is not a valid python identifier - renamed to enable512emulation.
 

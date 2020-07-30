@@ -257,6 +257,9 @@ class ElementSWVlan(object):
             elif cd_action == "delete":
                 self.delete_network()
             elif modify:
+                if 'attributes' in modify:
+                    # new attributes will replace existing ones
+                    modify['attributes'] = self.parameters['attributes']
                 self.modify_network(modify)
         self.module.exit_json(changed=self.na_helper.changed)
 

@@ -67,11 +67,7 @@ class NetAppModule(object):
         self.log = list()
         self.changed = False
         self.parameters = {'name': 'not intialized'}
-        self.zapi_string_keys = dict()
-        self.zapi_bool_keys = dict()
-        self.zapi_list_keys = dict()
-        self.zapi_int_keys = dict()
-        self.zapi_required = dict()
+        # self.debug = list()
 
     def set_parameters(self, ansible_params):
         self.parameters = dict()
@@ -79,64 +75,6 @@ class NetAppModule(object):
             if ansible_params[param] is not None:
                 self.parameters[param] = ansible_params[param]
         return self.parameters
-
-    def get_value_for_bool(self, from_zapi, value):
-        """
-        Convert boolean values to string or vice-versa
-        If from_zapi = True, value is converted from string (as it appears in ZAPI) to boolean
-        If from_zapi = False, value is converted from boolean to string
-        For get() method, from_zapi = True
-        For modify(), create(), from_zapi = False
-        :param from_zapi: convert the value from ZAPI or to ZAPI acceptable type
-        :param value: value of the boolean attribute
-        :return: string or boolean
-        """
-        if value is None:
-            return None
-        if from_zapi:
-            return True if value == 'true' else False
-        else:
-            return 'true' if value else 'false'
-
-    def get_value_for_int(self, from_zapi, value):
-        """
-        Convert integer values to string or vice-versa
-        If from_zapi = True, value is converted from string (as it appears in ZAPI) to integer
-        If from_zapi = False, value is converted from integer to string
-        For get() method, from_zapi = True
-        For modify(), create(), from_zapi = False
-        :param from_zapi: convert the value from ZAPI or to ZAPI acceptable type
-        :param value: value of the integer attribute
-        :return: string or integer
-        """
-        if value is None:
-            return None
-        if from_zapi:
-            return int(value)
-        else:
-            return str(value)
-
-    def get_value_for_list(self, from_zapi, zapi_parent, zapi_child=None, data=None):
-        """
-        Convert a python list() to NaElement or vice-versa
-        If from_zapi = True, value is converted from NaElement (parent-children structure) to list()
-        If from_zapi = False, value is converted from list() to NaElement
-        :param zapi_parent: ZAPI parent key or the ZAPI parent NaElement
-        :param zapi_child: ZAPI child key
-        :param data: list() to be converted to NaElement parent-children object
-        :param from_zapi: convert the value from ZAPI or to ZAPI acceptable type
-        :return: list() or NaElement
-        """
-        if from_zapi:
-            if zapi_parent is None:
-                return []
-            else:
-                return [zapi_child.get_content() for zapi_child in zapi_parent.get_children()]
-        else:
-            zapi_parent = netapp_utils.zapi.NaElement(zapi_parent)
-            for item in data:
-                zapi_parent.add_new_child(zapi_child, item)
-            return zapi_parent
 
     def get_cd_action(self, current, desired):
         ''' takes a desired state and a current state, and return an action:
@@ -209,7 +147,7 @@ class NetAppModule(object):
         else:
             return []
 
-    def get_modified_attributes(self, current, desired, get_list_diff=False):
+    def get_modified_attributes(self, current, desired, get_list_diff=False, additional_keys=False):
         ''' takes two dicts of attributes and return a dict of attributes that are
             not in the current state
             It is expected that all attributes of interest are listed in current and
@@ -227,6 +165,9 @@ class NetAppModule(object):
             different operation (eg move volume if the modified attribute is an
             aggregate name)
         '''
+        # uncomment these 2 lines if needed
+        # self.log.append('current: %s' % repr(current))
+        # self.log.append('desired: %s' % repr(desired))
         # if the object does not exist,  we can't modify it
         modified = dict()
         if current is None:
@@ -243,13 +184,19 @@ class NetAppModule(object):
                     if modified_list:
                         modified[key] = modified_list
                 elif type(value) is dict:
-                    modified_dict = self.get_modified_attributes(value, desired[key], get_list_diff)
+                    modified_dict = self.get_modified_attributes(value, desired[key], get_list_diff, additional_keys=True)
                     if modified_dict:
                         modified[key] = modified_dict
                 elif cmp(value, desired[key]) != 0:
                     modified[key] = desired[key]
+        if additional_keys:
+            for key, value in desired.items():
+                if key not in current:
+                    modified[key] = desired[key]
         if modified:
             self.changed = True
+        # Uncomment this line if needed
+        # self.log.append('modified: %s' % repr(modified))
         return modified
 
     def is_rename_action(self, source, target):
