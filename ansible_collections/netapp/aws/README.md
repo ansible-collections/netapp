@@ -35,6 +35,7 @@ The modules currently support Active Directory, Pool, FileSystem (Volume), and S
 
 ### Module documentation changes
 - use a three group format for `version_added`.  So 2.7 becomes 2.7.0.  Same thing for 2.8 and 2.9.
+- add `elements:` and update `required:` to match module requirements.
 
 ## 20.6.0
 

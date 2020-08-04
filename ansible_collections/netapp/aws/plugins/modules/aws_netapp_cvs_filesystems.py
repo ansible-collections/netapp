@@ -69,6 +69,7 @@ options:
             - Set of rules to export the filesystem
             - Requires allowedClients, access and protocol
             type: list
+            elements: dict
             suboptions:
                 allowedClients:
                   description:
@@ -191,6 +192,7 @@ class AwsCvsNetappFileSystem(object):
                 options=dict(
                     rules=dict(
                         type='list',
+                        elements='dict',
                         options=dict(
                             allowedClients=dict(required=False, type='str'),
                             cifs=dict(required=False, type='bool'),

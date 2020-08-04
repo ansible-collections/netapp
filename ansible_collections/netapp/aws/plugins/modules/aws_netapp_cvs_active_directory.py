@@ -43,7 +43,6 @@ options:
   domain:
     description:
     - Name of the Active Directory domain
-    required: true
     type: str
 
   DNS:
@@ -67,7 +66,6 @@ options:
     description:
     - Password of the Active Directory domain administrator
     - Required when C(state=present), to modify ActiveDirectory properties
-    required: true
     type: str
 '''
 
@@ -136,7 +134,7 @@ class AwsCvsNetappActiveDir(object):
             region=dict(required=True, type='str'),
             DNS=dict(required=False, type='str'),
             domain=dict(required=False, type='str'),
-            password=dict(required=True, type='str', no_log=True),
+            password=dict(required=False, type='str', no_log=True),
             netBIOS=dict(required=False, type='str'),
             username=dict(required=False, type='str')
         ))
@@ -144,7 +142,7 @@ class AwsCvsNetappActiveDir(object):
         self.module = AnsibleModule(
             argument_spec=self.argument_spec,
             required_if=[
-                ('state', 'present', ['region', 'domain']),
+                ('state', 'present', ['domain', 'password']),
             ],
             supports_check_mode=True
         )
@@ -161,7 +159,7 @@ class AwsCvsNetappActiveDir(object):
         # Return UUID for ActiveDirectory is found, None otherwise
         try:
             list_activedirectory, error = self.restApi.get('Storage/ActiveDirectory')
-        except Exception as e:
+        except Exception:
             return None
 
         for ActiveDirectory in list_activedirectory:
