@@ -6,16 +6,37 @@
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 import json
-import pytest
+import sys
 
-from ansible_collections.netapp.azure.tests.unit.compat import unittest
-from ansible_collections.netapp.azure.tests.unit.compat.mock import patch, Mock
-from ansible.module_utils import basic
-from ansible.module_utils._text import to_bytes
+import pytest
 from requests import Response
 
-from ansible_collections.netapp.azure.plugins.modules.azure_rm_netapp_volume \
-    import AzureRMNetAppVolume as volume_module
+from ansible.module_utils import basic
+from ansible.module_utils._text import to_bytes
+from ansible_collections.netapp.azure.tests.unit.compat import unittest
+from ansible_collections.netapp.azure.tests.unit.compat.mock import patch, Mock
+
+
+# We can't import ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common in the UT environment
+# and anyway, it's better to remove any external dependency in UTs.
+class MockAzureRMModuleBase(object):
+    ''' dummy base class for AzureRMNetAppModuleBase '''
+
+
+mocked_module = type(sys)('mock_azure_import')
+mocked_module.AzureRMModuleBase = MockAzureRMModuleBase
+sys.modules['ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common'] = mocked_module
+
+HAS_AZURE_RMNETAPP_IMPORT = True
+try:
+    # At this point, python believes the module is already loaded, so the import inside azure_rm_netapp_volume will be skipped.
+    from ansible_collections.netapp.azure.plugins.modules.azure_rm_netapp_volume \
+        import AzureRMNetAppVolume as volume_module
+except ImportError:
+    HAS_AZURE_RMNETAPP_IMPORT = False
+
+# clean up to avoid side effects
+del sys.modules['ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common']
 
 HAS_AZURE_CLOUD_ERROR_IMPORT = True
 try:
@@ -23,8 +44,10 @@ try:
 except ImportError:
     HAS_AZURE_CLOUD_ERROR_IMPORT = False
 
-if not HAS_AZURE_CLOUD_ERROR_IMPORT:
-    pytestmark = pytest.mark.skip('skipping as missing required azure_exceptions')
+if not HAS_AZURE_CLOUD_ERROR_IMPORT and sys.version_info < (2, 7):
+    pytestmark = pytest.mark.skip('skipping as missing required azure_exceptions on 2.6')
+elif not HAS_AZURE_RMNETAPP_IMPORT and sys.version_info < (2, 8):
+    pytestmark = pytest.mark.skip('skipping as missing required azcollections mock on 2.6 and 2.7')
 
 
 def set_module_args(args):
@@ -35,12 +58,10 @@ def set_module_args(args):
 
 class AnsibleExitJson(Exception):
     """Exception class to be raised by module.exit_json and caught by the test case"""
-    pass
 
 
 class AnsibleFailJson(Exception):
     """Exception class to be raised by module.fail_json and caught by the test case"""
-    pass
 
 
 def exit_json(*args, **kwargs):  # pylint: disable=unused-argument
