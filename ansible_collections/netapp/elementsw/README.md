@@ -19,6 +19,11 @@ Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 
 #Release Notes
 
+## 20.9.0
+
+### New Modules
+- na_elementsw_qos_policy: create, modify, rename, or delete QOS policy.
+
 ## 20.8.0
 
 ### New Options

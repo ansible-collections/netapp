@@ -31,11 +31,6 @@
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
-import random
-import mimetypes
-
-from ansible.module_utils import six
-
 HAS_SF_SDK = False
 SF_BYTE_MAP = dict(
     # Management GUI displays 1024 ** 3 as 1.1 GB, thus use 1000.
@@ -53,15 +48,12 @@ SF_BYTE_MAP = dict(
 
 try:
     from solidfire.factory import ElementFactory
-    from solidfire.custom.models import TimeIntervalFrequency
-    from solidfire.models import Schedule, ScheduleInfo
     import solidfire.common
-
     HAS_SF_SDK = True
-except Exception:
+except ImportError:
     HAS_SF_SDK = False
 
-COLLECTION_VERSION = "20.8.0"
+COLLECTION_VERSION = "20.9.0"
 
 
 def has_sf_sdk():
@@ -87,15 +79,15 @@ def create_sf_connection(module, port=None, raise_on_connection_error=False, tim
     if timeout is not None:
         options['timeout'] = timeout
 
-    if HAS_SF_SDK:
-        try:
-            return_val = ElementFactory.create(hostname, username, password, **options)
-            return return_val
-        except (solidfire.common.ApiConnectionError, solidfire.common.ApiServerError) as exc:
-            if raise_on_connection_error:
-                raise exc
-            module.fail_json(msg=repr(exc))
-        except Exception as exc:
-            raise Exception("Unable to create SF connection: %s" % repr(exc))
+    if not HAS_SF_SDK:
+        module.fail_json(msg="the python SolidFire SDK module is required")
 
-    module.fail_json(msg="the python SolidFire SDK module is required")
+    try:
+        return_val = ElementFactory.create(hostname, username, password, **options)
+    except (solidfire.common.ApiConnectionError, solidfire.common.ApiServerError) as exc:
+        if raise_on_connection_error:
+            raise exc
+        module.fail_json(msg=repr(exc))
+    except Exception as exc:
+        raise Exception("Unable to create SF connection: %s" % repr(exc))
+    return return_val
