@@ -151,40 +151,11 @@ class ElementSWQosPolicy(object):
     def get_qos_policy(self, name):
         """
         Get QOS Policy
-            :description: Get QOS Policy object for a given name
-            :return: Policy object converted to dict
-            :rtype: dict
         """
-        try:
-            qos_policy_list_obj = self.sfe.list_qos_policies()
-        except (solidfire.common.ApiServerError, solidfire.common.ApiConnectionError) as exc:
-            self.module.fail_json(msg="Error getting list of qos policies: %s" %
-                                  (to_native(exc)), exception=traceback.format_exc())
-        policy_dict = dict()
-        if hasattr(qos_policy_list_obj, 'qos_policies'):
-            for policy in qos_policy_list_obj.qos_policies:
-
-                # Check and get policy object for a given name
-                if str(policy.qos_policy_id) == name:
-                    policy_dict = vars(policy)
-                elif policy.name == name:
-                    policy_dict = vars(policy)
-
-        # interestingly, the APIs are using different ids for create and get
-        mappings = [
-            ('burst_iops', 'burstIOPS'),
-            ('min_iops', 'minIOPS'),
-            ('max_iops', 'maxIOPS'),
-        ]
-        if 'qos' in policy_dict:
-            qos_dict = vars(policy_dict['qos'])
-            # Align names to create API and module interface
-            for read, send in mappings:
-                if read in qos_dict:
-                    qos_dict[send] = qos_dict.pop(read)
-            policy_dict['qos'] = qos_dict
-
-        return policy_dict if policy_dict else None
+        policy, error = self.elementsw_helper.get_qos_policy(name)
+        if error is not None:
+            self.module.fail_json(msg=error, exception=traceback.format_exc())
+        return policy
 
     def create_qos_policy(self, name, qos):
         """

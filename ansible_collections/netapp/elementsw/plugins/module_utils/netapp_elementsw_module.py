@@ -5,12 +5,13 @@
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
+from ansible.module_utils._text import to_native
+
 HAS_SF_SDK = False
 try:
     import solidfire.common
-
     HAS_SF_SDK = True
-except Exception:
+except ImportError:
     HAS_SF_SDK = False
 
 
@@ -19,7 +20,7 @@ def has_sf_sdk():
 
 
 class NaElementSWModule(object):
-
+    ''' Support class for common or shared functions '''
     def __init__(self, elem):
         self.elem_connect = elem
         self.parameters = dict()
@@ -123,6 +124,51 @@ class NaElementSWModule(object):
                 return snapshot
         return None
 
+    @staticmethod
+    def map_qos_obj_to_dict(qos_obj):
+        ''' Take a QOS object and return a key, normalize the key names
+            Interestingly, the APIs are using different ids for create and get
+        '''
+        mappings = [
+            ('burst_iops', 'burstIOPS'),
+            ('min_iops', 'minIOPS'),
+            ('max_iops', 'maxIOPS'),
+        ]
+        qos_dict = vars(qos_obj)
+        # Align names to create API and module interface
+        for read, send in mappings:
+            if read in qos_dict:
+                qos_dict[send] = qos_dict.pop(read)
+        return qos_dict
+
+    def get_qos_policy(self, name):
+        """
+        Get QOS Policy
+            :description: Get QOS Policy object for a given name
+            :return: object, error
+                Policy object converted to dict if found, else None
+                Error text if error, else None
+            :rtype: dict/None, str/None
+        """
+        try:
+            qos_policy_list_obj = self.elem_connect.list_qos_policies()
+        except (solidfire.common.ApiServerError, solidfire.common.ApiConnectionError) as exc:
+            error = "Error getting list of qos policies: %s" % to_native(exc)
+            return None, error
+
+        policy_dict = dict()
+        if hasattr(qos_policy_list_obj, 'qos_policies'):
+            for policy in qos_policy_list_obj.qos_policies:
+                # Check and get policy object for a given name
+                if str(policy.qos_policy_id) == name:
+                    policy_dict = vars(policy)
+                elif policy.name == name:
+                    policy_dict = vars(policy)
+        if 'qos' in policy_dict:
+            policy_dict['qos'] = self.map_qos_obj_to_dict(policy_dict['qos'])
+
+        return policy_dict if policy_dict else None, None
+
     def account_exists(self, account):
         """
             Return account_id if account exists for given account id or name
@@ -157,4 +203,4 @@ class NaElementSWModule(object):
         attributes = {}
         attributes['config-mgmt'] = 'ansible'
         attributes['event-source'] = source
-        return(attributes)
+        return attributes
