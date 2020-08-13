@@ -31,6 +31,10 @@ jobs:
         cd ../elementsw
         ansible-test sanity --docker=default --python ${{ matrix.python-version }} plugins/modules/*
         cd ../azure
+        pwd
+        ansible-galaxy collection build
+        ansible-galaxy collection install -f netapp-azure-20.9.0.tar.gz
+        cd /root/.ansible/collections/ansible_collections/netapp/azure
         ansible-test sanity --docker=default --python ${{ matrix.python-version }} plugins/modules/*
         cd ../aws
         ansible-test sanity --docker=default --python ${{ matrix.python-version }} plugins/modules/*
