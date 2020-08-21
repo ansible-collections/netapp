@@ -69,8 +69,9 @@ def ontap_sf_host_argument_spec():
     )
 
 
-def create_sf_connection(module, port=None, raise_on_connection_error=False, timeout=None):
-    hostname = module.params['hostname']
+def create_sf_connection(module, hostname=None, port=None, raise_on_connection_error=False, timeout=None):
+    if hostname is None:
+        hostname = module.params['hostname']
     username = module.params['username']
     password = module.params['password']
     options = dict()

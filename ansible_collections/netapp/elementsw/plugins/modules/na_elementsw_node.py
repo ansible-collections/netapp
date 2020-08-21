@@ -37,13 +37,28 @@ options:
         default: 'present'
         type: str
 
-    node_id:
+    node_ids:
         description:
-        - List of IDs or Names or IP Address of nodes from cluster used for operation.
+          - List of IDs or Names or IP Addresses of nodes to add or remove.
+          - If cluster_name is set, node MIPs are required.
         type: list
         elements: str
         required: true
+        aliases: ['node_id']
 
+    cluster_name:
+        description:
+          - If set, the current node configuration is updated with this name before adding the node to the cluster.
+          - This requires the node_ids to be specified as MIPs (Management IP Adresses)
+        type: str
+
+    preset_only:
+        description:
+          - If true and state is 'present', set the cluster name for each node in node_ids, but do not add the nodes.
+          - They can be added using na_elementsw_cluster for initial cluster creation.
+          - If false, proceed with addition/removal.
+        type: bool
+        default: false
 '''
 
 EXAMPLES = """
@@ -76,6 +91,19 @@ EXAMPLES = """
        password: "{{ elementsw_password }}"
        state: present
        node_id: 10.109.48.65
+       cluster_name: sfcluster01
+
+   - name: Only set cluster name
+     tags:
+     - elementsw_add_node_ip
+     na_elementsw_node:
+       hostname: "{{ elementsw_hostname }}"
+       username: "{{ elementsw_username }}"
+       password: "{{ elementsw_password }}"
+       state: present
+       node_ids: 10.109.48.65,10.109.48.66
+       cluster_name: sfcluster01
+       preset_only: true
 """
 
 
@@ -106,7 +134,9 @@ class ElementSWNode(object):
         self.argument_spec = netapp_utils.ontap_sf_host_argument_spec()
         self.argument_spec.update(dict(
             state=dict(required=False, choices=['present', 'absent'], default='present'),
-            node_id=dict(required=True, type='list', elements='str'),
+            node_ids=dict(required=True, type='list', elements='str', aliases=['node_id']),
+            cluster_name=dict(required=False, type='str'),
+            preset_only=dict(required=False, type='bool', default=False),
         ))
 
         self.module = AnsibleModule(
@@ -117,12 +147,15 @@ class ElementSWNode(object):
         input_params = self.module.params
 
         self.state = input_params['state']
-        self.node_id = input_params['node_id']
+        self.node_ids = input_params['node_ids']
+        self.cluster_name = input_params['cluster_name']
+        self.preset_only = input_params['preset_only']
 
         if HAS_SF_SDK is False:
             self.module.fail_json(
                 msg="Unable to import the SolidFire Python SDK")
-        else:
+        elif not self.preset_only:
+            # Cluster connection is only needed for add/delete operations
             self.sfe = netapp_utils.create_sf_connection(module=self.module)
 
     def check_node_has_active_drives(self, node_id=None):
@@ -140,16 +173,28 @@ class ElementSWNode(object):
                     return True
         return False
 
+    @staticmethod
+    def extract_node_info(node_list):
+        summary = list()
+        for node in node_list:
+            node_dict = dict()
+            for key, value in vars(node).items():
+                if key in ['assigned_node_id', 'cip', 'mip', 'name', 'node_id', 'pending_node_id', 'sip']:
+                    node_dict[key] = value
+            summary.append(node_dict)
+        return summary
+
     def get_node_list(self):
         """
             Get Node List
-            :description: Find and retrieve node_id from the active cluster
+            :description: Find and retrieve node_ids from the active cluster
 
             :return: None
             :rtype: None
         """
-        if len(self.node_id) > 0:
-            unprocessed_node_list = self.node_id
+        action_nodes_list = list()
+        if len(self.node_ids) > 0:
+            unprocessed_node_list = self.node_ids
             list_nodes = []
             all_nodes = self.sfe.list_all_nodes()
             # For add operation lookup for nodes list with status pendingNodes list
@@ -165,10 +210,10 @@ class ElementSWNode(object):
                     if self.check_node_has_active_drives(current_node.node_id):
                         self.module.fail_json(msg='Error deleting node %s: node has active drives' % current_node.name)
                     else:
-                        self.action_nodes_list.append(current_node.node_id)
+                        action_nodes_list.append(current_node.node_id)
                 if self.state == "present" and \
                    (current_node.pending_node_id in self.node_id or current_node.name in self.node_id or current_node.mip in self.node_id):
-                    self.action_nodes_list.append(current_node.pending_node_id)
+                    action_nodes_list.append(current_node.pending_node_id)
 
             # report an error if state == present and node is unknown
             if self.state == "present":
@@ -187,18 +232,23 @@ class ElementSWNode(object):
                     elif current_node.mip in unprocessed_node_list:
                         unprocessed_node_list.remove(current_node.mip)
                 if len(unprocessed_node_list) > 0:
-                    self.module.fail_json(msg='Error adding node %s: node not in pending or active lists' % to_native(unprocessed_node_list))
-        return None
+                    summary = dict(
+                        nodes=self.extract_node_info(all_nodes.nodes),
+                        pending_nodes=self.extract_node_info(all_nodes.pending_nodes),
+                        pending_active_nodes=self.extract_node_info(all_nodes.pending_active_nodes)
+                    )
+                    self.module.fail_json(msg='Error adding nodes %s: nodes not in pending or active lists: %s' %
+                                          (to_native(unprocessed_node_list), repr(summary)))
+        return action_nodes_list
 
     def add_node(self, nodes_list=None):
         """
         Add Node  that are on PendingNodes list available on Cluster
         """
         try:
-            self.sfe.add_nodes(nodes_list,
-                               auto_install=True)
+            self.sfe.add_nodes(nodes_list, auto_install=True)
         except Exception as exception_object:
-            self.module.fail_json(msg='Error add node to cluster  %s' % (to_native(exception_object)),
+            self.module.fail_json(msg='Error adding nodes %s to cluster: %s' % (nodes_list, to_native(exception_object)),
                                   exception=traceback.format_exc())
 
     def remove_node(self, nodes_list=None):
@@ -208,24 +258,65 @@ class ElementSWNode(object):
         try:
             self.sfe.remove_nodes(nodes_list)
         except Exception as exception_object:
-            self.module.fail_json(msg='Error remove node from cluster  %s' % (to_native(exception_object)),
+            self.module.fail_json(msg='Error removing nodes %s from cluster  %s' % (nodes_list, to_native(exception_object)),
                                   exception=traceback.format_exc())
+
+    def set_cluster_name(self, node):
+        ''' set up cluster name for the node using its MIP '''
+        cluster = dict(cluster=self.cluster_name)
+        port = 442
+        try:
+            node_cx = netapp_utils.create_sf_connection(module=self.module, raise_on_connection_error=True, hostname=node, port=port)
+        except netapp_utils.solidfire.common.ApiConnectionError as exc:
+            if str(exc) == "Bad Credentials":
+                msg = 'Most likely the node %s is already in a cluster.' % node
+                msg += '  Make sure to use valid node credentials for username and password.'
+                msg += '  Node reported: %s' % repr(exc)
+            else:
+                msg = 'Failed to create connection: %s' % repr(exc)
+            self.module.fail_json(msg=msg)
+        except Exception as exc:
+            self.module.fail_json(msg='Failed to connect to %s:%d - %s' % (node, port, to_native(exc)),
+                                  exception=traceback.format_exc())
+
+        try:
+            msg = node_cx.get_cluster_config()
+        except netapp_utils.solidfire.common.ApiServerError as exc:
+            self.module.fail_json(msg='Error getting cluster config: %s' % to_native(exc),
+                                  exception=traceback.format_exc())
+
+        if msg.cluster.cluster == self.cluster_name:
+            return False
+        if self.module.check_mode:
+            return True
+
+        try:
+            node_cx.set_cluster_config(cluster)
+        except netapp_utils.solidfire.common.ApiServerError as exc:
+            self.module.fail_json(msg='Error updating cluster name: %s' % to_native(exc),
+                                  exception=traceback.format_exc())
+        return True
 
     def apply(self):
         """
         Check, process and initiate Cluster Node operation
         """
         changed = False
-        self.action_nodes_list = []
-        if self.module.check_mode is False:
-            self.get_node_list()
-            if self.state == "present" and len(self.action_nodes_list) > 0:
-                self.add_node(self.action_nodes_list)
+        if self.state == "present" and self.cluster_name is not None:
+            for node in self.node_ids:
+                changed = True if self.set_cluster_name(node) else changed
+        if not self.preset_only:
+            # let's see if there is anything to add or remove
+            action_nodes_list = self.get_node_list()
+            if self.state == "present" and len(action_nodes_list) > 0:
                 changed = True
-            elif self.state == "absent" and len(self.action_nodes_list) > 0:
-                self.remove_node(self.action_nodes_list)
+                if not self.module.check_mode:
+                    self.add_node(action_nodes_list)
+            elif self.state == "absent" and len(action_nodes_list) > 0:
                 changed = True
-        result_message = 'List of nodes : %s - %s' % (to_native(self.action_nodes_list), to_native(self.node_id))
+                if not self.module.check_mode:
+                    self.remove_node(action_nodes_list)
+        result_message = 'List of nodes : %s - %s' % (to_native(action_nodes_list), to_native(self.node_ids))
         self.module.exit_json(changed=changed, msg=result_message)
 
 

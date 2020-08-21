@@ -25,7 +25,12 @@ Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 - na_elementsw_qos_policy: create, modify, rename, or delete QOS policy.
 
 ### New Options
+- na_elementsw_node: `cluster_name` can be set on pending nodes before adding them.
+- na_elementsw_node: `preset_only` to only set the cluster name before creating a cluster with na_elementsw_cluster.
 - na_elementsw_volume: `qos_policy_name` to provide a QOS policy name or ID.
+
+### Bug Fixes
+- na_elementsw_node: fix check_mode so that no action is taken.
 
 ## 20.8.0
 
