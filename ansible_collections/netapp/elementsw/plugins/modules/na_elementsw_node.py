@@ -51,6 +51,7 @@ options:
           - If set, the current node configuration is updated with this name before adding the node to the cluster.
           - This requires the node_ids to be specified as MIPs (Management IP Adresses)
         type: str
+        version_added: 20.9.0
 
     preset_only:
         description:
@@ -59,6 +60,7 @@ options:
           - If false, proceed with addition/removal.
         type: bool
         default: false
+        version_added: 20.9.0
 '''
 
 EXAMPLES = """
@@ -196,7 +198,12 @@ class ElementSWNode(object):
         if len(self.node_ids) > 0:
             unprocessed_node_list = self.node_ids
             list_nodes = []
-            all_nodes = self.sfe.list_all_nodes()
+            try:
+                all_nodes = self.sfe.list_all_nodes()
+            except netapp_utils.solidfire.common.ApiServerError as exception_object:
+                self.module.fail_json(msg='Error getting list of nodes from cluster: %s' % to_native(exception_object),
+                                      exception=traceback.format_exc())
+
             # For add operation lookup for nodes list with status pendingNodes list
             # else nodes will have to be traverse through active cluster
             if self.state == "present":
@@ -206,27 +213,27 @@ class ElementSWNode(object):
 
             for current_node in list_nodes:
                 if self.state == "absent" and \
-                   (current_node.node_id in self.node_id or current_node.name in self.node_id or current_node.mip in self.node_id):
+                   (str(current_node.node_id) in self.node_ids or current_node.name in self.node_ids or current_node.mip in self.node_ids):
                     if self.check_node_has_active_drives(current_node.node_id):
                         self.module.fail_json(msg='Error deleting node %s: node has active drives' % current_node.name)
                     else:
                         action_nodes_list.append(current_node.node_id)
                 if self.state == "present" and \
-                   (current_node.pending_node_id in self.node_id or current_node.name in self.node_id or current_node.mip in self.node_id):
+                   (str(current_node.pending_node_id) in self.node_ids or current_node.name in self.node_ids or current_node.mip in self.node_ids):
                     action_nodes_list.append(current_node.pending_node_id)
 
             # report an error if state == present and node is unknown
             if self.state == "present":
                 for current_node in all_nodes.nodes:
-                    if current_node.node_id in unprocessed_node_list:
-                        unprocessed_node_list.remove(current_node.node_id)
+                    if str(current_node.node_id) in unprocessed_node_list:
+                        unprocessed_node_list.remove(str(current_node.node_id))
                     elif current_node.name in unprocessed_node_list:
                         unprocessed_node_list.remove(current_node.name)
                     elif current_node.mip in unprocessed_node_list:
                         unprocessed_node_list.remove(current_node.mip)
                 for current_node in all_nodes.pending_nodes:
-                    if current_node.pending_node_id in unprocessed_node_list:
-                        unprocessed_node_list.remove(current_node.node_id)
+                    if str(current_node.pending_node_id) in unprocessed_node_list:
+                        unprocessed_node_list.remove(str(current_node.pending_node_id))
                     elif current_node.name in unprocessed_node_list:
                         unprocessed_node_list.remove(current_node.name)
                     elif current_node.mip in unprocessed_node_list:
@@ -302,21 +309,32 @@ class ElementSWNode(object):
         Check, process and initiate Cluster Node operation
         """
         changed = False
+        updated_nodes = list()
+        result_message = ''
         if self.state == "present" and self.cluster_name is not None:
             for node in self.node_ids:
-                changed = True if self.set_cluster_name(node) else changed
+                if self.set_cluster_name(node):
+                    changed = True
+                    updated_nodes.append(node)
         if not self.preset_only:
             # let's see if there is anything to add or remove
             action_nodes_list = self.get_node_list()
+            action = None
             if self.state == "present" and len(action_nodes_list) > 0:
                 changed = True
+                action = 'added'
                 if not self.module.check_mode:
                     self.add_node(action_nodes_list)
             elif self.state == "absent" and len(action_nodes_list) > 0:
                 changed = True
+                action = 'removed'
                 if not self.module.check_mode:
                     self.remove_node(action_nodes_list)
-        result_message = 'List of nodes : %s - %s' % (to_native(action_nodes_list), to_native(self.node_ids))
+            if action:
+                result_message = 'List of %s nodes: %s - %s' % (action, to_native(action_nodes_list), to_native(self.node_ids))
+        if updated_nodes:
+            result_message += '\n' if result_message else ''
+            result_message += 'List of updated nodes with %s: %s' % (self.cluster_name, updated_nodes)
         self.module.exit_json(changed=changed, msg=result_message)
 
 
