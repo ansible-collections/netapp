@@ -29,37 +29,20 @@
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
-import json
-import os
-import random
-import mimetypes
-
-from pprint import pformat
-from ansible.module_utils import six
-from ansible.module_utils.basic import AnsibleModule, missing_required_lib
-from ansible.module_utils.six.moves.urllib.error import HTTPError, URLError
-from ansible.module_utils.urls import open_url
-from ansible.module_utils.api import basic_auth_argument_spec
-from ansible.module_utils._text import to_native
+from ansible.module_utils.basic import missing_required_lib
 
 try:
     from ansible.module_utils.ansible_release import __version__ as ansible_version
 except ImportError:
     ansible_version = 'unknown'
 
-COLLECTION_VERSION = "20.8.0"
+COLLECTION_VERSION = "20.9.0"
 
 try:
     import requests
     HAS_REQUESTS = True
 except ImportError:
     HAS_REQUESTS = False
-
-import ssl
-try:
-    from urlparse import urlparse, urlunparse
-except ImportError:
-    from urllib.parse import urlparse, urlunparse
 
 
 POW2_BYTE_MAP = dict(
@@ -104,9 +87,9 @@ class AwsCvsRestAPI(object):
 
     def send_request(self, method, api, params, json=None):
         ''' send http request and process reponse, including error conditions '''
+        if params is not None:
+            self.module.fail_json(msg='params is not implemented.  api=%s, params=%s' % (api, repr(params)))
         url = self.url + api
-        status_code = None
-        content = None
         json_dict = None
         json_error = None
         error_details = None
@@ -132,7 +115,6 @@ class AwsCvsRestAPI(object):
             return json, error
         try:
             response = requests.request(method, url, headers=headers, timeout=self.timeout, json=json)
-            status_code = response.status_code
             # If the response was successful, no Exception will be raised
             json_dict, json_error = get_json(response)
         except requests.exceptions.HTTPError as err:
@@ -169,10 +151,9 @@ class AwsCvsRestAPI(object):
         method = 'DELETE'
         return self.send_request(method, api, params, json=data)
 
-    def get_state(self, jobId):
+    def get_state(self, job_id):
         """ Method to get the state of the job """
-        method = 'GET'
-        response, status_code = self.get('Jobs/%s' % jobId)
+        response, dummy = self.get('Jobs/%s' % job_id)
         while str(response['state']) not in 'done':
-            response, status_code = self.get('Jobs/%s' % jobId)
+            response, dummy = self.get('Jobs/%s' % job_id)
         return 'done'

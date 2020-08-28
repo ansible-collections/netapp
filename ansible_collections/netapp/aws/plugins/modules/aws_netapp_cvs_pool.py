@@ -110,8 +110,8 @@ EXAMPLES = """
 RETURN = '''
 '''
 
-import ansible_collections.netapp.aws.plugins.module_utils.netapp as netapp_utils
 from ansible.module_utils.basic import AnsibleModule
+import ansible_collections.netapp.aws.plugins.module_utils.netapp as netapp_utils
 from ansible_collections.netapp.aws.plugins.module_utils.netapp_module import NetAppModule
 from ansible_collections.netapp.aws.plugins.module_utils.netapp import AwsCvsRestAPI
 
@@ -140,8 +140,8 @@ class NetAppAWSCVS(object):
 
         self.na_helper = NetAppModule()
         self.parameters = self.na_helper.set_parameters(self.module.params)
-        self.restApi = AwsCvsRestAPI(self.module)
-        self.sizeInBytes_min_value = 4000000000000
+        self.rest_api = AwsCvsRestAPI(self.module)
+        self.sizeinbytes_min_value = 4000000000000
 
     def get_aws_netapp_cvs_pool(self, name=None):
         """
@@ -152,7 +152,7 @@ class NetAppAWSCVS(object):
         if name is None:
             name = self.parameters['name']
 
-        pools, error = self.restApi.get('Pools')
+        pools, error = self.rest_api.get('Pools')
 
         if error is None and pools is not None:
             for pool in pools:
@@ -181,7 +181,7 @@ class NetAppAWSCVS(object):
             "vendorID": self.parameters['vendorID']
         }
 
-        response, error = self.restApi.post(api, pool)
+        dummy, error = self.rest_api.post(api, pool)
         if error is not None:
             self.module.fail_json(changed=False, msg=error)
 
@@ -199,7 +199,7 @@ class NetAppAWSCVS(object):
             "vendorID": update_pool_info['vendorID']
         }
 
-        response, error = self.restApi.put(api, pool)
+        dummy, error = self.rest_api.put(api, pool)
         if error is not None:
             self.module.fail_json(changed=False, msg=error)
 
@@ -209,7 +209,7 @@ class NetAppAWSCVS(object):
         """
         api = 'Pools/' + pool_id
         data = None
-        response, error = self.restApi.delete(api, data)
+        dummy, error = self.rest_api.delete(api, data)
 
         if error is not None:
             self.module.fail_json(changed=False, msg=error)
@@ -221,8 +221,8 @@ class NetAppAWSCVS(object):
         update_required = False
         cd_action = None
 
-        if 'sizeInBytes' in self.parameters.keys() and self.parameters['sizeInBytes'] < self.sizeInBytes_min_value:
-            self.module.fail_json(changed=False, msg="sizeInBytes should be greater than  or equal to %d" % (self.sizeInBytes_min_value))
+        if 'sizeInBytes' in self.parameters.keys() and self.parameters['sizeInBytes'] < self.sizeinbytes_min_value:
+            self.module.fail_json(changed=False, msg="sizeInBytes should be greater than  or equal to %d" % (self.sizeinbytes_min_value))
 
         current = self.get_aws_netapp_cvs_pool()
         if self.parameters.get('from_name'):

@@ -9,11 +9,10 @@ __metaclass__ = type
 import json
 import pytest
 
-from ansible_collections.netapp.aws.tests.unit.compat import unittest
-from ansible_collections.netapp.aws.tests.unit.compat.mock import patch, Mock
 from ansible.module_utils import basic
 from ansible.module_utils._text import to_bytes
-from requests import Response
+from ansible_collections.netapp.aws.tests.unit.compat import unittest
+from ansible_collections.netapp.aws.tests.unit.compat.mock import patch
 from ansible_collections.netapp.aws.plugins.modules.aws_netapp_cvs_filesystems \
     import AwsCvsNetappFileSystem as fileSystem_module
 
@@ -26,12 +25,10 @@ def set_module_args(args):
 
 class AnsibleExitJson(Exception):
     """Exception class to be raised by module.exit_json and caught by the test case"""
-    pass
 
 
 class AnsibleFailJson(Exception):
     """Exception class to be raised by module.fail_json and caught by the test case"""
-    pass
 
 
 def exit_json(*args, **kwargs):  # pylint: disable=unused-argument
@@ -118,13 +115,13 @@ class TestMyModule(unittest.TestCase):
         print('Info: test_module_fail_when_required_args_present: %s' % exc.value.args[0]['msg'])
         assert exc.value.args[0]['changed']
 
-    @patch('ansible_collections.netapp.aws.plugins.modules.aws_netapp_cvs_filesystems.AwsCvsNetappFileSystem.get_filesystemId')
+    @patch('ansible_collections.netapp.aws.plugins.modules.aws_netapp_cvs_filesystems.AwsCvsNetappFileSystem.get_filesystem_id')
     @patch('ansible_collections.netapp.aws.plugins.module_utils.netapp.AwsCvsRestAPI.get_state')
     @patch('ansible_collections.netapp.aws.plugins.module_utils.netapp.AwsCvsRestAPI.post')
-    def test_create_aws_netapp_cvs_snapshots_pass(self, get_post_api, get_state_api, get_filesystemId):
+    def test_create_aws_netapp_cvs_snapshots_pass(self, get_post_api, get_state_api, get_filesystem_id):
         set_module_args(self.set_args_create_aws_netapp_cvs_filesystems())
         my_obj = fileSystem_module()
-        get_filesystemId.return_value = None
+        get_filesystem_id.return_value = None
         get_state_api.return_value = 'done'
         response = {'jobs': [{'jobId': 'dummy'}]}
         get_post_api.return_value = response, None
@@ -133,14 +130,14 @@ class TestMyModule(unittest.TestCase):
         print('Info: test_create_aws_netapp_cvs_filesystem_pass: %s' % repr(exc.value.args[0]))
         assert exc.value.args[0]['changed']
 
-    @patch('ansible_collections.netapp.aws.plugins.modules.aws_netapp_cvs_filesystems.AwsCvsNetappFileSystem.get_filesystemId')
+    @patch('ansible_collections.netapp.aws.plugins.modules.aws_netapp_cvs_filesystems.AwsCvsNetappFileSystem.get_filesystem_id')
     @patch('ansible_collections.netapp.aws.plugins.modules.aws_netapp_cvs_filesystems.AwsCvsNetappFileSystem.get_filesystem')
     @patch('ansible_collections.netapp.aws.plugins.module_utils.netapp.AwsCvsRestAPI.get_state')
     @patch('ansible_collections.netapp.aws.plugins.module_utils.netapp.AwsCvsRestAPI.delete')
-    def test_delete_aws_netapp_cvs_snapshots_pass(self, get_post_api, get_state_api, get_filesystem, get_filesystemId):
+    def test_delete_aws_netapp_cvs_snapshots_pass(self, get_post_api, get_state_api, get_filesystem, get_filesystem_id):
         set_module_args(self.set_args_delete_aws_netapp_cvs_filesystems())
         my_obj = fileSystem_module()
-        get_filesystemId.return_value = '432-432-532423-4232'
+        get_filesystem_id.return_value = '432-432-532423-4232'
         get_filesystem.return_value = 'dummy'
         get_state_api.return_value = 'done'
         response = {'jobs': [{'jobId': 'dummy'}]}

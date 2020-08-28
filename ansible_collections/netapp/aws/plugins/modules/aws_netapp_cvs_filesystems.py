@@ -161,8 +161,8 @@ EXAMPLES = """
 RETURN = """
 """
 
-import ansible_collections.netapp.aws.plugins.module_utils.netapp as netapp_utils
 from ansible.module_utils.basic import AnsibleModule
+import ansible_collections.netapp.aws.plugins.module_utils.netapp as netapp_utils
 from ansible_collections.netapp.aws.plugins.module_utils.netapp_module import NetAppModule
 from ansible_collections.netapp.aws.plugins.module_utils.netapp import AwsCvsRestAPI
 
@@ -221,32 +221,32 @@ class AwsCvsNetappFileSystem(object):
         self.parameters = self.na_helper.set_parameters(self.module.params)
 
         # Calling generic AWSCVS restApi class
-        self.restApi = AwsCvsRestAPI(self.module)
+        self.rest_api = AwsCvsRestAPI(self.module)
 
         self.data = {}
         for key in self.parameters.keys():
             self.data[key] = self.parameters[key]
 
-    def get_filesystemId(self):
+    def get_filesystem_id(self):
         # Check given FileSystem is exists
         # Return fileSystemId is found, None otherwise
-        list_filesystem, error = self.restApi.get('FileSystems')
+        list_filesystem, error = self.rest_api.get('FileSystems')
         if error:
             self.module.fail_json(msg=error)
 
-        for FileSystem in list_filesystem:
-            if FileSystem['creationToken'] == self.parameters['creationToken']:
-                return FileSystem['fileSystemId']
+        for filesystem in list_filesystem:
+            if filesystem['creationToken'] == self.parameters['creationToken']:
+                return filesystem['fileSystemId']
         return None
 
-    def get_filesystem(self, fileSystemId):
+    def get_filesystem(self, filesystem_id):
         # Get FileSystem information by fileSystemId
         # Return fileSystem Information
-        filesystemInfo, error = self.restApi.get('FileSystems/%s' % fileSystemId)
+        filesystem_info, error = self.rest_api.get('FileSystems/%s' % filesystem_id)
         if error:
             self.module.fail_json(msg=error)
         else:
-            return filesystemInfo
+            return filesystem_info
         return None
 
     def is_job_done(self, response):
@@ -257,35 +257,35 @@ class AwsCvsNetappFileSystem(object):
         except TypeError:
             job_id = None
 
-        if job_id is not None and self.restApi.get_state(job_id) == 'done':
+        if job_id is not None and self.rest_api.get_state(job_id) == 'done':
             return True
         return False
 
-    def create_fileSystem(self):
+    def create_filesystem(self):
         # Create fileSystem
         api = 'FileSystems'
-        response, error = self.restApi.post(api, self.data)
+        response, error = self.rest_api.post(api, self.data)
         if not error:
             if self.is_job_done(response):
                 return
             error = "Error: unexpected response on FileSystems create: %s" % str(response)
         self.module.fail_json(msg=error)
 
-    def delete_fileSystem(self, fileSystemId):
+    def delete_filesystem(self, filesystem_id):
         # Delete FileSystem
-        api = 'FileSystems/' + fileSystemId
+        api = 'FileSystems/' + filesystem_id
         self.data = None
-        response, error = self.restApi.delete(api, self.data)
+        response, error = self.rest_api.delete(api, self.data)
         if not error:
             if self.is_job_done(response):
                 return
             error = "Error: unexpected response on FileSystems delete: %s" % str(response)
         self.module.fail_json(msg=error)
 
-    def update_fileSystem(self, fileSystemId):
+    def update_filesystem(self, filesystem_id):
         # Update FileSystem
-        api = 'FileSystems/' + fileSystemId
-        response, error = self.restApi.put(api, self.data)
+        api = 'FileSystems/' + filesystem_id
+        response, error = self.rest_api.put(api, self.data)
         if not error:
             if self.is_job_done(response):
                 return
@@ -297,38 +297,38 @@ class AwsCvsNetappFileSystem(object):
         Perform pre-checks, call functions and exit
         """
 
-        fileSystem = None
-        fileSystemId = self.get_filesystemId()
+        filesystem = None
+        filesystem_id = self.get_filesystem_id()
 
-        if fileSystemId:
+        if filesystem_id:
             # Getting the FileSystem details
-            fileSystem = self.get_filesystem(fileSystemId)
+            filesystem = self.get_filesystem(filesystem_id)
 
-        cd_action = self.na_helper.get_cd_action(fileSystem, self.parameters)
+        cd_action = self.na_helper.get_cd_action(filesystem, self.parameters)
 
         if cd_action is None and self.parameters['state'] == 'present':
             # Check if we need to update the fileSystem
-            update_fileSystem = False
-            if fileSystem['quotaInBytes'] is not None and 'quotaInBytes' in self.parameters \
-                    and fileSystem['quotaInBytes'] != self.parameters['quotaInBytes']:
-                update_fileSystem = True
-            elif fileSystem['creationToken'] is not None and 'creationToken' in self.parameters \
-                    and fileSystem['creationToken'] != self.parameters['creationToken']:
-                update_fileSystem = True
-            elif fileSystem['serviceLevel'] is not None and 'serviceLevel' in self.parameters \
-                    and fileSystem['serviceLevel'] != self.parameters['serviceLevel']:
-                update_fileSystem = True
-            elif fileSystem['exportPolicy']['rules'] is not None and 'exportPolicy' in self.parameters:
-                for rule_org in fileSystem['exportPolicy']['rules']:
+            update_filesystem = False
+            if filesystem['quotaInBytes'] is not None and 'quotaInBytes' in self.parameters \
+                    and filesystem['quotaInBytes'] != self.parameters['quotaInBytes']:
+                update_filesystem = True
+            elif filesystem['creationToken'] is not None and 'creationToken' in self.parameters \
+                    and filesystem['creationToken'] != self.parameters['creationToken']:
+                update_filesystem = True
+            elif filesystem['serviceLevel'] is not None and 'serviceLevel' in self.parameters \
+                    and filesystem['serviceLevel'] != self.parameters['serviceLevel']:
+                update_filesystem = True
+            elif filesystem['exportPolicy']['rules'] is not None and 'exportPolicy' in self.parameters:
+                for rule_org in filesystem['exportPolicy']['rules']:
                     for rule in self.parameters['exportPolicy']['rules']:
                         if rule_org['allowedClients'] != rule['allowedClients']:
-                            update_fileSystem = True
+                            update_filesystem = True
                         elif rule_org['unixReadOnly'] != rule['unixReadOnly']:
-                            update_fileSystem = True
+                            update_filesystem = True
                         elif rule_org['unixReadWrite'] != rule['unixReadWrite']:
-                            update_fileSystem = True
+                            update_filesystem = True
 
-            if update_fileSystem:
+            if update_filesystem:
                 self.na_helper.changed = True
 
         result_message = ""
@@ -339,13 +339,13 @@ class AwsCvsNetappFileSystem(object):
                 result_message = "Check mode, skipping changes"
             else:
                 if cd_action == "create":
-                    self.create_fileSystem()
+                    self.create_filesystem()
                     result_message = "FileSystem Created"
                 elif cd_action == "delete":
-                    self.delete_fileSystem(fileSystemId)
+                    self.delete_filesystem(filesystem_id)
                     result_message = "FileSystem Deleted"
                 else:   # modify
-                    self.update_fileSystem(fileSystemId)
+                    self.update_filesystem(filesystem_id)
                     result_message = "FileSystem Updated"
         self.module.exit_json(changed=self.na_helper.changed, msg=result_message)
 

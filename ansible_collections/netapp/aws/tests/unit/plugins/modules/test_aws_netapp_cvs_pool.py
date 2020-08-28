@@ -8,11 +8,10 @@ __metaclass__ = type
 import json
 import pytest
 
-from ansible_collections.netapp.aws.tests.unit.compat import unittest
-from ansible_collections.netapp.aws.tests.unit.compat.mock import patch, Mock
 from ansible.module_utils import basic
 from ansible.module_utils._text import to_bytes
-from requests import Response
+from ansible_collections.netapp.aws.tests.unit.compat import unittest
+from ansible_collections.netapp.aws.tests.unit.compat.mock import patch
 from ansible_collections.netapp.aws.plugins.modules.aws_netapp_cvs_pool \
     import NetAppAWSCVS as pool_module
 
@@ -25,12 +24,10 @@ def set_module_args(args):
 
 class AnsibleExitJson(Exception):
     """Exception class to be raised by module.exit_json and caught by the test case"""
-    pass
 
 
 class AnsibleFailJson(Exception):
     """Exception class to be raised by module.fail_json and caught by the test case"""
-    pass
 
 
 def exit_json(*args, **kwargs):  # pylint: disable=unused-argument
@@ -183,15 +180,6 @@ class TestMyModule(unittest.TestCase):
     def test_create_aws_netapp_cvs_pool_pass(self, get_post_api, get_aws_api):
         set_module_args(self.set_args_create_aws_netapp_cvs_pool())
         my_obj = pool_module()
-        my_pool = {
-            "name": "Dummyname",
-            "poolId": "1f63b3d0-4fd4-b4fe-1ed6-c62f5f20d975",
-            "region": "us-east-1",
-            "serviceLevel": "extreme",
-            "sizeInBytes": 40000000000000000,
-            "state": "available",
-            "vendorID": "Dummy"
-        }
         get_aws_api.return_value = None
         get_post_api.return_value = None, None
         with pytest.raises(AnsibleExitJson) as exc:

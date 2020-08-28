@@ -31,8 +31,6 @@
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
-import ansible_collections.netapp.aws.plugins.module_utils.netapp as netapp_utils
-
 
 def cmp(a, b):
     """
@@ -44,13 +42,13 @@ def cmp(a, b):
     # convert to lower case for string comparison.
     if a is None:
         return -1
-    if type(a) is str and type(b) is str:
+    if isinstance(a, str) and isinstance(b, str):
         a = a.lower()
         b = b.lower()
     # if list has string element, convert string to lower case.
-    if type(a) is list and type(b) is list:
-        a = [x.lower() if type(x) is str else x for x in a]
-        b = [x.lower() if type(x) is str else x for x in b]
+    if isinstance(a, list) and isinstance(b, list):
+        a = [x.lower() if isinstance(x, str) else x for x in a]
+        b = [x.lower() if isinstance(x, str) else x for x in b]
         a.sort()
         b.sort()
     return (a > b) - (a < b)

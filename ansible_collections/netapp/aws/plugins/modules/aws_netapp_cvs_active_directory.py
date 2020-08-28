@@ -109,8 +109,8 @@ EXAMPLES = """
 RETURN = '''
 '''
 
-import ansible_collections.netapp.aws.plugins.module_utils.netapp as netapp_utils
 from ansible.module_utils.basic import AnsibleModule
+import ansible_collections.netapp.aws.plugins.module_utils.netapp as netapp_utils
 from ansible_collections.netapp.aws.plugins.module_utils.netapp_module import NetAppModule
 from ansible_collections.netapp.aws.plugins.module_utils.netapp import AwsCvsRestAPI
 
@@ -152,28 +152,28 @@ class AwsCvsNetappActiveDir(object):
         # set up state variables
         self.parameters = self.na_helper.set_parameters(self.module.params)
         # Calling generic AWSCVS restApi class
-        self.restApi = AwsCvsRestAPI(self.module)
+        self.rest_api = AwsCvsRestAPI(self.module)
 
-    def get_activedirectoryId(self):
+    def get_activedirectory_id(self):
         # Check if  ActiveDirectory exists
         # Return UUID for ActiveDirectory is found, None otherwise
         try:
-            list_activedirectory, error = self.restApi.get('Storage/ActiveDirectory')
+            list_activedirectory, dummy = self.rest_api.get('Storage/ActiveDirectory')
         except Exception:
             return None
 
-        for ActiveDirectory in list_activedirectory:
-            if ActiveDirectory['region'] == self.parameters['region']:
-                return ActiveDirectory['UUID']
+        for activedirectory in list_activedirectory:
+            if activedirectory['region'] == self.parameters['region']:
+                return activedirectory['UUID']
         return None
 
-    def get_activedirectory(self, activeDirectoryId=None):
-        if activeDirectoryId is None:
+    def get_activedirectory(self, activedirectory_id=None):
+        if activedirectory_id is None:
             return None
         else:
-            ActiveDirectoryInfo, error = self.restApi.get('Storage/ActiveDirectory/%s' % activeDirectoryId)
+            activedirectory_info, error = self.rest_api.get('Storage/ActiveDirectory/%s' % activedirectory_id)
             if not error:
-                return ActiveDirectoryInfo
+                return activedirectory_info
             return None
 
     def create_activedirectory(self):
@@ -182,7 +182,7 @@ class AwsCvsNetappActiveDir(object):
         data = {"region": self.parameters['region'], "DNS": self.parameters['DNS'], "domain": self.parameters['domain'],
                 "username": self.parameters['username'], "password": self.parameters['password'], "netBIOS": self.parameters['netBIOS']}
 
-        response, error = self.restApi.post(api, data)
+        response, error = self.rest_api.post(api, data)
 
         if not error:
             return response
@@ -190,13 +190,13 @@ class AwsCvsNetappActiveDir(object):
             self.module.fail_json(msg=response['message'])
 
     def delete_activedirectory(self):
-        activedirectoryId = self.get_activedirectoryId()
+        activedirectory_id = self.get_activedirectory_id()
         # Delete ActiveDirectory
 
-        if activedirectoryId:
-            api = 'Storage/ActiveDirectory/' + activedirectoryId
+        if activedirectory_id:
+            api = 'Storage/ActiveDirectory/' + activedirectory_id
             data = None
-            response, error = self.restApi.delete(api, data)
+            response, error = self.rest_api.delete(api, data)
             if not error:
                 return response
             else:
@@ -205,9 +205,9 @@ class AwsCvsNetappActiveDir(object):
         else:
             self.module.fail_json(msg="Active Directory does not exist")
 
-    def update_activedirectory(self, activedirectoryId, updated_activedirectory):
+    def update_activedirectory(self, activedirectory_id, updated_activedirectory):
         # Update ActiveDirectory
-        api = 'Storage/ActiveDirectory/' + activedirectoryId
+        api = 'Storage/ActiveDirectory/' + activedirectory_id
         data = {
             "region": self.parameters['region'],
             "DNS": updated_activedirectory['DNS'],
@@ -217,7 +217,7 @@ class AwsCvsNetappActiveDir(object):
             "netBIOS": updated_activedirectory['netBIOS']
         }
 
-        response, error = self.restApi.put(api, data)
+        response, error = self.rest_api.put(api, data)
         if not error:
             return response
         else:
@@ -228,8 +228,8 @@ class AwsCvsNetappActiveDir(object):
         Perform pre-checks, call functions and exit
         """
         modify = False
-        activeDirectoryId = self.get_activedirectoryId()
-        current = self.get_activedirectory(activeDirectoryId)
+        activedirectory_id = self.get_activedirectory_id()
+        current = self.get_activedirectory(activedirectory_id)
         cd_action = self.na_helper.get_cd_action(current, self.parameters)
 
         if current and self.parameters['state'] != 'absent':
@@ -253,7 +253,7 @@ class AwsCvsNetappActiveDir(object):
                 pass
             else:
                 if modify is True:
-                    self.update_activedirectory(activeDirectoryId, updated_active_directory)
+                    self.update_activedirectory(activedirectory_id, updated_active_directory)
                 elif cd_action == 'create':
                     self.create_activedirectory()
                 elif cd_action == 'delete':

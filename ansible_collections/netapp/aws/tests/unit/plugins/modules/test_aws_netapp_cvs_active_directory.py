@@ -8,14 +8,11 @@ __metaclass__ = type
 import json
 import pytest
 
-from ansible_collections.netapp.aws.tests.unit.compat import unittest
-from ansible_collections.netapp.aws.tests.unit.compat.mock import patch, Mock
 from ansible.module_utils import basic
 from ansible.module_utils._text import to_bytes
-from requests import Response
+from ansible_collections.netapp.aws.tests.unit.compat import unittest
+from ansible_collections.netapp.aws.tests.unit.compat.mock import patch
 
-
-from ansible_collections.netapp.aws.plugins.module_utils.netapp import AwsCvsRestAPI
 from ansible_collections.netapp.aws.plugins.modules.aws_netapp_cvs_active_directory \
     import AwsCvsNetappActiveDir as ad_module
 
@@ -28,12 +25,10 @@ def set_module_args(args):
 
 class AnsibleExitJson(Exception):
     """Exception class to be raised by module.exit_json and caught by the test case"""
-    pass
 
 
 class AnsibleFailJson(Exception):
     """Exception class to be raised by module.fail_json and caught by the test case"""
-    pass
 
 
 def exit_json(*args, **kwargs):  # pylint: disable=unused-argument
@@ -100,20 +95,12 @@ class TestMyModule(unittest.TestCase):
             exit_json(changed=True, msg="TestCase Fail when required ars are present")
         assert exc.value.args[0]['changed']
 
-    @patch('ansible_collections.netapp.aws.plugins.modules.aws_netapp_cvs_active_directory.AwsCvsNetappActiveDir.get_activedirectoryId')
+    @patch('ansible_collections.netapp.aws.plugins.modules.aws_netapp_cvs_active_directory.AwsCvsNetappActiveDir.get_activedirectory_id')
     @patch('ansible_collections.netapp.aws.plugins.modules.aws_netapp_cvs_active_directory.AwsCvsNetappActiveDir.get_activedirectory')
     @patch('ansible_collections.netapp.aws.plugins.module_utils.netapp.AwsCvsRestAPI.post')
     def test_create_aws_netapp_cvs_activedir(self, get_post_api, get_aws_api, get_ad_id):
         set_module_args(self.set_default_args_pass_check())
         my_obj = ad_module()
-        my_ad = {
-            'region': 'us-east-1',
-            'DNS': '101.102.103.123',
-            'domain': 'mydomain.com',
-            'password': 'netapp1!',
-            'netBIOS': 'testing',
-            'username': 'myuser'
-        }
 
         get_aws_api.return_value = None
         get_post_api.return_value = None, None

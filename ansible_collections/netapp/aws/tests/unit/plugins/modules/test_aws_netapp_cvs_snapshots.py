@@ -8,11 +8,10 @@ __metaclass__ = type
 import json
 import pytest
 
-from ansible_collections.netapp.aws.tests.unit.compat import unittest
-from ansible_collections.netapp.aws.tests.unit.compat.mock import patch, Mock
 from ansible.module_utils import basic
 from ansible.module_utils._text import to_bytes
-from requests import Response
+from ansible_collections.netapp.aws.tests.unit.compat import unittest
+from ansible_collections.netapp.aws.tests.unit.compat.mock import patch
 from ansible_collections.netapp.aws.plugins.modules.aws_netapp_cvs_snapshots \
     import AwsCvsNetappSnapshot as snapshot_module
 
@@ -25,12 +24,10 @@ def set_module_args(args):
 
 class AnsibleExitJson(Exception):
     """Exception class to be raised by module.exit_json and caught by the test case"""
-    pass
 
 
 class AnsibleFailJson(Exception):
     """Exception class to be raised by module.fail_json and caught by the test case"""
-    pass
 
 
 def exit_json(*args, **kwargs):  # pylint: disable=unused-argument
@@ -116,26 +113,26 @@ class TestMyModule(unittest.TestCase):
         print('Info: test_module_fail_when_required_args_present: %s' % exc.value.args[0]['msg'])
         assert exc.value.args[0]['changed']
 
-    @patch('ansible_collections.netapp.aws.plugins.modules.aws_netapp_cvs_snapshots.AwsCvsNetappSnapshot.getSnapshotId')
-    @patch('ansible_collections.netapp.aws.plugins.modules.aws_netapp_cvs_snapshots.AwsCvsNetappSnapshot.getfilesystemId')
+    @patch('ansible_collections.netapp.aws.plugins.modules.aws_netapp_cvs_snapshots.AwsCvsNetappSnapshot.get_snapshot_id')
+    @patch('ansible_collections.netapp.aws.plugins.modules.aws_netapp_cvs_snapshots.AwsCvsNetappSnapshot.get_filesystem_id')
     @patch('ansible_collections.netapp.aws.plugins.module_utils.netapp.AwsCvsRestAPI.post')
-    def test_create_aws_netapp_cvs_snapshots_pass(self, get_post_api, getfilesystemId, getSnapshotId):
+    def test_create_aws_netapp_cvs_snapshots_pass(self, get_post_api, get_filesystem_id, get_snapshot_id):
         set_module_args(self.set_args_create_aws_netapp_cvs_snapshots())
         my_obj = snapshot_module()
-        getfilesystemId.return_value = 'fiesystemName'
-        getSnapshotId.return_value = None
+        get_filesystem_id.return_value = 'fiesystemName'
+        get_snapshot_id.return_value = None
         get_post_api.return_value = None, None
         with pytest.raises(AnsibleExitJson) as exc:
             my_obj.apply()
         print('Info: test_create_aws_netapp_cvs_snapshots_pass: %s' % repr(exc.value.args[0]))
         assert exc.value.args[0]['changed']
 
-    @patch('ansible_collections.netapp.aws.plugins.modules.aws_netapp_cvs_snapshots.AwsCvsNetappSnapshot.getSnapshotId')
+    @patch('ansible_collections.netapp.aws.plugins.modules.aws_netapp_cvs_snapshots.AwsCvsNetappSnapshot.get_snapshot_id')
     @patch('ansible_collections.netapp.aws.plugins.module_utils.netapp.AwsCvsRestAPI.delete')
-    def test_delete_aws_netapp_cvs_snapshots_pass(self, get_post_api, getSnapshotId):
+    def test_delete_aws_netapp_cvs_snapshots_pass(self, get_post_api, get_snapshot_id):
         set_module_args(self.set_args_delete_aws_netapp_cvs_snapshots())
         my_obj = snapshot_module()
-        getSnapshotId.return_value = "1f63b3d0-4fd4-b4fe-1ed6-c62f5f20d975"
+        get_snapshot_id.return_value = "1f63b3d0-4fd4-b4fe-1ed6-c62f5f20d975"
         get_post_api.return_value = None, None
         with pytest.raises(AnsibleExitJson) as exc:
             my_obj.apply()

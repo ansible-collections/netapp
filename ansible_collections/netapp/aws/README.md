@@ -31,6 +31,11 @@ The modules currently support Active Directory, Pool, FileSystem (Volume), and S
 
 # Release Notes
 
+
+## 20.9.0
+
+Fix pylint or flake8 warnings reported by galaxy importer.
+
 ## 20.8.0
 
 ### Module documentation changes
