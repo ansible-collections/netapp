@@ -26,6 +26,8 @@ version_added: 2.7.0
 author: NetApp Ansible Team (@carchi8py) <ng-ansibleteam@netapp.com>
 description:
     - Add, remove cluster node on Element Software Cluster.
+    - Set cluster name on node.
+    - When using the preset_only option, hostname/username/password are required but not used.
 
 options:
     state:
