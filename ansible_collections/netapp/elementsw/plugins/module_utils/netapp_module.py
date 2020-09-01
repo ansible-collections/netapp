@@ -31,8 +31,6 @@
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
-import ansible_collections.netapp.elementsw.plugins.module_utils.netapp as netapp_utils
-
 
 def cmp(a, b):
     """
