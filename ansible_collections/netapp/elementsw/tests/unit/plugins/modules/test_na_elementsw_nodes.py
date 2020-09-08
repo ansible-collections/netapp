@@ -63,12 +63,13 @@ class MockSFConnection(object):
             ''' called with (k1=v1, k2=v2), creates obj.k1, obj.k2 with values v1, v2 '''
             setattr(self, '__dict__', kw)
 
-    def __init__(self, force_error=False, where=None, node_id=None, cluster_name=''):
+    def __init__(self, force_error=False, where=None, node_id=None, cluster_name='', node_state='Pending'):
         ''' save arguments '''
         self.force_error = force_error
         self.where = where
         self.node_id = node_id
         self.cluster_name = cluster_name
+        self.node_state = node_state
 
     def list_all_nodes(self, *args, **kwargs):  # pylint: disable=unused-argument
         ''' build access_group list: access_groups.name, access_groups.account_id '''
@@ -103,7 +104,7 @@ class MockSFConnection(object):
 
     def get_cluster_config(self, *args, **kwargs):  # pylint: disable=unused-argument
         print('get_cluster_config: ', repr(args), repr(kwargs))
-        cluster = self.Bunch(cluster=self.cluster_name)
+        cluster = self.Bunch(cluster=self.cluster_name, state=self.node_state)
         return self.Bunch(cluster=cluster)
 
     def set_cluster_config(self, *args, **kwargs):  # pylint: disable=unused-argument
@@ -289,4 +290,35 @@ class TestMyModule(unittest.TestCase):
         print(exc.value.args[0])
         assert not exc.value.args[0]['changed']
         message = ''
+        assert message == exc.value.args[0]['msg']
+
+    @patch('ansible_collections.netapp.elementsw.plugins.module_utils.netapp.create_sf_connection')
+    def test_set_cluster_name_already_active_no_change(self, mock_create_sf_connection):
+        ''' set cluster name fails because node state is 'Active' '''
+        args = dict(self.ARGS)
+        args['cluster_name'] = 'cluster_name'
+        set_module_args(args)
+        # my_obj.sfe will be assigned a MockSFConnection object:
+        mock_create_sf_connection.return_value = MockSFConnection(where='nodes', cluster_name=args['cluster_name'], node_state='Active')
+        my_obj = my_module()
+        with pytest.raises(AnsibleExitJson) as exc:
+            my_obj.apply()
+        print(exc.value.args[0])
+        assert not exc.value.args[0]['changed']
+        message = ''
+        assert message == exc.value.args[0]['msg']
+
+    @patch('ansible_collections.netapp.elementsw.plugins.module_utils.netapp.create_sf_connection')
+    def test_set_cluster_name_already_active_change_not_allowed(self, mock_create_sf_connection):
+        ''' set cluster name fails because node state is 'Active' '''
+        args = dict(self.ARGS)
+        args['cluster_name'] = 'new_cluster_name'
+        set_module_args(args)
+        # my_obj.sfe will be assigned a MockSFConnection object:
+        mock_create_sf_connection.return_value = MockSFConnection(where='nodes', cluster_name='old_cluster_name', node_state='Active')
+        my_obj = my_module()
+        with pytest.raises(AnsibleFailJson) as exc:
+            my_obj.apply()
+        print(exc.value.args[0])
+        message = "Error updating cluster name for node %s, already in 'Active' state" % NODE_ID1
         assert message == exc.value.args[0]['msg']

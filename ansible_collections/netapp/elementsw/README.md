@@ -19,6 +19,11 @@ Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 
 #Release Notes
 
+## 20.10.0
+
+### Bug Fixes
+- na_elementsw_node: improve error reporting when cluster name cannot be set because node is already active.
+
 ## 20.9.0
 
 ### New Modules

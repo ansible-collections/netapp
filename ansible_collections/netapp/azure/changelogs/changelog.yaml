@@ -1,0 +1,69 @@
+ancestor: null
+releases:
+  19.10.0:
+    modules:
+    - description: Manage NetApp Azure Files Account
+      name: azure_rm_netapp_account
+      namespace: ''
+    - description: Manage NetApp Azure Files capacity pool
+      name: azure_rm_netapp_capacity_pool
+      namespace: ''
+    - description: Manage NetApp Azure Files Snapshot
+      name: azure_rm_netapp_snapshot
+      namespace: ''
+    - description: Manage NetApp Azure Files Volume
+      name: azure_rm_netapp_volume
+      namespace: ''
+    release_date: '2019-11-14'
+  20.2.0:
+    changes:
+      bugfixes:
+      - galaxy.yml - fix path to github repository.
+    fragments:
+    - 20.2.0.yaml
+    release_date: '2020-02-05'
+  20.4.0:
+    changes:
+      bugfixes:
+      - fix changes to azure-mgmt-netapp as per new release.
+      - removed ONTAP dependency import.
+    fragments:
+    - 20.4.0.yaml
+    release_date: '2020-04-21'
+  20.5.0:
+    changes:
+      minor_changes:
+      - azure_rm_netapp_account - new option ``tags``.
+      - azure_rm_netapp_capacity_pool - new option ``service_level``.
+      - azure_rm_netapp_volume - new option ``size``.
+      - azure_rm_netapp_volume - new option ``vnet_resource_group_for_subnet``, resource
+        group for virtual_network and subnet_id to be used.
+      - azure_rm_netapp_volume - now returns mount_path of the volume specified.
+    fragments:
+    - 20.5.0.yaml
+    release_date: '2020-05-06'
+  20.6.0:
+    changes:
+      minor_changes:
+      - azure_rm_netapp_capacity_pool - now allows modify for size.
+      - azure_rm_netapp_volume - now returns complete mount_path of the volume specified.
+    fragments:
+    - 20.6.0.yaml
+    release_date: '2020-06-03'
+  20.7.0:
+    changes:
+      bugfixes:
+      - azure_rm_netapp_capacity_pool - fixed idempotency for delete operation.
+    fragments:
+    - 20.7.0.yaml
+    release_date: '2020-06-24'
+  20.8.0:
+    changes:
+      minor_changes:
+      - azure_rm_netapp_capacity_pool - Updated ANF capacity pool modify function
+        for size parameter mandatory issue.
+      - use a three group format for version_added. So 2.7 becomes 2.7.0. Same thing
+        for 2.8 and 2.9.
+    fragments:
+    - 20.8.0.yaml
+    release_date: '2020-08-05'

@@ -198,7 +198,7 @@ class ElementSWNode(object):
         """
         action_nodes_list = list()
         if len(self.node_ids) > 0:
-            unprocessed_node_list = self.node_ids
+            unprocessed_node_list = list(self.node_ids)
             list_nodes = []
             try:
                 all_nodes = self.sfe.list_all_nodes()
@@ -289,13 +289,16 @@ class ElementSWNode(object):
                                   exception=traceback.format_exc())
 
         try:
-            msg = node_cx.get_cluster_config()
+            cluster_config = node_cx.get_cluster_config()
         except netapp_utils.solidfire.common.ApiServerError as exc:
             self.module.fail_json(msg='Error getting cluster config: %s' % to_native(exc),
                                   exception=traceback.format_exc())
 
-        if msg.cluster.cluster == self.cluster_name:
+        if cluster_config.cluster.cluster == self.cluster_name:
             return False
+        if cluster_config.cluster.state == 'Active':
+            self.module.fail_json(msg="Error updating cluster name for node %s, already in 'Active' state"
+                                  % node, cluster_config=repr(cluster_config))
         if self.module.check_mode:
             return True
 
@@ -303,6 +306,7 @@ class ElementSWNode(object):
             node_cx.set_cluster_config(cluster)
         except netapp_utils.solidfire.common.ApiServerError as exc:
             self.module.fail_json(msg='Error updating cluster name: %s' % to_native(exc),
+                                  cluster_config=repr(cluster_config),
                                   exception=traceback.format_exc())
         return True
 
@@ -333,7 +337,7 @@ class ElementSWNode(object):
                 if not self.module.check_mode:
                     self.remove_node(action_nodes_list)
             if action:
-                result_message = 'List of %s nodes: %s - %s' % (action, to_native(action_nodes_list), to_native(self.node_ids))
+                result_message = 'List of %s nodes: %s - requested: %s' % (action, to_native(action_nodes_list), to_native(self.node_ids))
         if updated_nodes:
             result_message += '\n' if result_message else ''
             result_message += 'List of updated nodes with %s: %s' % (self.cluster_name, updated_nodes)

@@ -17,7 +17,7 @@ DOCUMENTATION = '''
 module: azure_rm_netapp_snapshot
 
 short_description: Manage NetApp Azure Files Snapshot
-version_added: 2.9.0
+version_added: 19.10.0
 author: NetApp Ansible Team (@carchi8py) <ng-ansibleteam@netapp.com>
 
 description:

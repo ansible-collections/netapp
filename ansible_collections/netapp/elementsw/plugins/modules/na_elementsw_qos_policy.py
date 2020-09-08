@@ -23,7 +23,7 @@ module: na_elementsw_qos_policy
 short_description: NetApp Element Software create/modify/rename/delete QOS Policy
 extends_documentation_fragment:
     - netapp.elementsw.netapp.solidfire
-version_added: '20.9.0'
+version_added: 20.9.0
 author: NetApp Ansible Team (@carchi8py) <ng-ansibleteam@netapp.com>
 description:
 - Create, modify, rename, or delete QOS policy on Element Software Cluster.
