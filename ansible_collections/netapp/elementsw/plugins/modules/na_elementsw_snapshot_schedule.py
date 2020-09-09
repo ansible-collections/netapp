@@ -188,6 +188,8 @@ HAS_SF_SDK = netapp_utils.has_sf_sdk()
 try:
     from solidfire.custom.models import DaysOfWeekFrequency, Weekday, DaysOfMonthFrequency
     from solidfire.common import ApiServerError
+    from solidfire.custom.models import TimeIntervalFrequency
+    from solidfire.models import Schedule, ScheduleInfo
 except ImportError:
     HAS_SF_SDK = False
 
@@ -369,7 +371,7 @@ class ElementSWSnapShotSchedule(object):
                 params['minutes'] = self.time_interval_minutes
             if not params or sum(params.values()) == 0:
                 self.module.fail_json(msg='Specify at least one non zero value with TimeIntervalFrequency.')
-            frequency = netapp_utils.TimeIntervalFrequency(**params)
+            frequency = TimeIntervalFrequency(**params)
         return frequency
 
     def is_same_schedule_type(self, schedule_detail):
@@ -388,13 +390,13 @@ class ElementSWSnapShotSchedule(object):
 
             # Create schedule
             name = self.name
-            schedule_info = netapp_utils.ScheduleInfo(
+            schedule_info = ScheduleInfo(
                 volume_ids=self.volumes,
                 snapshot_name=self.snapshot_name,
                 retention=self.retention
             )
 
-            sched = netapp_utils.Schedule(schedule_info, name, frequency)
+            sched = Schedule(schedule_info, name, frequency)
             sched.paused = self.paused
             sched.recurring = self.recurring
             sched.starting_date = self.starting_date

@@ -5,6 +5,15 @@ NetApp ElementSW Collection Release Notes
 .. contents:: Topics
 
 
+v20.9.1
+=======
+
+Bugfixes
+--------
+
+- na_elementsw_node - improve error reporting when cluster name cannot be set because node is already active.
+- na_elementsw_schedule - missing imports TimeIntervalFrequency, Schedule, ScheduleInfo have been added back
+
 v20.9.0
 =======
 

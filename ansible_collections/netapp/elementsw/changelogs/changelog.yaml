@@ -147,3 +147,14 @@ releases:
       name: na_elementsw_qos_policy
       namespace: ''
     release_date: '2020-09-02'
+  20.9.1:
+    changes:
+      bugfixes:
+      - na_elementsw_node - improve error reporting when cluster name cannot be set
+        because node is already active.
+      - na_elementsw_schedule - missing imports TimeIntervalFrequency, Schedule, ScheduleInfo
+        have been added back
+    fragments:
+    - DEVOPS-3174.yaml
+    - DEVOPS-3188.yaml
+    release_date: '2020-09-08'

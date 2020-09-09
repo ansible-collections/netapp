@@ -19,10 +19,11 @@ Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 
 #Release Notes
 
-## 20.10.0
+## 20.9.1
 
 ### Bug Fixes
 - na_elementsw_node: improve error reporting when cluster name cannot be set because node is already active.
+- na_elementsw_schedule - missing imports TimeIntervalFrequency, Schedule, ScheduleInfo have been added back
 
 ## 20.9.0
 
