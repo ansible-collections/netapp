@@ -30,6 +30,7 @@ description:
   - username/password are used as the node credentials to see if the cluster already exists.
   - username/password can also be used to set the cluster credentials.
   - If the cluster already exists, no error is returned, but changed is set to false.
+  - Cluster modifications are not supported and are ignored.
 
 options:
     management_virtual_ip:
@@ -97,6 +98,21 @@ options:
         default: true
         type: bool
         version_added: 20.8.0
+
+    encryption:
+        description: to enable or disable encryption at rest
+        type: bool
+        version_added: 20.10.0
+
+    order_number:
+        description: (experimental) order number as provided by NetApp
+        type: str
+        version_added: 20.10.0
+
+    serial_number:
+        description: (experimental) serial number as provided by NetApp
+        type: str
+        version_added: 20.10.0
 '''
 
 EXAMPLES = """
@@ -153,6 +169,9 @@ class ElementSWCluster(object):
             attributes=dict(required=False, type='dict', default=None),
             timeout=dict(required=False, type='int', default=100),
             fail_if_cluster_already_exists_with_larger_ensemble=dict(required=False, type='bool', default=True),
+            encryption=dict(required=False, type='bool'),
+            order_number=dict(required=False, type='str'),
+            serial_number=dict(required=False, type='str'),
         ))
 
         self.module = AnsibleModule(
@@ -171,6 +190,9 @@ class ElementSWCluster(object):
         self.cluster_admin_username = input_params['username'] if input_params.get('cluster_admin_username') is None else input_params['cluster_admin_username']
         self.cluster_admin_password = input_params['password'] if input_params.get('cluster_admin_password') is None else input_params['cluster_admin_password']
         self.fail_if_cluster_already_exists_with_larger_ensemble = input_params['fail_if_cluster_already_exists_with_larger_ensemble']
+        self.encryption = input_params['encryption']
+        self.order_number = input_params['order_number']
+        self.serial_number = input_params['serial_number']
         self.debug = list()
 
         if HAS_SF_SDK is False:
@@ -183,10 +205,8 @@ class ElementSWCluster(object):
                 conn = netapp_utils.create_sf_connection(module=self.module, raise_on_connection_error=True, port=port, timeout=input_params['timeout'])
                 if role == 'node':
                     self.sfe_node = conn
-                    self.debug.append('created node cx: port sent: %d, port read: %s' % (port, str(self.sfe_node._port)))
                 else:
                     self.sfe_cluster = conn
-                    self.debug.append('created cluster cx: port sent: %d, port read: %s' % (port, str(self.sfe_cluster._port)))
             except netapp_utils.solidfire.common.ApiConnectionError as exc:
                 if str(exc) == "Bad Credentials":
                     msg = 'Most likely the cluster is already created.'
@@ -207,7 +227,7 @@ class ElementSWCluster(object):
         else:
             self.attributes = self.elementsw_helper.set_element_attributes(source='na_elementsw_cluster')
 
-    def get_cluster_info(self):
+    def get_node_cluster_info(self):
         """
         Get Cluster Info - using node API
         """
@@ -226,7 +246,7 @@ class ElementSWCluster(object):
         return a tuple (found, info)
             found is True if found, False if not found
         """
-        info = self.get_cluster_info()
+        info = self.get_node_cluster_info()
         if info is None:
             return False
         ensemble = getattr(info, 'ensemble', None)
@@ -253,6 +273,40 @@ class ElementSWCluster(object):
             self.debug.append("Extra requested nodes not in ensemble: %s" % nodes_not_in_ensemble)
         return True
 
+    def create_cluster_api(self, options):
+        ''' Call send_request directly rather than using the SDK if new fields are present
+            The new SDK will support these in version 1.17 (Nov or Feb)
+        '''
+        extra_options = ['enableSoftwareEncryptionAtRest', 'orderNumber', 'serialNumber']
+        if not any((item in options for item in extra_options)):
+            # use SDK
+            return self.sfe_cluster.create_cluster(**options)
+
+        # call directly the API as the SDK is not updated yet
+        params = {
+            "mvip": options['mvip'],
+            "svip": options['svip'],
+            "repCount": options['rep_count'],
+            "username": options['username'],
+            "password": options['password'],
+            "nodes": options['nodes'],
+        }
+        if options['accept_eula'] is not None:
+            params["acceptEula"] = options['accept_eula']
+        if options['attributes'] is not None:
+            params["attributes"] = options['attributes']
+        for option in extra_options:
+            if options.get(option):
+                params[option] = options[option]
+
+        # There is no adaptor.
+        return self.sfe_cluster.send_request(
+            'CreateCluster',
+            netapp_utils.solidfire.CreateClusterResult,
+            params,
+            since=None
+        )
+
     def create_cluster(self):
         """
         Create Cluster
@@ -267,11 +321,18 @@ class ElementSWCluster(object):
             'username': self.cluster_admin_username,
             'password': self.cluster_admin_password
         }
+        if self.encryption is not None:
+            options['enableSoftwareEncryptionAtRest'] = self.encryption
+        if self.order_number is not None:
+            options['orderNumber'] = self.order_number
+        if self.serial_number is not None:
+            options['serialNumber'] = self.serial_number
+
         return_msg = 'created'
         try:
             # does not work as node even though documentation says otherwise
             # running as node, this error is reported: 500 xUnknownAPIMethod  method=CreateCluster
-            self.sfe_cluster.create_cluster(**options)
+            self.create_cluster_api(options)
         except netapp_utils.solidfire.common.ApiServerError as exc:
             # not sure how this can happen, but the cluster may already exists
             if 'xClusterAlreadyCreated' not in str(exc.message):

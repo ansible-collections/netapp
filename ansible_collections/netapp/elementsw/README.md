@@ -19,6 +19,11 @@ Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 
 #Release Notes
 
+## 20.10.0
+
+### New Options
+- na_elementsw_cluster: `encryption` to enable encryption at rest.  `order_number` and `serial_number` for demo purposes.
+
 ## 20.9.1
 
 ### Bug Fixes
