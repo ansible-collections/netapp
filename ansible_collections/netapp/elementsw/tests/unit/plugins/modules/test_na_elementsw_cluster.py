@@ -1,4 +1,4 @@
-''' unit test for Ansible module: na_elementsw_node.py '''
+''' unit test for Ansible module: na_elementsw_cluster.py '''
 
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
@@ -75,31 +75,6 @@ class MockSFConnection(object):
         self._port = 442
         self.called = list()
 
-    # def list_all_nodes(self, *args, **kwargs):  # pylint: disable=unused-argument
-    #     ''' build access_group list: access_groups.name, access_groups.account_id '''
-    #     nodes = list()
-    #     pending_nodes = list()
-    #     active_pending_nodes = list()
-    #     if self.node_id is None:
-    #         node_list = list()
-    #     else:
-    #         node_list = [self.node_id]
-    #     attrs1 = dict(mip='10.10.10.101', name=NODE_NAME1, node_id=NODE_ID1)
-    #     attrs2 = dict(mip='10.10.10.101', name=NODE_NAME2, node_id=NODE_ID2)
-    #     if self.where == 'pending':
-    #         attrs1['pending_node_id'] = NODE_ID1
-    #         attrs2['pending_node_id'] = NODE_ID2
-    #     node1 = self.Bunch(**attrs1)
-    #     node2 = self.Bunch(**attrs2)
-    #     if self.where == 'nodes':
-    #         nodes = [node1, node2]
-    #     elif self.where == 'pending':
-    #         pending_nodes = [node1, node2]
-    #     elif self.where == 'active_pending':
-    #         active_pending_nodes = [node1, node2]
-    #     node_list = self.Bunch(nodes=nodes, pending_nodes=pending_nodes, pending_active_nodes=active_pending_nodes)
-    #     return node_list
-
     def record(self, args, kwargs):
         name = inspect.stack()[1][3]    # caller function name
         print('%s: , args: %s, kwargs: %s' % (name, args, kwargs))
@@ -122,25 +97,6 @@ class MockSFConnection(object):
         cluster = self.Bunch(ensemble=nodes, cluster='cl_name')
         config = self.Bunch(cluster=cluster)
         return self.Bunch(config=config)
-
-    # def add_nodes(self, *args, **kwargs):  # pylint: disable=unused-argument
-    #     print('adding_node: ', repr(args), repr(kwargs))
-
-    # def remove_nodes(self, *args, **kwargs):  # pylint: disable=unused-argument
-    #     print('adding_node: ', repr(args), repr(kwargs))
-
-    # def get_cluster_config(self, *args, **kwargs):  # pylint: disable=unused-argument
-    #     print('get_cluster_config: ', repr(args), repr(kwargs))
-    #     cluster = self.Bunch(cluster=self.cluster_name, state=self.node_state)
-    #     return self.Bunch(cluster=cluster)
-
-    # def set_cluster_config(self, *args, **kwargs):  # pylint: disable=unused-argument
-    #     print('set_cluster_config: ', repr(args), repr(kwargs))
-
-    # def list_drives(self, *args, **kwargs):  # pylint: disable=unused-argument
-    #     print('list_drives: ', repr(args), repr(kwargs))
-    #     drive = self.Bunch(node_id=self.node_id, status="active")
-    #     return self.Bunch(drives=[drive])
 
 
 class TestMyModule(unittest.TestCase):

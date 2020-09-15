@@ -21,6 +21,9 @@ Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 
 ## 20.10.0
 
+### New Modules
+- na_elementsw_info: support for two subsets `cluster_accounts`, `node_config`.
+
 ### New Options
 - na_elementsw_cluster: `encryption` to enable encryption at rest.  `order_number` and `serial_number` for demo purposes.
 
