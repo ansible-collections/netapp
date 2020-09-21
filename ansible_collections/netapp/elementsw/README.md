@@ -26,6 +26,7 @@ Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 
 ### New Options
 - na_elementsw_cluster: `encryption` to enable encryption at rest.  `order_number` and `serial_number` for demo purposes.
+- na_elementsw_network_interfaces: make all options not required, so that only bond_1g can be set for example.
 
 ## 20.9.1
 

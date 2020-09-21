@@ -25,69 +25,62 @@ extends_documentation_fragment:
 version_added: 2.7.0
 author: NetApp Ansible Team (@carchi8py) <ng-ansibleteam@netapp.com>
 description:
-- Configure Element SW Node Network Interfaces for Bond 1G and 10G IP address.
+- Configure Element SW Node Network Interfaces for Bond 1G and 10G IP addresses.
 
 options:
     method:
         description:
-        - Type of Method used to configure the interface.
+        - Type of method used to configure the interface.
         - method depends on other settings such as the use of a static IP address, which will change the method to static.
         - loopback - Used to define the IPv4 loopback interface.
         - manual - Used to define interfaces for which no configuration is done by default.
         - dhcp - May be used to obtain an IP address via DHCP.
         - static - Used to define Ethernet interfaces with statically allocated IPv4 addresses.
         choices: ['loopback', 'manual', 'dhcp', 'static']
-        required: true
         type: str
 
     ip_address_1g:
         description:
         - IP address for the 1G network.
-        required: true
         type: str
 
     ip_address_10g:
         description:
         - IP address for the 10G network.
-        required: true
         type: str
 
     subnet_1g:
         description:
         - 1GbE Subnet Mask.
-        required: true
         type: str
 
     subnet_10g:
         description:
         - 10GbE Subnet Mask.
-        required: true
         type: str
 
     gateway_address_1g:
         description:
         - Router network address to send packets out of the local network.
-        required: true
         type: str
 
     gateway_address_10g:
         description:
         - Router network address to send packets out of the local network.
-        required: true
         type: str
 
     mtu_1g:
         description:
         - Maximum Transmission Unit for 1GbE, Largest packet size that a network protocol can transmit.
         - Must be greater than or equal to 1500 bytes.
-        default: '1500'
+        - defaulted to '1500'
         type: str
 
     mtu_10g:
         description:
         - Maximum Transmission Unit for 10GbE, Largest packet size that a network protocol can transmit.
         - Must be greater than or equal to 1500 bytes.
-        default: '1500'
+        - defaulted to '1500'
         type: str
 
     dns_nameservers:
@@ -105,15 +98,15 @@ options:
     bond_mode_1g:
         description:
         - Bond mode for 1GbE configuration.
+        - defaulted to 'ActivePassive'
         choices: ['ActivePassive', 'ALB', 'LACP']
-        default: 'ActivePassive'
         type: str
 
     bond_mode_10g:
         description:
         - Bond mode for 10GbE configuration.
+        - defaulted to 'ActivePassive'
         choices: ['ActivePassive', 'ALB', 'LACP']
-        default: 'ActivePassive'
         type: str
 
     lacp_1g:
@@ -121,8 +114,8 @@ options:
         - Link Aggregation Control Protocol useful only if LACP is selected as the Bond Mode.
         - Slow - Packets are transmitted at 30 second intervals.
         - Fast - Packets are transmitted in 1 second intervals.
+        - defaulted to 'Slow' when bond_mode_1g is set to LACP
         choices: ['Fast', 'Slow']
-        default: 'Slow'
         type: str
 
     lacp_10g:
@@ -130,8 +123,8 @@ options:
         - Link Aggregation Control Protocol useful only if LACP is selected as the Bond Mode.
         - Slow - Packets are transmitted at 30 second intervals.
         - Fast - Packets are transmitted in 1 second intervals.
+        - defaulted to 'Slow' when bond_mode_10g is set to LACP
         choices: ['Fast', 'Slow']
-        default: 'Slow'
         type: str
 
     virtual_network_tag:
@@ -182,6 +175,7 @@ HAS_SF_SDK = netapp_utils.has_sf_sdk()
 
 try:
     from solidfire.models import Network, NetworkConfig
+    from solidfire.common import ApiConnectionError as sf_ApiConnectionError, ApiServerError as sf_ApiServerError
     HAS_SF_SDK = True
 except ImportError:
     HAS_SF_SDK = False
@@ -195,21 +189,21 @@ class ElementSWNetworkInterfaces(object):
     def __init__(self):
         self.argument_spec = netapp_utils.ontap_sf_host_argument_spec()
         self.argument_spec.update(dict(
-            method=dict(required=True, type='str', choices=['loopback', 'manual', 'dhcp', 'static']),
-            ip_address_1g=dict(required=True, type='str'),
-            ip_address_10g=dict(required=True, type='str'),
-            subnet_1g=dict(required=True, type='str'),
-            subnet_10g=dict(required=True, type='str'),
-            gateway_address_1g=dict(required=True, type='str'),
-            gateway_address_10g=dict(required=True, type='str'),
-            mtu_1g=dict(required=False, type='str', default='1500'),
-            mtu_10g=dict(required=False, type='str', default='1500'),
+            method=dict(required=False, type='str', choices=['loopback', 'manual', 'dhcp', 'static']),
+            ip_address_1g=dict(required=False, type='str'),
+            ip_address_10g=dict(required=False, type='str'),
+            subnet_1g=dict(required=False, type='str'),
+            subnet_10g=dict(required=False, type='str'),
+            gateway_address_1g=dict(required=False, type='str'),
+            gateway_address_10g=dict(required=False, type='str'),
+            mtu_1g=dict(required=False, type='str'),
+            mtu_10g=dict(required=False, type='str'),
             dns_nameservers=dict(required=False, type='list', elements='str'),
             dns_search_domains=dict(required=False, type='list', elements='str'),
-            bond_mode_1g=dict(required=False, type='str', choices=['ActivePassive', 'ALB', 'LACP'], default='ActivePassive'),
-            bond_mode_10g=dict(required=False, type='str', choices=['ActivePassive', 'ALB', 'LACP'], default='ActivePassive'),
-            lacp_1g=dict(required=False, type='str', choices=['Fast', 'Slow'], default='Slow'),
-            lacp_10g=dict(required=False, type='str', choices=['Fast', 'Slow'], default='Slow'),
+            bond_mode_1g=dict(required=False, type='str', choices=['ActivePassive', 'ALB', 'LACP']),
+            bond_mode_10g=dict(required=False, type='str', choices=['ActivePassive', 'ALB', 'LACP']),
+            lacp_1g=dict(required=False, type='str', choices=['Fast', 'Slow']),
+            lacp_10g=dict(required=False, type='str', choices=['Fast', 'Slow']),
             virtual_network_tag=dict(required=False, type='str')
         ))
 
@@ -239,17 +233,17 @@ class ElementSWNetworkInterfaces(object):
 
         if HAS_SF_SDK is False:
             self.module.fail_json(msg="Unable to import the SolidFire Python SDK")
-        else:
-            self.sfe = netapp_utils.create_sf_connection(module=self.module, port=442)
+        # increase time out, as it may take 30 seconds when making a change
+        self.sfe = netapp_utils.create_sf_connection(module=self.module, port=442, timeout=60)
 
-    def set_network_config(self):
+    def set_network_config(self, network_object):
         """
         set network configuration
         """
         try:
-            self.sfe.set_network_config(network=self.network_object)
-        except Exception as exception_object:
-            self.module.fail_json(msg='Error network setting for node %s' % (to_native(exception_object)),
+            self.sfe.set_network_config(network=network_object)
+        except (sf_ApiConnectionError, sf_ApiServerError) as exception_object:
+            self.module.fail_json(msg='Error  setting network config for node %s' % (to_native(exception_object)),
                                   exception=traceback.format_exc())
 
     def get_network_params_object(self):
@@ -260,7 +254,21 @@ class ElementSWNetworkInterfaces(object):
         :return: NetworkConfig object
         :rtype: object(NetworkConfig object)
         """
-        try:
+        do_1g = any([x is not None for x in (self.ip_address_1g, self.subnet_1g, self.gateway_address_1g,
+                                             self.mtu_1g, self.bond_mode_1g, self.lacp_1g)])
+        do_10g = any([x is not None for x in (self.ip_address_10g, self.subnet_10g, self.gateway_address_10g,
+                                              self.mtu_10g, self.bond_mode_10g, self.lacp_10g)])
+        bond_1g_network = None
+        bond_10g_network = None
+        network_object = None
+        if do_1g:
+            # add default values
+            if self.bond_mode_1g is None:
+                self.bond_mode_1g = 'ActivePassive'
+            if self.bond_mode_1g == 'LACP' and self.lacp_1g is None:
+                self.lacp_1g = 'Slow'
+            if self.mtu_1g is None:
+                self.mtu_1g = '1500'    # str and not int!
             bond_1g_network = NetworkConfig(method=self.method,
                                             address=self.ip_address_1g,
                                             netmask=self.subnet_1g,
@@ -271,6 +279,14 @@ class ElementSWNetworkInterfaces(object):
                                             bond_mode=self.bond_mode_1g,
                                             bond_lacp_rate=self.lacp_1g,
                                             virtual_network_tag=self.virtual_network_tag)
+        if do_10g:
+            # add default values
+            if self.bond_mode_10g is None:
+                self.bond_mode_10g = 'ActivePassive'
+            if self.bond_mode_10g == 'LACP' and self.lacp_10g is None:
+                self.lacp_10g = 'Slow'
+            if self.mtu_10g is None:
+                self.mtu_10g = '1500'    # str and not int!
             bond_10g_network = NetworkConfig(method=self.method,
                                              address=self.ip_address_10g,
                                              netmask=self.subnet_10g,
@@ -281,12 +297,10 @@ class ElementSWNetworkInterfaces(object):
                                              bond_mode=self.bond_mode_10g,
                                              bond_lacp_rate=self.lacp_10g,
                                              virtual_network_tag=self.virtual_network_tag)
+        if do_1g or do_10g:
             network_object = Network(bond1_g=bond_1g_network,
                                      bond10_g=bond_10g_network)
-            return network_object
-        except Exception as e:
-            self.module.fail_json(msg='Error with setting up network object for node 1G and 10G configuration : %s' % to_native(e),
-                                  exception=to_native(e))
+        return network_object
 
     def apply(self):
         """
@@ -294,9 +308,10 @@ class ElementSWNetworkInterfaces(object):
         """
         changed = False
         result_message = None
-        self.network_object = self.get_network_params_object()
-        if self.network_object is not None:
-            self.set_network_config()
+        network_object = self.get_network_params_object()
+        if network_object is not None:
+            if not self.module.check_mode:
+                self.set_network_config(network_object)
             changed = True
         else:
             result_message = "Skipping changes, No change requested"
