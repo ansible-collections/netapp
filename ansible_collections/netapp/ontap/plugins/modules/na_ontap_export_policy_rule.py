@@ -36,7 +36,7 @@ options:
 
   name:
     description:
-    - The name of the export rule to manage.
+    - The name of the export policy this rule will be added to.
     required: True
     type: str
     aliases:
