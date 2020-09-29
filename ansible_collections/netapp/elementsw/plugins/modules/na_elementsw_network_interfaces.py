@@ -25,112 +25,191 @@ extends_documentation_fragment:
 version_added: 2.7.0
 author: NetApp Ansible Team (@carchi8py) <ng-ansibleteam@netapp.com>
 description:
-- Configure Element SW Node Network Interfaces for Bond 1G and 10G IP addresses.
+  - Configure Element SW Node Network Interfaces for Bond 1G and 10G IP addresses.
+  - This module does not create interfaces, it expects the interfaces to already exists and can only modify them.
+  - This module cannot set or modify the method (Loopback, manual, dhcp, static).
+  - This module is not idempotent and does not support check_mode.
 
 options:
     method:
         description:
-        - Type of method used to configure the interface.
-        - method depends on other settings such as the use of a static IP address, which will change the method to static.
-        - loopback - Used to define the IPv4 loopback interface.
-        - manual - Used to define interfaces for which no configuration is done by default.
-        - dhcp - May be used to obtain an IP address via DHCP.
-        - static - Used to define Ethernet interfaces with statically allocated IPv4 addresses.
-        choices: ['loopback', 'manual', 'dhcp', 'static']
+          - deprecated, this option would trigger a 'updated failed' error
         type: str
 
     ip_address_1g:
         description:
-        - IP address for the 1G network.
+          - deprecated, use bond_1g option.
         type: str
 
     ip_address_10g:
         description:
-        - IP address for the 10G network.
+          - deprecated, use bond_10g option.
         type: str
 
     subnet_1g:
         description:
-        - 1GbE Subnet Mask.
+          - deprecated, use bond_1g option.
         type: str
 
     subnet_10g:
         description:
-        - 10GbE Subnet Mask.
+          - deprecated, use bond_10g option.
         type: str
 
     gateway_address_1g:
         description:
-        - Router network address to send packets out of the local network.
+          - deprecated, use bond_1g option.
         type: str
 
     gateway_address_10g:
         description:
-        - Router network address to send packets out of the local network.
+          - deprecated, use bond_10g option.
         type: str
 
     mtu_1g:
         description:
-        - Maximum Transmission Unit for 1GbE, Largest packet size that a network protocol can transmit.
-        - Must be greater than or equal to 1500 bytes.
-        - defaulted to '1500'
+          - deprecated, use bond_1g option.
         type: str
 
     mtu_10g:
         description:
-        - Maximum Transmission Unit for 10GbE, Largest packet size that a network protocol can transmit.
-        - Must be greater than or equal to 1500 bytes.
-        - defaulted to '1500'
+          - deprecated, use bond_10g option.
         type: str
 
     dns_nameservers:
         description:
-        - List of addresses for domain name servers.
+          - deprecated, use bond_1g and bond_10g options.
         type: list
         elements: str
 
     dns_search_domains:
         description:
-        - List of DNS search domains.
+          - deprecated, use bond_1g and bond_10g options.
         type: list
         elements: str
 
     bond_mode_1g:
         description:
-        - Bond mode for 1GbE configuration.
-        - defaulted to 'ActivePassive'
-        choices: ['ActivePassive', 'ALB', 'LACP']
+          - deprecated, use bond_1g option.
         type: str
 
     bond_mode_10g:
         description:
-        - Bond mode for 10GbE configuration.
-        - defaulted to 'ActivePassive'
-        choices: ['ActivePassive', 'ALB', 'LACP']
+          - deprecated, use bond_10g option.
         type: str
 
     lacp_1g:
         description:
-        - Link Aggregation Control Protocol useful only if LACP is selected as the Bond Mode.
-        - Slow - Packets are transmitted at 30 second intervals.
-        - Fast - Packets are transmitted in 1 second intervals.
-        - defaulted to 'Slow' when bond_mode_1g is set to LACP
-        choices: ['Fast', 'Slow']
+          - deprecated, use bond_1g option.
         type: str
 
     lacp_10g:
         description:
-        - Link Aggregation Control Protocol useful only if LACP is selected as the Bond Mode.
-        - Slow - Packets are transmitted at 30 second intervals.
-        - Fast - Packets are transmitted in 1 second intervals.
-        - defaulted to 'Slow' when bond_mode_10g is set to LACP
-        choices: ['Fast', 'Slow']
+          - deprecated, use bond_10g option.
         type: str
 
     virtual_network_tag:
         description:
-        - This is the primary network tag. All nodes in a cluster have the same VLAN tag.
+          - deprecated, use bond_1g and bond_10g options.
         type: str
+
+    bond_1g:
+      description:
+        - settings for the Bond1G interface.
+      type: dict
+      suboptions:
+        address:
+          description:
+            - IP address for the interface.
+          type: str
+        netmask:
+          description:
+            - subnet mask for the interface.
+          type: str
+        gateway:
+          description:
+            - IP router network address to send packets out of the local network.
+          type: str
+        mtu:
+          description:
+            - The largest packet size (in bytes) that the interface can transmit..
+            - Must be greater than or equal to 1500 bytes.
+          type: str
+        dns_nameservers:
+          description:
+            - List of addresses for domain name servers.
+          type: list
+          elements: str
+        dns_search:
+          description:
+            - List of DNS search domains.
+          type: list
+          elements: str
+        bond_mode:
+          description:
+            - Bonding mode.
+          choices: ['ActivePassive', 'ALB', 'LACP']
+          type: str
+        bond_lacp_rate:
+          description:
+            - Link Aggregation Control Protocol - useful only if LACP is selected as the Bond Mode.
+            - Slow - Packets are transmitted at 30 second intervals.
+            - Fast - Packets are transmitted in 1 second intervals.
+          choices: ['Fast', 'Slow']
+          type: str
+        virtual_network_tag:
+          description:
+            - The virtual network identifier of the interface (VLAN tag).
+          type: str
+
+    bond_10g:
+      description:
+        - settings for the Bond10G interface.
+      type: dict
+      suboptions:
+        address:
+          description:
+            - IP address for the interface.
+          type: str
+        netmask:
+          description:
+            - subnet mask for the interface.
+          type: str
+        gateway:
+          description:
+            - IP router network address to send packets out of the local network.
+          type: str
+        mtu:
+          description:
+            - The largest packet size (in bytes) that the interface can transmit..
+            - Must be greater than or equal to 1500 bytes.
+          type: str
+        dns_nameservers:
+          description:
+            - List of addresses for domain name servers.
+          type: list
+          elements: str
+        dns_search:
+          description:
+            - List of DNS search domains.
+          type: list
+          elements: str
+        bond_mode:
+          description:
+            - Bonding mode.
+          choices: ['ActivePassive', 'ALB', 'LACP']
+          type: str
+        bond_lacp_rate:
+          description:
+            - Link Aggregation Control Protocol - useful only if LACP is selected as the Bond Mode.
+            - Slow - Packets are transmitted at 30 second intervals.
+            - Fast - Packets are transmitted in 1 second intervals.
+          choices: ['Fast', 'Slow']
+          type: str
+        virtual_network_tag:
+          description:
+            - The virtual network identifier of the interface (VLAN tag).
+          type: str
 
 '''
 
@@ -143,18 +222,22 @@ EXAMPLES = """
       hostname: "{{ elementsw_hostname }}"
       username: "{{ elementsw_username }}"
       password: "{{ elementsw_password }}"
-      method: static
-      ip_address_1g: 10.226.109.68
-      ip_address_10g: 10.226.201.72
-      subnet_1g: 255.255.255.0
-      subnet_10g: 255.255.255.0
-      gateway_address_1g: 10.193.139.1
-      gateway_address_10g: 10.193.140.1
-      mtu_1g: 1500
-      mtu_10g: 9000
-      bond_mode_1g: ActivePassive
-      bond_mode_10g: LACP
-      lacp_10g: Fast
+      bond_1g:
+        address: 10.253.168.131
+        netmask: 255.255.248.0
+        gateway: 10.253.168.1
+        mtu: '1500'
+        bond_mode: ActivePassive
+        dns_nameservers: dns1,dns2
+        dns_search: domain1,domain2
+      bond_10g:
+        address: 10.253.1.202
+        netmask: 255.255.255.192
+        gateway: 10.253.1.193
+        mtu: '9000'
+        bond_mode: LACP
+        bond_lacp_rate: Fast
+        virtual_network_tag: vnet_tag
 """
 
 RETURN = """
@@ -189,7 +272,7 @@ class ElementSWNetworkInterfaces(object):
     def __init__(self):
         self.argument_spec = netapp_utils.ontap_sf_host_argument_spec()
         self.argument_spec.update(dict(
-            method=dict(required=False, type='str', choices=['loopback', 'manual', 'dhcp', 'static']),
+            method=dict(required=False, type='str'),
             ip_address_1g=dict(required=False, type='str'),
             ip_address_10g=dict(required=False, type='str'),
             subnet_1g=dict(required=False, type='str'),
@@ -200,41 +283,80 @@ class ElementSWNetworkInterfaces(object):
             mtu_10g=dict(required=False, type='str'),
             dns_nameservers=dict(required=False, type='list', elements='str'),
             dns_search_domains=dict(required=False, type='list', elements='str'),
-            bond_mode_1g=dict(required=False, type='str', choices=['ActivePassive', 'ALB', 'LACP']),
-            bond_mode_10g=dict(required=False, type='str', choices=['ActivePassive', 'ALB', 'LACP']),
-            lacp_1g=dict(required=False, type='str', choices=['Fast', 'Slow']),
-            lacp_10g=dict(required=False, type='str', choices=['Fast', 'Slow']),
-            virtual_network_tag=dict(required=False, type='str')
+            bond_mode_1g=dict(required=False, type='str'),
+            bond_mode_10g=dict(required=False, type='str'),
+            lacp_1g=dict(required=False, type='str'),
+            lacp_10g=dict(required=False, type='str'),
+            virtual_network_tag=dict(required=False, type='str'),
+            bond_1g=dict(required=False, type='dict', options=dict(
+                address=dict(required=False, type='str'),
+                netmask=dict(required=False, type='str'),
+                gateway=dict(required=False, type='str'),
+                mtu=dict(required=False, type='str'),
+                dns_nameservers=dict(required=False, type='list', elements='str'),
+                dns_search=dict(required=False, type='list', elements='str'),
+                bond_mode=dict(required=False, type='str', choices=['ActivePassive', 'ALB', 'LACP']),
+                bond_lacp_rate=dict(required=False, type='str', choices=['Fast', 'Slow']),
+                virtual_network_tag=dict(required=False, type='str'),
+            )),
+            bond_10g=dict(required=False, type='dict', options=dict(
+                address=dict(required=False, type='str'),
+                netmask=dict(required=False, type='str'),
+                gateway=dict(required=False, type='str'),
+                mtu=dict(required=False, type='str'),
+                dns_nameservers=dict(required=False, type='list', elements='str'),
+                dns_search=dict(required=False, type='list', elements='str'),
+                bond_mode=dict(required=False, type='str', choices=['ActivePassive', 'ALB', 'LACP']),
+                bond_lacp_rate=dict(required=False, type='str', choices=['Fast', 'Slow']),
+                virtual_network_tag=dict(required=False, type='str'),
+            )),
         ))
 
         self.module = AnsibleModule(
             argument_spec=self.argument_spec,
-            supports_check_mode=True
+            supports_check_mode=False
         )
 
         input_params = self.module.params
+        self.fail_when_deprecated_options_are_set(input_params)
 
-        self.method = input_params['method']
-        self.ip_address_1g = input_params['ip_address_1g']
-        self.ip_address_10g = input_params['ip_address_10g']
-        self.subnet_1g = input_params['subnet_1g']
-        self.subnet_10g = input_params['subnet_10g']
-        self.gateway_address_1g = input_params['gateway_address_1g']
-        self.gateway_address_10g = input_params['gateway_address_10g']
-        self.mtu_1g = input_params['mtu_1g']
-        self.mtu_10g = input_params['mtu_10g']
-        self.dns_nameservers = input_params['dns_nameservers']
-        self.dns_search_domains = input_params['dns_search_domains']
-        self.bond_mode_1g = input_params['bond_mode_1g']
-        self.bond_mode_10g = input_params['bond_mode_10g']
-        self.lacp_1g = input_params['lacp_1g']
-        self.lacp_10g = input_params['lacp_10g']
-        self.virtual_network_tag = input_params['virtual_network_tag']
+        self.bond1g = input_params['bond_1g']
+        self.bond10g = input_params['bond_10g']
 
         if HAS_SF_SDK is False:
             self.module.fail_json(msg="Unable to import the SolidFire Python SDK")
         # increase time out, as it may take 30 seconds when making a change
-        self.sfe = netapp_utils.create_sf_connection(module=self.module, port=442, timeout=60)
+        self.sfe = netapp_utils.create_sf_connection(module=self.module, port=442, timeout=90)
+
+    def fail_when_deprecated_options_are_set(self, input_params):
+        ''' report an error and exit if any deprecated options is set '''
+
+        dparms_1g = [x for x in ('ip_address_1g', 'subnet_1g', 'gateway_address_1g', 'mtu_1g', 'bond_mode_1g', 'lacp_1g')
+                     if input_params[x] is not None]
+        dparms_10g = [x for x in ('ip_address_10g', 'subnet_10g', 'gateway_address_10g', 'mtu_10g', 'bond_mode_10g', 'lacp_10g')
+                      if input_params[x] is not None]
+        dparms_common = [x for x in ('dns_nameservers', 'dns_search_domains', 'virtual_network_tag')
+                         if input_params[x] is not None]
+
+        error_msg = ''
+        if dparms_1g and dparms_10g:
+            error_msg = 'Please use the new bond_1g and bond_10g options to configure the bond interfaces.'
+        elif dparms_1g:
+            error_msg = 'Please use the new bond_1g option to configure the bond 1G interface.'
+        elif dparms_10g:
+            error_msg = 'Please use the new bond_10g option to configure the bond 10G interface.'
+        elif dparms_common:
+            error_msg = 'Please use the new bond_1g or bond_10g options to configure the bond interfaces.'
+        if input_params['method']:
+            error_msg = 'This module cannot set or change "method".  ' + error_msg
+            dparms_common.append('method')
+        if error_msg:
+            error_msg += '  The following parameters are deprecated and cannot be used: '
+            dparms = dparms_1g
+            dparms.extend(dparms_10g)
+            dparms.extend(dparms_common)
+            error_msg += ', '.join(dparms)
+            self.module.fail_json(msg=error_msg)
 
     def set_network_config(self, network_object):
         """
@@ -246,58 +368,29 @@ class ElementSWNetworkInterfaces(object):
             self.module.fail_json(msg='Error  setting network config for node %s' % (to_native(exception_object)),
                                   exception=traceback.format_exc())
 
-    def get_network_params_object(self):
-        """
-        Get Element SW Network object
-        :description: get Network object
+    def set_network_config_object(self, network_params):
+        ''' set SolidFire network config object '''
+        network_config = dict()
+        if network_params is not None:
+            for key in network_params:
+                if network_params[key] is not None:
+                    network_config[key] = network_params[key]
+        if network_config:
+            return NetworkConfig(**network_config)
+        return None
 
-        :return: NetworkConfig object
-        :rtype: object(NetworkConfig object)
+    def set_network_object(self):
         """
-        do_1g = any([x is not None for x in (self.ip_address_1g, self.subnet_1g, self.gateway_address_1g,
-                                             self.mtu_1g, self.bond_mode_1g, self.lacp_1g)])
-        do_10g = any([x is not None for x in (self.ip_address_10g, self.subnet_10g, self.gateway_address_10g,
-                                              self.mtu_10g, self.bond_mode_10g, self.lacp_10g)])
-        bond_1g_network = None
-        bond_10g_network = None
+        Set Element SW Network object
+        :description: set Network object
+
+        :return: Network object
+        :rtype: object(Network object)
+        """
+        bond_1g_network = self.set_network_config_object(self.bond1g)
+        bond_10g_network = self.set_network_config_object(self.bond10g)
         network_object = None
-        if do_1g:
-            # add default values
-            if self.bond_mode_1g is None:
-                self.bond_mode_1g = 'ActivePassive'
-            if self.bond_mode_1g == 'LACP' and self.lacp_1g is None:
-                self.lacp_1g = 'Slow'
-            if self.mtu_1g is None:
-                self.mtu_1g = '1500'    # str and not int!
-            bond_1g_network = NetworkConfig(method=self.method,
-                                            address=self.ip_address_1g,
-                                            netmask=self.subnet_1g,
-                                            gateway=self.gateway_address_1g,
-                                            mtu=self.mtu_1g,
-                                            dns_nameservers=self.dns_nameservers,
-                                            dns_search=self.dns_search_domains,
-                                            bond_mode=self.bond_mode_1g,
-                                            bond_lacp_rate=self.lacp_1g,
-                                            virtual_network_tag=self.virtual_network_tag)
-        if do_10g:
-            # add default values
-            if self.bond_mode_10g is None:
-                self.bond_mode_10g = 'ActivePassive'
-            if self.bond_mode_10g == 'LACP' and self.lacp_10g is None:
-                self.lacp_10g = 'Slow'
-            if self.mtu_10g is None:
-                self.mtu_10g = '1500'    # str and not int!
-            bond_10g_network = NetworkConfig(method=self.method,
-                                             address=self.ip_address_10g,
-                                             netmask=self.subnet_10g,
-                                             gateway=self.gateway_address_10g,
-                                             mtu=self.mtu_10g,
-                                             dns_nameservers=self.dns_nameservers,
-                                             dns_search=self.dns_search_domains,
-                                             bond_mode=self.bond_mode_10g,
-                                             bond_lacp_rate=self.lacp_10g,
-                                             virtual_network_tag=self.virtual_network_tag)
-        if do_1g or do_10g:
+        if bond_1g_network is not None or bond_10g_network is not None:
             network_object = Network(bond1_g=bond_1g_network,
                                      bond10_g=bond_10g_network)
         return network_object
@@ -308,7 +401,7 @@ class ElementSWNetworkInterfaces(object):
         """
         changed = False
         result_message = None
-        network_object = self.get_network_params_object()
+        network_object = self.set_network_object()
         if network_object is not None:
             if not self.module.check_mode:
                 self.set_network_config(network_object)
