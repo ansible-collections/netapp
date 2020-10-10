@@ -17,7 +17,7 @@ collections:
 # Need help
 Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 
-#Release Notes
+# Release Notes
 
 ## 20.10.0
 
