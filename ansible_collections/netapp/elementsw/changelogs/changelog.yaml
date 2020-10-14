@@ -82,6 +82,25 @@ releases:
       name: na_elementsw_access_group_volumes
       namespace: ''
     release_date: '2020-01-08'
+  20.10.0:
+    changes:
+      minor_changes:
+      - na_elementsw_cluster - add new options ``encryption``, ``order_number``, and
+        ``serial_number``.
+      - na_elementsw_network_interfaces - make all options not required, so that only
+        bond_1g can be set for example.
+      - na_elementsw_network_interfaces - restructure options into 2 dictionaries
+        ``bond_1g`` and ``bond_10g``, so that there is no shared option.  Disallow
+        all older options.
+    fragments:
+    - DEVOPS-3117.yaml
+    - DEVOPS-3196.yaml
+    - DEVOPS-3235.yaml
+    modules:
+    - description: NetApp Element Software Info
+      name: na_elementsw_info
+      namespace: ''
+    release_date: '2020-10-08'
   20.2.0:
     changes:
       bugfixes:

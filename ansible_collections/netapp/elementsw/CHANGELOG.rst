@@ -5,6 +5,21 @@ NetApp ElementSW Collection Release Notes
 .. contents:: Topics
 
 
+v20.10.0
+========
+
+Minor Changes
+-------------
+
+- na_elementsw_cluster - add new options ``encryption``, ``order_number``, and ``serial_number``.
+- na_elementsw_network_interfaces - make all options not required, so that only bond_1g can be set for example.
+- na_elementsw_network_interfaces - restructure options into 2 dictionaries ``bond_1g`` and ``bond_10g``, so that there is no shared option.  Disallow all older options.
+
+New Modules
+-----------
+
+- netapp.elementsw.na_elementsw_info - NetApp Element Software Info
+
 v20.9.1
 =======
 
