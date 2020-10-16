@@ -142,6 +142,7 @@ EXAMPLES = """
        schedule_type: TimeIntervalFrequency
        time_interval_days: 1
        starting_date: '2016-12-01T00:00:00Z'
+       retention: '24:00:00'
        volumes:
        - 7
        - test
@@ -157,6 +158,7 @@ EXAMPLES = """
        schedule_type: TimeIntervalFrequency
        time_interval_days: 1
        starting_date: '2016-12-01T00:00:00Z'
+       retention: '24:00:00'
        volumes:
        - 8
        - test1

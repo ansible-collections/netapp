@@ -57,7 +57,7 @@ try:
 except ImportError:
     HAS_SF_SDK = False
 
-COLLECTION_VERSION = "20.10.0"
+COLLECTION_VERSION = "20.11.0"
 
 
 def has_sf_sdk():

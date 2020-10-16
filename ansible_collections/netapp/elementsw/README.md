@@ -17,7 +17,12 @@ collections:
 # Need help
 Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 
-#Release Notes
+# Release Notes
+
+## 20.11.0
+
+### Minor changes
+- na_elementsw_snapshot_schedule - Add `retention` in examples.
 
 ## 20.10.0
 
