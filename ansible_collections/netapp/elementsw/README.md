@@ -24,6 +24,9 @@ Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 ### Minor changes
 - na_elementsw_snapshot_schedule - Add `retention` in examples.
 
+### Bug Fixes
+- na_elementsw_drive - Object of type 'dict_values' is not JSON serializable.
+
 ## 20.10.0
 
 ### New Modules

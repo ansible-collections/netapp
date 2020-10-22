@@ -168,7 +168,8 @@ class ElementSWDrive(object):
             self.module.fail_json(
                 msg="Unable to import the SolidFire Python SDK")
         else:
-            self.sfe = netapp_utils.create_sf_connection(module=self.module)
+            # increase timeout, as removing a disk takes some time
+            self.sfe = netapp_utils.create_sf_connection(module=self.module, timeout=120)
 
     def get_node_id(self, node_id):
         """
@@ -225,7 +226,7 @@ class ElementSWDrive(object):
         for drive in self.all_drives.drives:
             if drive_id == str(drive.drive_id):
                 break
-            elif drive_id == drive.serial:
+            if drive_id == drive.serial:
                 break
         else:
             self.module.fail_json(msg='unable to find drive for drive_id=%s.  Debug=%s' % (drive_id, self.debug))
@@ -240,7 +241,7 @@ class ElementSWDrive(object):
         else all available drives for this node or cluster are returned
         """
         if drives is None:
-            return self.active_drives.values()
+            return list(self.active_drives.values())
         return [drive_id for drive_id, status in drives if status in ['active', 'failed']]
 
     def get_available_drives(self, drives, action):
@@ -250,7 +251,7 @@ class ElementSWDrive(object):
         else all available drives for this node or cluster are returned
         """
         if drives is None:
-            return self.available_drives.values()
+            return list(self.available_drives.values())
         action_list = list()
         for drive_id, drive_status in drives:
             if drive_status == 'available':
@@ -278,7 +279,10 @@ class ElementSWDrive(object):
                                 force_during_upgrade=self.force_during_upgrade,
                                 force_during_bin_sync=self.force_during_bin_sync)
         except Exception as exception_object:
-            self.module.fail_json(msg='Error add drive to cluster  %s' % (to_native(exception_object)),
+            self.module.fail_json(msg='Error adding drive%s: %s: %s' %
+                                  ('s' if len(drives) > 1 else '',
+                                   str(drives),
+                                   to_native(exception_object)),
                                   exception=traceback.format_exc())
 
     def remove_drive(self, drives=None):
@@ -289,7 +293,10 @@ class ElementSWDrive(object):
             self.sfe.remove_drives(drives,
                                    force_during_upgrade=self.force_during_upgrade)
         except Exception as exception_object:
-            self.module.fail_json(msg='Error remove drive from cluster  %s' % (to_native(exception_object)),
+            self.module.fail_json(msg='Error removing drive%s: %s: %s' %
+                                  ('s' if len(drives) > 1 else '',
+                                   str(drives),
+                                   to_native(exception_object)),
                                   exception=traceback.format_exc())
 
     def secure_erase(self, drives=None):
@@ -299,7 +306,10 @@ class ElementSWDrive(object):
         try:
             self.sfe.secure_erase_drives(drives)
         except Exception as exception_object:
-            self.module.fail_json(msg='Error clean data from drive %s' % (to_native(exception_object)),
+            self.module.fail_json(msg='Error cleaning data from drive%s: %s: %s' %
+                                  ('s' if len(drives) > 1 else '',
+                                   str(drives),
+                                   to_native(exception_object)),
                                   exception=traceback.format_exc())
 
     def apply(self):
