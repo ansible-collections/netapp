@@ -1,0 +1,60 @@
+ancestor: null
+releases:
+  20.6.0:
+    modules:
+    - description: NetApp StorageGRID Manage Tenant account.
+      name: nac_sg_grid_account
+      namespace: ''
+    - description: NetApp StorageGRID Manage Grid DNS servers.
+      name: nac_sg_grid_dns
+      namespace: ''
+    - description: NetApp StorageGRID Manage Grid admin group.
+      name: nac_sg_grid_group
+      namespace: ''
+    - description: NetApp StorageGRID Manage Grid NTP servers.
+      name: nac_sg_grid_ntp
+      namespace: ''
+    - description: NetApp StorageGRID Manage Grid Regions.
+      name: nac_sg_grid_regions
+      namespace: ''
+    - description: NetApp StorageGRID Manage Grid admin user.
+      name: nac_sg_grid_user
+      namespace: ''
+    - description: NetApp StorageGRID Manage S3 bucket.
+      name: nac_sg_org_container
+      namespace: ''
+    - description: NetApp StorageGRID Manage Tenant group.
+      name: nac_sg_org_group
+      namespace: ''
+    - description: NetApp StorageGRID Manage Tenant user.
+      name: nac_sg_org_user
+      namespace: ''
+    - description: NetApp StorageGRID Manage S3 key.
+      name: nac_sg_org_user_s3_key
+      namespace: ''
+    release_date: '2020-06-09'
+  20.6.1:
+    changes:
+      bugfixes:
+      - nac_sg_org_container - fixed documentation issue.
+      minor_changes:
+      - "Fixed documentation issue in README.md"
+    fragments:
+    - 20.6.1.yaml
+    release_date: '2020-06-09'
+  20.10.0:
+    changes:
+      breaking_changes:
+      - "This version introduces a breaking change.\nAll modules have been renamed from ``nac_sg_*`` to ``na_sg_*``.\nPlaybooks and Roles must be updated to match."
+      minor_changes:
+      - na_sg_grid_account - new option ``update_password`` for managing Tenant Account root password changes.
+      - na_sg_org_user - new option ``password`` and ``update_password`` for setting or updating Tenant User passwords.
+      - na_sg_grid_user - new option ``password`` and ``update_password`` for setting or updating Grid Admin User passwords.
+      bugfixes:
+      - na_sg_grid_account - fixed documentation issue.
+      - na_sg_grid_account - added ``no_log`` flag to password fields.
+      - na_sg_grid_group - fixed group name parsing.
+      - na_sg_org_group - fixed group name parsing.
+    fragments:
+    - 20.10.0.yaml
+    release_date: '2020-10-15'

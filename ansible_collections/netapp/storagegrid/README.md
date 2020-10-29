@@ -68,6 +68,8 @@ Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 
 ## 20.10.0
 
+### Breaking Changes
+
 This version introduces a breaking change. All modules have been renamed from `nac_sg_*` to `na_sg_*`. Playbooks and Roles must be updated to match.
 
 ### Bug Fixes
@@ -82,6 +84,14 @@ This version introduces a breaking change. All modules have been renamed from `n
 - na\_sg\_grid\_account: new option `update_password` for managing Tenant Account root password changes
 - na\_sg\_org\_user: new option `password` and `update_password` for setting or updating Tenant User passwords
 - na\_sg\_grid\_user: new option `password` and `update_password` for setting or updating Grid Admin User passwords
+
+## 20.6.1
+
+### Minor Changes
+- Fixed documentation issue in README.md
+
+### Bug Fixes
+- nac\_sg\_org\_container: fixed documentation issue.
 
 ## 20.6.0
 
