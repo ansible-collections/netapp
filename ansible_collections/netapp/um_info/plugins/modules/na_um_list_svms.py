@@ -3,6 +3,10 @@
 # (c) 2020, NetApp, Inc
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
+'''
+na_um_list_svms
+'''
+
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
@@ -130,7 +134,7 @@ class NetAppUMSVM(object):
         self.na_helper = NetAppModule()
         self.parameters = self.na_helper.set_parameters(self.module.params)
 
-        self.restApi = UMRestAPI(self.module)
+        self.rest_api = UMRestAPI(self.module)
 
     def get_svms(self):
         """
@@ -141,7 +145,7 @@ class NetAppUMSVM(object):
         """
         data = {}
         api = "datacenter/svm/svms"
-        message, error = self.restApi.get(api, data)
+        message, error = self.rest_api.get(api, data)
         if error:
             self.module.fail_json(msg=error)
         if message['total_records'] != 0:

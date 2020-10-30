@@ -27,6 +27,10 @@
 # LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 # USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+'''
+common routines for um_info
+'''
+
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
@@ -62,6 +66,7 @@ def na_um_host_argument_spec():
 
 
 class UMRestAPI(object):
+    ''' send REST request and process response '''
     def __init__(self, module, timeout=60):
         self.module = module
         self.username = self.module.params['username']
@@ -81,7 +86,7 @@ class UMRestAPI(object):
         if not HAS_REQUESTS:
             self.module.fail_json(msg=missing_required_lib('requests'))
 
-    def send_request(self, method, api, params, json=None, return_status_code=False, accept=None):
+    def send_request(self, method, api, params, json=None, accept=None):
         ''' send http request and process response, including error conditions '''
         url = self.url + api
         status_code = None
@@ -129,8 +134,6 @@ class UMRestAPI(object):
             self.log_error(status_code, 'Endpoint error: %d: %s' % (status_code, json_error))
             error_details = json_error
         self.log_debug(status_code, content)
-        if return_status_code:
-            return status_code, json_dict, error_details
         return json_dict, error_details
 
     def get(self, api, params):
