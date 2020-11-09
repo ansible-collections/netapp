@@ -69,7 +69,6 @@ options:
     description:
     - Existing federated group to have initial Root Access permissions for the tenant.
     type: str
-    default: false
   quota_size:
     description:
     - Quota to apply to the tenant specified in (quota_size_unit).
@@ -221,7 +220,7 @@ class SgGridAccount(object):
                 "allow_platform_services"
             ]
 
-        if self.parameters.get("root_access_group"):
+        if self.parameters.get("root_access_group") is not None:
             self.data["grantRootAccessToGroup"] = self.parameters["root_access_group"]
 
         if self.parameters["quota_size"] > 0:
