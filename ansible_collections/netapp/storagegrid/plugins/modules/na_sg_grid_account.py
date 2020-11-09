@@ -290,6 +290,9 @@ class SgGridAccount(object):
         if "password" in self.data:
             del self.data["password"]
 
+        if "grantRootAccessToGroup" in self.data:
+            del self.data["grantRootAccessToGroup"]
+
         response, error = self.rest_api.put(api, self.data)
         if error:
             self.module.fail_json(msg=error)
