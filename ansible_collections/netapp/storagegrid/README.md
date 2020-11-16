@@ -66,6 +66,13 @@ Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 
 # Release Notes
 
+## 20.11.0
+
+### New Modules
+
+- na\_sg\_grid\_info: Gather StorageGRID Grig subset information
+- na\_sg\_org\_info: Gather StorageGRID Org subset information
+
 ## 20.10.0
 
 ### Breaking Changes

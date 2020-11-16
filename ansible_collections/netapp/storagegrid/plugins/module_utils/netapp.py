@@ -43,7 +43,7 @@ from ansible.module_utils.urls import open_url
 from ansible.module_utils.api import basic_auth_argument_spec
 from ansible.module_utils._text import to_native
 
-COLLECTION_VERSION = "20.10.0"
+COLLECTION_VERSION = "20.11.0"
 
 try:
     import requests
@@ -133,6 +133,7 @@ class SGRestAPI(object):
                 timeout=self.timeout,
                 json=json,
                 verify=self.verify,
+                params=params,
             )
             status_code = response.status_code
             # If the response was successful, no Exception will be raised
