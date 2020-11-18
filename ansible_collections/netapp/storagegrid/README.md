@@ -73,6 +73,10 @@ Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 - na\_sg\_grid\_info: Gather StorageGRID Grig subset information
 - na\_sg\_org\_info: Gather StorageGRID Org subset information
 
+### Minor Changes
+
+- na\_sg\_grid\_account: new option `root_access_account` for granting initial root access permissions for the tenant to an existing federated group
+
 ## 20.10.0
 
 ### Breaking Changes

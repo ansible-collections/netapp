@@ -1,5 +1,43 @@
 ancestor: null
 releases:
+  20.10.0:
+    changes:
+      breaking_changes:
+      - 'This version introduces a breaking change.
+
+        All modules have been renamed from ``nac_sg_*`` to ``na_sg_*``.
+
+        Playbooks and Roles must be updated to match.'
+      bugfixes:
+      - na_sg_grid_account - added ``no_log`` flag to password fields.
+      - na_sg_grid_account - fixed documentation issue.
+      - na_sg_grid_group - fixed group name parsing.
+      - na_sg_org_group - fixed group name parsing.
+      minor_changes:
+      - na_sg_grid_account - new option ``update_password`` for managing Tenant Account
+        root password changes.
+      - na_sg_grid_user - new option ``password`` and ``update_password`` for setting
+        or updating Grid Admin User passwords.
+      - na_sg_org_user - new option ``password`` and ``update_password`` for setting
+        or updating Tenant User passwords.
+    fragments:
+    - 20.10.0.yaml
+    release_date: '2020-10-15'
+  20.11.0:
+    changes:
+      minor_changes:
+      - na_sg_grid_account - New option ``root_access_account`` for granting initial
+        root access permissions for the tenant to an existing federated group
+    fragments:
+    - github-66.yaml
+    modules:
+    - description: NetApp StorageGRID Grid information gatherer
+      name: na_sg_grid_info
+      namespace: ''
+    - description: NetApp StorageGRID Org information gatherer
+      name: na_sg_org_info
+      namespace: ''
+    release_date: '2020-11-18'
   20.6.0:
     modules:
     - description: NetApp StorageGRID Manage Tenant account.
@@ -38,23 +76,7 @@ releases:
       bugfixes:
       - nac_sg_org_container - fixed documentation issue.
       minor_changes:
-      - "Fixed documentation issue in README.md"
+      - Fixed documentation issue in README.md
     fragments:
     - 20.6.1.yaml
     release_date: '2020-06-09'
-  20.10.0:
-    changes:
-      breaking_changes:
-      - "This version introduces a breaking change.\nAll modules have been renamed from ``nac_sg_*`` to ``na_sg_*``.\nPlaybooks and Roles must be updated to match."
-      minor_changes:
-      - na_sg_grid_account - new option ``update_password`` for managing Tenant Account root password changes.
-      - na_sg_org_user - new option ``password`` and ``update_password`` for setting or updating Tenant User passwords.
-      - na_sg_grid_user - new option ``password`` and ``update_password`` for setting or updating Grid Admin User passwords.
-      bugfixes:
-      - na_sg_grid_account - fixed documentation issue.
-      - na_sg_grid_account - added ``no_log`` flag to password fields.
-      - na_sg_grid_group - fixed group name parsing.
-      - na_sg_org_group - fixed group name parsing.
-    fragments:
-    - 20.10.0.yaml
-    release_date: '2020-10-15'

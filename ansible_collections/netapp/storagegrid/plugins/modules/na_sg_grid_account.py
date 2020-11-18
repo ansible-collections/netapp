@@ -68,7 +68,9 @@ options:
   root_access_group:
     description:
     - Existing federated group to have initial Root Access permissions for the tenant.
+    - Must begin with "federated-group/"
     type: str
+    version_added: 20.11.0
   quota_size:
     description:
     - Quota to apply to the tenant specified in (quota_size_unit).

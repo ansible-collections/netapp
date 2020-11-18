@@ -5,6 +5,20 @@ NetApp StorageGRID Collection Release Notes
 .. contents:: Topics
 
 
+v20.11.0
+========
+
+Minor Changes
+-------------
+
+- na_sg_grid_account - New option ``root_access_account`` for granting initial root access permissions for the tenant to an existing federated group
+
+New Modules
+-----------
+
+- netapp.storagegrid.na_sg_grid_info - NetApp StorageGRID Grid information gatherer
+- netapp.storagegrid.na_sg_org_info - NetApp StorageGRID Org information gatherer
+
 v20.10.0
 ========
 
