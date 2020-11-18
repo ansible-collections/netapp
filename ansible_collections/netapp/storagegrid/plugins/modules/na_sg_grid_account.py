@@ -65,7 +65,7 @@ options:
     - Allows tenant to use platform services features such as CloudMirror.
     type: bool
     default: false
-  root_access_account:
+  root_access_group:
     description:
     - Existing federated group to have initial Root Access permissions for the tenant.
     type: str
