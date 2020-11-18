@@ -65,6 +65,10 @@ options:
     - Allows tenant to use platform services features such as CloudMirror.
     type: bool
     default: false
+  root_access_group:
+    description:
+    - Existing federated group to have initial Root Access permissions for the tenant.
+    type: str
   quota_size:
     description:
     - Quota to apply to the tenant specified in (quota_size_unit).
@@ -143,6 +147,7 @@ class SgGridAccount(object):
                 management=dict(required=False, type="bool", default=True),
                 use_own_identity_source=dict(required=False, type="bool"),
                 allow_platform_services=dict(required=False, type="bool"),
+                root_access_group=dict(required=False, type="str"),
                 quota_size=dict(required=False, type="int", default=0),
                 quota_size_unit=dict(
                     default="gb",
@@ -215,6 +220,9 @@ class SgGridAccount(object):
                 "allow_platform_services"
             ]
 
+        if self.parameters.get("root_access_group") is not None:
+            self.data["grantRootAccessToGroup"] = self.parameters["root_access_group"]
+
         if self.parameters["quota_size"] > 0:
             self.parameters["quota_size"] = (
                 self.parameters["quota_size"]
@@ -281,6 +289,9 @@ class SgGridAccount(object):
 
         if "password" in self.data:
             del self.data["password"]
+
+        if "grantRootAccessToGroup" in self.data:
+            del self.data["grantRootAccessToGroup"]
 
         response, error = self.rest_api.put(api, self.data)
         if error:
