@@ -30,6 +30,14 @@ Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 
 # Release Notes
 
+## 21.1.0
+
+### New Options
+  - azure_rm_netapp_volume - new option `subnet_name` as subnet_id is ambiguous.  subnet_id is now aliased to subnet_name.
+
+### Bug Fixes
+  - azure_rm_netapp_volume - fix 'Nonetype' object is not subscriptable exception when mount target is not created.
+
 ## 20.8.0
 
 ### Module documentation changes

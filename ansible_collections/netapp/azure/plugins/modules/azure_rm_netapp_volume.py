@@ -4,6 +4,10 @@
 # GNU General Public License v3.0+
 # (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
+'''
+azure_rm_netapp_volume
+'''
+
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
@@ -50,12 +54,14 @@ options:
             - Resource location.
             - Required for create.
         type: str
-    subnet_id:
+    subnet_name:
         description:
-            - The Azure Resource URI for a delegated subnet. Must have the delegation Microsoft.NetApp/volumes.
+            - Azure resource name for a delegated subnet. Must have the delegation Microsoft.NetApp/volumes.
             - Provide name of the subnet ID.
             - Required for create.
         type: str
+        aliases: ['subnet_id']
+        version_added: 21.1.0
     virtual_network:
         description:
             - The name of the virtual network required for the subnet to create a volume.
@@ -70,7 +76,7 @@ options:
     vnet_resource_group_for_subnet:
         description:
             - Only required if virtual_network to be used is of different resource_group.
-            - Name of the resource group for virtual_network and subnet_id to be used.
+            - Name of the resource group for virtual_network and subnet_name to be used.
         type: str
         version_added: "20.5.0"
     size:
@@ -101,7 +107,7 @@ EXAMPLES = '''
     file_path: tests-volume2
     virtual_network: myVirtualNetwork
     vnet_resource_group_for_subnet: myVirtualNetworkResourceGroup
-    subnet_id: test
+    subnet_name: test
     service_level: Ultra
     size: 100
 
@@ -129,10 +135,10 @@ except ImportError:
     # This is handled in azure_rm_common
     pass
 
+import traceback
 from ansible.module_utils.basic import to_native, AnsibleModule
 from ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common import AzureRMNetAppModuleBase
 from ansible_collections.netapp.azure.plugins.module_utils.netapp_module import NetAppModule
-import traceback
 
 AZURE_OBJECT_CLASS = 'NetAppAccount'
 HAS_AZURE_MGMT_NETAPP = False
@@ -146,6 +152,7 @@ ONE_GIB = 1073741824
 
 
 class AzureRMNetAppVolume(AzureRMNetAppModuleBase):
+    ''' create or delete a volume '''
 
     def __init__(self):
 
@@ -157,7 +164,7 @@ class AzureRMNetAppVolume(AzureRMNetAppModuleBase):
             account_name=dict(type='str', required=True),
             location=dict(type='str', required=False),
             state=dict(choices=['present', 'absent'], default='present', type='str'),
-            subnet_id=dict(type='str', required=False),
+            subnet_name=dict(type='str', required=False, aliases=['subnet_id']),
             virtual_network=dict(type='str', required=False),
             size=dict(type='int', required=False),
             vnet_resource_group_for_subnet=dict(type='str', required=False),
@@ -166,7 +173,7 @@ class AzureRMNetAppVolume(AzureRMNetAppModuleBase):
         self.module = AnsibleModule(
             argument_spec=self.module_arg_spec,
             required_if=[
-                ('state', 'present', ['location', 'file_path', 'subnet_id', 'virtual_network']),
+                ('state', 'present', ['location', 'file_path', 'subnet_name', 'virtual_network']),
             ],
             supports_check_mode=True
         )
@@ -200,10 +207,11 @@ class AzureRMNetAppVolume(AzureRMNetAppModuleBase):
             service_level=self.parameters['service_level'] if self.parameters.get('service_level') is not None else 'Premium',
             usage_threshold=(self.parameters['size'] if self.parameters.get('size') is not None else 100) * ONE_GIB,
             subnet_id='/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Network/virtualNetworks/%s/subnets/%s'
-                      % (self.netapp_client.config.subscription_id,
-                         self.parameters['resource_group'] if self.parameters.get('vnet_resource_group_for_subnet') is None
-                         else self.parameters['vnet_resource_group_for_subnet'],
-                         self.parameters['virtual_network'], self.parameters['subnet_id'])
+            % (self.netapp_client.config.subscription_id,
+               self.parameters['resource_group'] if self.parameters.get('vnet_resource_group_for_subnet') is None
+               else self.parameters['vnet_resource_group_for_subnet'],
+               self.parameters['virtual_network'],
+               self.parameters['subnet_name'])
         )
         try:
             result = self.netapp_client.volumes.create_or_update(body=volume_body, resource_group_name=self.parameters['resource_group'],
@@ -214,7 +222,7 @@ class AzureRMNetAppVolume(AzureRMNetAppModuleBase):
                 result.result(10)
         except CloudError as error:
             self.module.fail_json(msg='Error creating volume %s for Azure NetApp account %s and subnet ID %s: %s'
-                                      % (self.parameters['name'], self.parameters['account_name'], self.parameters['subnet_id'], to_native(error)),
+                                  % (self.parameters['name'], self.parameters['account_name'], self.parameters['subnet_name'], to_native(error)),
                                   exception=traceback.format_exc())
 
     def delete_azure_netapp_volume(self):
@@ -231,7 +239,7 @@ class AzureRMNetAppVolume(AzureRMNetAppModuleBase):
                 result.result(10)
         except CloudError as error:
             self.module.fail_json(msg='Error deleting volume %s for Azure NetApp account %s: %s'
-                                      % (self.parameters['name'], self.parameters['account_name'], to_native(error)),
+                                  % (self.parameters['name'], self.parameters['account_name'], to_native(error)),
                                   exception=traceback.format_exc())
 
     def exec_module(self, **kwargs):
@@ -250,7 +258,12 @@ class AzureRMNetAppVolume(AzureRMNetAppModuleBase):
         return_info = ''
         if self.parameters['state'] == 'present':
             return_info = self.get_azure_netapp_volume()
-            return_info = ('%s:/%s' % (return_info.mount_targets[0].ip_address, return_info.creation_token)) if return_info is not None else ''
+            if return_info is None:
+                self.module.fail_json(msg='Error: volume %s was created successfully, but cannot be found.' % self.parameters['name'])
+            if return_info.mount_targets is None:
+                self.module.fail_json(msg='Error: volume %s was created successfully, but mount target(s) cannot be found - volume details: %s.'
+                                      % (self.parameters['name'], str(return_info)))
+            return_info = '%s:/%s' % (return_info.mount_targets[0].ip_address, return_info.creation_token)
         self.module.exit_json(changed=self.na_helper.changed, msg=str(return_info))
 
 

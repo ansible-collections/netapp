@@ -167,7 +167,11 @@ class TestMyModule(unittest.TestCase):
         data = self.set_default_args()
         data['name'] = 'create'
         set_module_args(data)
-        mock_get.return_value = None
+        mock_get.side_effect = [
+            None,                                                       # first get
+            Mock(mount_targets=[Mock(ip_address='11.22.33.44')],        # get after create
+                 creation_token='abcd')
+        ]
         mock_base.return_value = Mock()
         client_f.return_value = Mock()
         my_obj = volume_module()
@@ -175,6 +179,50 @@ class TestMyModule(unittest.TestCase):
         with pytest.raises(AnsibleExitJson) as exc:
             my_obj.exec_module()
         assert exc.value.args[0]['changed']
+        expected_msg = '11.22.33.44:/abcd'
+        assert exc.value.args[0]['msg'] == expected_msg
+        mock_create.assert_called_with()
+
+    @patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.netapp_client')
+    @patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.__init__')
+    @patch('ansible_collections.netapp.azure.plugins.modules.azure_rm_netapp_volume.AzureRMNetAppVolume.get_azure_netapp_volume')
+    @patch('ansible_collections.netapp.azure.plugins.modules.azure_rm_netapp_volume.AzureRMNetAppVolume.create_azure_netapp_volume')
+    def test_ensure_create_called_but_fail_on_get(self, mock_create, mock_get, mock_base, client_f):
+        data = self.set_default_args()
+        data['name'] = 'create'
+        set_module_args(data)
+        mock_get.side_effect = [
+            None,                                                       # first get
+            Mock(mount_targets=None,                                    # get after create
+                 creation_token='abcd')
+        ]
+        mock_base.return_value = Mock()
+        client_f.return_value = Mock()
+        my_obj = volume_module()
+        my_obj.netapp_client.volumes = self.netapp_client.volumes
+        with pytest.raises(AnsibleFailJson) as exc:
+            my_obj.exec_module()
+        error = 'Error: volume create was created successfully, but mount target(s) cannot be found - volume details:'
+        assert exc.value.args[0]['msg'].startswith(error)
+        mock_create.assert_called_with()
+
+    @patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.netapp_client')
+    @patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.__init__')
+    @patch('ansible_collections.netapp.azure.plugins.modules.azure_rm_netapp_volume.AzureRMNetAppVolume.get_azure_netapp_volume')
+    @patch('ansible_collections.netapp.azure.plugins.modules.azure_rm_netapp_volume.AzureRMNetAppVolume.create_azure_netapp_volume')
+    def test_ensure_create_called_but_fail_on_mount_target(self, mock_create, mock_get, mock_base, client_f):
+        data = self.set_default_args()
+        data['name'] = 'create'
+        set_module_args(data)
+        mock_get.return_value = None
+        mock_base.return_value = Mock()
+        client_f.return_value = Mock()
+        my_obj = volume_module()
+        my_obj.netapp_client.volumes = self.netapp_client.volumes
+        with pytest.raises(AnsibleFailJson) as exc:
+            my_obj.exec_module()
+        error = 'Error: volume create was created successfully, but cannot be found.'
+        assert exc.value.args[0]['msg'] == error
         mock_create.assert_called_with()
 
     @patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.netapp_client')
