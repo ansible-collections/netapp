@@ -86,6 +86,12 @@ options:
             - default is 100GiB.
         version_added: "20.5.0"
         type: int
+    protocol_types:
+        description:
+            - Protocol types - NFSv3, NFSv4.1, CIFS (for SMB).
+        type: list
+        elements: str
+        version_added: 21.2.0
     state:
         description:
             - State C(present) will check that the volume exists with the requested configuration.
@@ -143,7 +149,7 @@ from ansible_collections.netapp.azure.plugins.module_utils.netapp_module import 
 AZURE_OBJECT_CLASS = 'NetAppAccount'
 HAS_AZURE_MGMT_NETAPP = False
 try:
-    from azure.mgmt.netapp.models import Volume
+    from azure.mgmt.netapp.models import Volume, ExportPolicyRule, VolumePropertiesExportPolicy
     HAS_AZURE_MGMT_NETAPP = True
 except ImportError:
     HAS_AZURE_MGMT_NETAPP = False
@@ -168,7 +174,8 @@ class AzureRMNetAppVolume(AzureRMNetAppModuleBase):
             virtual_network=dict(type='str', required=False),
             size=dict(type='int', required=False),
             vnet_resource_group_for_subnet=dict(type='str', required=False),
-            service_level=dict(type='str', required=False, choices=['Premium', 'Standard', 'Ultra'])
+            service_level=dict(type='str', required=False, choices=['Premium', 'Standard', 'Ultra']),
+            protocol_types=dict(type='list', elements='str')
         )
         self.module = AnsibleModule(
             argument_spec=self.module_arg_spec,
@@ -196,22 +203,56 @@ class AzureRMNetAppVolume(AzureRMNetAppModuleBase):
             return None
         return volume_get
 
+    def get_export_policy_rules(self):
+        # ExportPolicyRule(rule_index: int=None, unix_read_only: bool=None, unix_read_write: bool=None,
+        # kerberos5_read_only: bool=False, kerberos5_read_write: bool=False, kerberos5i_read_only: bool=False,
+        # kerberos5i_read_write: bool=False, kerberos5p_read_only: bool=False, kerberos5p_read_write: bool=False,
+        # cifs: bool=None, nfsv3: bool=None, nfsv41: bool=None, allowed_clients: str=None, has_root_access: bool=True
+        ptypes = self.parameters.get('protocol_types')
+        if ptypes is None:
+            return None
+        ptypes = [x.lower() for x in ptypes]
+        if 'nfsv4.1' in ptypes:
+            ptypes.append('nfsv41')
+        else:
+            return None
+        # only create a policy when NFSv4 is used (for now)
+        options = dict(
+            rule_index=1,
+            allowed_clients='0.0.0.0/0',
+            unix_read_write=True)
+        for protocol in ('cifs', 'nfsv3', 'nfsv41'):
+            options[protocol] = protocol in ptypes
+        if options:
+            return VolumePropertiesExportPolicy(rules=[ExportPolicyRule(**options)])
+        return None
+
     def create_azure_netapp_volume(self):
         """
             Create a volume for the given Azure NetApp Account
             :return: None
         """
+        options = dict()
+        for attr in ('protocol_types', 'service_level', 'size'):
+            value = self.parameters.get(attr)
+            if value is not None:
+                if attr == 'size':
+                    attr = 'usage_threshold'
+                options[attr] = value
+        rules = self.get_export_policy_rules()
+        if rules is not None:
+            options['export_policy'] = rules
+        subnet_id = '/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Network/virtualNetworks/%s/subnets/%s'\
+                    % (self.netapp_client.config.subscription_id,
+                       self.parameters['resource_group'] if self.parameters.get('vnet_resource_group_for_subnet') is None
+                       else self.parameters['vnet_resource_group_for_subnet'],
+                       self.parameters['virtual_network'],
+                       self.parameters['subnet_name'])
         volume_body = Volume(
             location=self.parameters['location'],
             creation_token=self.parameters['file_path'],
-            service_level=self.parameters['service_level'] if self.parameters.get('service_level') is not None else 'Premium',
-            usage_threshold=(self.parameters['size'] if self.parameters.get('size') is not None else 100) * ONE_GIB,
-            subnet_id='/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Network/virtualNetworks/%s/subnets/%s'
-            % (self.netapp_client.config.subscription_id,
-               self.parameters['resource_group'] if self.parameters.get('vnet_resource_group_for_subnet') is None
-               else self.parameters['vnet_resource_group_for_subnet'],
-               self.parameters['virtual_network'],
-               self.parameters['subnet_name'])
+            subnet_id=subnet_id,
+            **options
         )
         try:
             result = self.netapp_client.volumes.create_or_update(body=volume_body, resource_group_name=self.parameters['resource_group'],
@@ -222,7 +263,7 @@ class AzureRMNetAppVolume(AzureRMNetAppModuleBase):
                 result.result(10)
         except CloudError as error:
             self.module.fail_json(msg='Error creating volume %s for Azure NetApp account %s and subnet ID %s: %s'
-                                  % (self.parameters['name'], self.parameters['account_name'], self.parameters['subnet_name'], to_native(error)),
+                                  % (self.parameters['name'], self.parameters['account_name'], subnet_id, to_native(error)),
                                   exception=traceback.format_exc())
 
     def delete_azure_netapp_volume(self):

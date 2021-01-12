@@ -30,6 +30,12 @@ Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 
 # Release Notes
 
+## 21.2.0
+
+### New Options
+  - azure_rm_netapp_account: new option `active_directories` to support SMB volumes.
+  - azure_rm_netapp_volume: new option `protocol_types` to support SMB volumes.
+
 ## 21.1.0
 
 ### New Options

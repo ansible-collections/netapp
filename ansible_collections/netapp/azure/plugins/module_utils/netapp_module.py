@@ -32,7 +32,7 @@ from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
 
-def cmp(a, b):
+def cmp(obj1, obj2):
     """
     Python 3 does not have a cmp function, this will do the cmp.
     :param a: first object to check
@@ -40,18 +40,20 @@ def cmp(a, b):
     :return:
     """
     # convert to lower case for string comparison.
-    if a is None:
+    if obj1 is None:
         return -1
-    if type(a) is str and type(b) is str:
-        a = a.lower()
-        b = b.lower()
+    if isinstance(obj1, str) and isinstance(obj2, str):
+        obj1 = obj1.lower()
+        obj2 = obj2.lower()
     # if list has string element, convert string to lower case.
-    if type(a) is list and type(b) is list:
-        a = [x.lower() if type(x) is str else x for x in a]
-        b = [x.lower() if type(x) is str else x for x in b]
-        a.sort()
-        b.sort()
-    return (a > b) - (a < b)
+    if isinstance(obj1, list) and isinstance(obj2, list):
+        obj1 = [x.lower() if isinstance(x, str) else x for x in obj1]
+        obj2 = [x.lower() if isinstance(x, str) else x for x in obj2]
+        obj1.sort()
+        obj2.sort()
+    if isinstance(obj1, dict) and isinstance(obj2, dict):
+        return 0 if obj1 == obj2 else 1
+    return (obj1 > obj2) - (obj1 < obj2)
 
 
 class NetAppModule(object):
@@ -125,7 +127,6 @@ class NetAppModule(object):
             with the exception of:
             new_name, state in desired
         '''
-        pass
 
     @staticmethod
     def compare_lists(current, desired, get_list_diff):
@@ -175,7 +176,7 @@ class NetAppModule(object):
         # collect changed attributes
         for key, value in current.items():
             if key in desired and desired[key] is not None:
-                if type(value) is list:
+                if isinstance(value, list):
                     modified_list = self.compare_lists(value, desired[key], get_list_diff)  # get modified list from current and desired
                     if modified_list:
                         modified[key] = modified_list
@@ -211,3 +212,36 @@ class NetAppModule(object):
         # rename is in order
         self.changed = True
         return True
+
+    def filter_out_none_entries(self, list_or_dict):
+        """take a dict or list as input and return a dict/list without keys/elements whose values are None
+           skip empty dicts or lists.
+        """
+
+        if isinstance(list_or_dict, dict):
+            result = dict()
+            for key, value in list_or_dict.items():
+                if isinstance(value, (list, dict)):
+                    sub = self.filter_out_none_entries(value)
+                    if sub:
+                        # skip empty dict or list
+                        result[key] = sub
+                elif value is not None:
+                    # skip None value
+                    result[key] = value
+            return result
+
+        if isinstance(list_or_dict, list):
+            alist = list()
+            for item in list_or_dict:
+                if isinstance(item, (list, dict)):
+                    sub = self.filter_out_none_entries(item)
+                    if sub:
+                        # skip empty dict or list
+                        alist.append(sub)
+                elif item is not None:
+                    # skip None value
+                    alist.append(item)
+            return alist
+
+        raise TypeError('unexpected type %s' % type(list_or_dict))

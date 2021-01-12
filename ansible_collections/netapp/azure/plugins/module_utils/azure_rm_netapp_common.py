@@ -13,7 +13,7 @@ from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common
 
 
 HAS_AZURE = True
-COLLECTION_VERSION = "21.1.0"
+COLLECTION_VERSION = "21.2.0"
 
 try:
     from azure.mgmt.netapp import AzureNetAppFilesManagementClient
