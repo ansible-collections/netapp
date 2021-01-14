@@ -137,6 +137,7 @@ mount_path:
 
 try:
     from msrestazure.azure_exceptions import CloudError
+    from msrest.exceptions import ValidationError
 except ImportError:
     # This is handled in azure_rm_common
     pass
@@ -238,6 +239,7 @@ class AzureRMNetAppVolume(AzureRMNetAppModuleBase):
             if value is not None:
                 if attr == 'size':
                     attr = 'usage_threshold'
+                    value *= ONE_GIB
                 options[attr] = value
         rules = self.get_export_policy_rules()
         if rules is not None:
@@ -261,7 +263,7 @@ class AzureRMNetAppVolume(AzureRMNetAppModuleBase):
             # waiting till the status turns Succeeded
             while result.done() is not True:
                 result.result(10)
-        except CloudError as error:
+        except (CloudError, ValidationError) as error:
             self.module.fail_json(msg='Error creating volume %s for Azure NetApp account %s and subnet ID %s: %s'
                                   % (self.parameters['name'], self.parameters['account_name'], subnet_id, to_native(error)),
                                   exception=traceback.format_exc())
