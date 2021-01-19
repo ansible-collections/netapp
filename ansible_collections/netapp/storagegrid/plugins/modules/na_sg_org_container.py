@@ -50,12 +50,10 @@ options:
       auto_delete:
         description:
         - If enabled, objects will be deleted automatically when its retention period expires, unless the bucket is under a legal hold
-        default: false
         type: bool
       legal_hold:
         description:
         - If enabled, objects in this bucket cannot be deleted, even if their retention period has expired.
-        default: false
         type: bool
       retention_period_minutes:
         description:

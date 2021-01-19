@@ -59,12 +59,10 @@ options:
     description:
     - Whether the tenant account should configure its own identity source.
     type: bool
-    default: false
   allow_platform_services:
     description:
     - Allows tenant to use platform services features such as CloudMirror.
     type: bool
-    default: false
   root_access_group:
     description:
     - Existing federated group to have initial Root Access permissions for the tenant.
