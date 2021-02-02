@@ -711,7 +711,7 @@ class NetAppONTAPGatherInfo(object):
                 },
                 'min_version': '0',
             },
-            'iscsi_initiator_list_entry_info':{
+            'iscsi_initiator_list_entry_info': {
                 'method': self.get_generic_get_iter,
                 'kwargs': {
                     'call': 'iscsi-initiator-get-iter',
