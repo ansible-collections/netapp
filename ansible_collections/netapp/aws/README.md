@@ -31,6 +31,13 @@ The modules currently support Active Directory, Pool, FileSystem (Volume), and S
 
 # Release Notes
 
+## 21.2.0
+
+### Bug Fixes
+- aws_netapp_cvs_filesystems - fix KeyError when exportPolicy is not present.
+- all modules - disable logging for `api_key` and `secret_key` values.
+- all modules - report error if response does not contain valid JSON.
+- all modules - prevent infinite loop when asynchornous action fails.
 
 ## 20.9.0
 

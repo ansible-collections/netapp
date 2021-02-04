@@ -124,9 +124,9 @@ EXAMPLES = """
             unixReadOnly: True
             unixReadWrite: False
     quotaInBytes: 100000000000
-    api_url : cds-aws-bundles.netapp.com
-    api_key: Q1ZRR0p0VGNuZ3VhMnJBYk5zczM1RkZ3Z0lCbUE3
-    secret_key : U1FwdHdKSGRQQUhIdkIwMktMU1ZCV2x6WUowZWRD
+    api_url : cds-aws-bundles.netapp.com:8080
+    api_key: My_API_Key
+    secret_key : My_Secret_Key
 
 - name: Update FileSystem
   aws_netapp_cvs_filesystems:
@@ -143,9 +143,9 @@ EXAMPLES = """
              unixReadOnly: True
              unixReadWrite: False
      quotaInBytes: 200000000000
-     api_url : cds-aws-bundles.netapp.com
-     api_key: Q1ZRR0p0VGNuZ3VhMnJBYk5zczM1RkZ3Z0lCbUE3
-     secret_key : U1FwdHdKSGRQQUhIdkIwMktMU1ZCV2x6WUowZWRD
+     api_url : cds-aws-bundles.netapp.com:8080
+     api_key: My_API_Key
+     secret_key : My_Secret_Key
 
 - name: Delete FileSystem
   aws_netapp_cvs_filesystems:
@@ -153,9 +153,9 @@ EXAMPLES = """
      region: us-east-1
      creationToken: newVolume-1
      quotaInBytes: 100000000000
-     api_url : cds-aws-bundles.netapp.com
-     api_key: Q1ZRR0p0VGNuZ3VhMnJBYk5zczM1RkZ3Z0lCbUE3
-     secret_key : U1FwdHdKSGRQQUhIdkIwMktMU1ZCV2x6WUowZWRD
+     api_url : cds-aws-bundles.netapp.com:8080
+     api_key: My_API_Key
+     secret_key : My_Secret_Key
 """
 
 RETURN = """
@@ -318,7 +318,7 @@ class AwsCvsNetappFileSystem(object):
             elif filesystem['serviceLevel'] is not None and 'serviceLevel' in self.parameters \
                     and filesystem['serviceLevel'] != self.parameters['serviceLevel']:
                 update_filesystem = True
-            elif filesystem['exportPolicy']['rules'] is not None and 'exportPolicy' in self.parameters:
+            elif 'exportPolicy' in filesystem and filesystem['exportPolicy']['rules'] is not None and 'exportPolicy' in self.parameters:
                 for rule_org in filesystem['exportPolicy']['rules']:
                     for rule in self.parameters['exportPolicy']['rules']:
                         if rule_org['allowedClients'] != rule['allowedClients']:

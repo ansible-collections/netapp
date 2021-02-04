@@ -158,9 +158,11 @@ class AwsCvsNetappActiveDir(object):
         # Check if  ActiveDirectory exists
         # Return UUID for ActiveDirectory is found, None otherwise
         try:
-            list_activedirectory, dummy = self.rest_api.get('Storage/ActiveDirectory')
+            list_activedirectory, error = self.rest_api.get('Storage/ActiveDirectory')
         except Exception:
             return None
+        if error is not None:
+            self.module.fail_json(msg='Error calling list_activedirectory: %s' % error)
 
         for activedirectory in list_activedirectory:
             if activedirectory['region'] == self.parameters['region']:

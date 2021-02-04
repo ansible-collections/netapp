@@ -26,9 +26,15 @@
 # LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 # USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+'''
+netapp.py
+Support methods and class for AWS CVS modules
+'''
+
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
+import time
 from ansible.module_utils.basic import missing_required_lib
 
 try:
@@ -36,7 +42,7 @@ try:
 except ImportError:
     ansible_version = 'unknown'
 
-COLLECTION_VERSION = "20.9.0"
+COLLECTION_VERSION = "21.2.0"
 
 try:
     import requests
@@ -65,12 +71,13 @@ def aws_cvs_host_argument_spec():
     return dict(
         api_url=dict(required=True, type='str'),
         validate_certs=dict(required=False, type='bool', default=True),
-        api_key=dict(required=True, type='str'),
-        secret_key=dict(required=True, type='str')
+        api_key=dict(required=True, type='str', no_log=True),
+        secret_key=dict(required=True, type='str', no_log=True)
     )
 
 
 class AwsCvsRestAPI(object):
+    ''' wraps requests methods to interface with AWS CVS REST APIs '''
     def __init__(self, module, timeout=60):
         self.module = module
         self.api_key = self.module.params['api_key']
@@ -102,17 +109,18 @@ class AwsCvsRestAPI(object):
 
         def get_json(response):
             ''' extract json, and error message if present '''
+            error = None
             try:
                 json = response.json()
-
             except ValueError:
-                return None, None
+                error = 'malformed json response: %s' % str(response.content)
+                json = None
             success_code = [200, 201, 202]
             if response.status_code not in success_code:
-                error = json.get('message')
-            else:
-                error = None
+                if error is None:
+                    error = json.get('message')
             return json, error
+
         try:
             response = requests.request(method, url, headers=headers, timeout=self.timeout, json=json)
             # If the response was successful, no Exception will be raised
@@ -124,7 +132,7 @@ class AwsCvsRestAPI(object):
         except requests.exceptions.ConnectionError as err:
             error_details = str(err)
         except Exception as err:
-            error_details = str(err)
+            error_details = 'general exception: %s' % str(err)
         if json_error is not None:
             error_details = json_error
 
@@ -154,6 +162,7 @@ class AwsCvsRestAPI(object):
     def get_state(self, job_id):
         """ Method to get the state of the job """
         response, dummy = self.get('Jobs/%s' % job_id)
-        while str(response['state']) not in 'done':
+        while str(response['state']) == 'ongoing':
+            time.sleep(15)
             response, dummy = self.get('Jobs/%s' % job_id)
-        return 'done'
+        return str(response['state'])
