@@ -113,4 +113,3 @@ class NetAppModule(object):
                     updated_values[key] = current[key]
 
         return updated_values, is_changed
-

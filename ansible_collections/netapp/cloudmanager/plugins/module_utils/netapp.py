@@ -26,6 +26,10 @@
 # LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 # USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+"""
+netapp.py: wrapper around send_requests and other utilities
+"""
+
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
@@ -73,6 +77,7 @@ def cloudmanager_host_argument_spec():
 
 
 class CloudManagerRestAPI(object):
+    """ wrapper around send_request """
     def __init__(self, module, timeout=60):
         self.module = module
         self.timeout = timeout
@@ -160,4 +165,3 @@ class CloudManagerRestAPI(object):
         token_type = token_dict['token_type']
 
         return token_type, token
-
