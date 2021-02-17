@@ -31,14 +31,16 @@
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
+from ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp import CloudManagerRestAPI
+
 
 def cmp(a, b):
-    """
+    '''
     Python 3 does not have a cmp function, this will do the cmp.
     :param a: first object to check
     :param b: second object to check
     :return:
-    """
+    '''
     # convert to lower case for string comparison.
     if a is None:
         return -1
@@ -113,3 +115,109 @@ class NetAppModule(object):
                     updated_values[key] = current[key]
 
         return updated_values, is_changed
+
+    def look_up_working_environment_by_name_in_list(self, we_list):
+        '''
+        Look up working environment by the name in working environment list
+        '''
+        for we in we_list:
+            if we['name'] == self.parameters['working_environment_name']:
+                return we, None
+        return None, "Not found"
+
+    def get_working_environment_details_by_name(self, rest_api):
+        '''
+        Use working environment name to get working environment details including:
+        name: working environment name,
+        publicID: working environment ID
+        cloudProviderName,
+        isHA,
+        svmName
+        '''
+        if rest_api.token is None:
+            rest_api.token_type, rest_api.token = rest_api.get_token()
+
+        # check the working environment exist or not
+        api = "/occm/api/working-environments/exists/" + self.parameters['working_environment_name']
+        headers = {
+            'X-Agent-Id': self.parameters['client_id'] + "clients"
+        }
+        response, error = rest_api.get(api, None, header=headers)
+        if error is not None:
+            return None, error
+
+        # get working environment lists
+        api = "/occm/api/working-environments"
+        response, error = rest_api.get(api, None, header=headers)
+        if error is not None:
+            return None, error
+        # look up the working environment in the working environment lists
+        working_environment_details, error = self.look_up_working_environment_by_name_in_list(response['onPremWorkingEnvironments'])
+        if error is None:
+            return working_environment_details, None
+        working_environment_details, error = self.look_up_working_environment_by_name_in_list(response['gcpVsaWorkingEnvironments'])
+        if error is None:
+            return working_environment_details, None
+        working_environment_details, error = self.look_up_working_environment_by_name_in_list(response['azureVsaWorkingEnvironments'])
+        if error is None:
+            return working_environment_details, None
+        working_environment_details, error = self.look_up_working_environment_by_name_in_list(response['vsaWorkingEnvironments'])
+        if error is None:
+            return working_environment_details, None
+        return None, "Not found"
+
+    def get_working_environment_details(self, rest_api):
+        '''
+        Use working environment id to get working environment details including:
+        name: working environment name,
+        publicID: working environment ID
+        cloudProviderName,
+        isHA,
+        svmName
+        '''
+        if rest_api.token is None:
+            rest_api.token_type, rest_api.token = rest_api.get_token()
+
+        api = "/occm/api/working-environments/"
+        api += self.parameters['working_environment_id']
+        headers = {
+            'X-Agent-Id': self.parameters['client_id'] + "clients"
+        }
+        response, error = rest_api.get(api, None, header=headers)
+        if error:
+            return None, error
+        return response, None
+
+    def set_api_root_path(self, working_environment_details, rest_api):
+        provider = working_environment_details['cloudProviderName']
+        is_ha = working_environment_details['isHA']
+        api_root_path = None
+        if provider != "Amazon":
+            if is_ha:
+                api_root_path = "/occm/api/" + provider.lower() + "/ha"
+            else:
+                api_root_path = "/occm/api/" + provider.lower() + "/vsa"
+        else:
+            if is_ha:
+                api_root_path = "/occm/api/aws/ha"
+            else:
+                api_root_path = "/occm/api/vsa"
+        rest_api.api_root_path = api_root_path
+
+    def have_required_parameters(self, action):
+        '''
+        Check if all the required parameters in self.params are available or not besides the mandatory parameters
+        '''
+        actions = {'create_aggregate': ['number_of_disks', 'disk_size_size', 'disk_size_unit', 'working_environment_id'],
+                   'update_aggregate': ['number_of_disks', 'disk_size_size', 'disk_size_unit', 'working_environment_id'],
+                   'delete_aggregate': ['working_environment_id'],
+                   }
+        missed_params = []
+        for parameter in actions[action]:
+            if parameter not in self.parameters:
+                missed_params.append(parameter)
+
+        if not missed_params:
+            return True, None
+        else:
+            return False, missed_params

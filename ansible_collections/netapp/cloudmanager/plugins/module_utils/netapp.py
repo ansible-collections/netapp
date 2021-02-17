@@ -70,9 +70,7 @@ def cloudmanager_host_argument_spec():
 
     return dict(
         api_url=dict(required=True, type='str'),
-        token=dict(required=True, type='str'),
-        token_type=dict(required=True, type='str'),
-        refresh_token=dict(required=True, type='str')
+        refresh_token=dict(required=True, type='str', no_log=True)
     )
 
 
@@ -82,17 +80,17 @@ class CloudManagerRestAPI(object):
         self.module = module
         self.timeout = timeout
         self.api_url = self.module.params['api_url']
-        self.token = self.module.params['token']
-        self.token_type = self.module.params['token_type']
         self.refresh_token = self.module.params['refresh_token']
+        self.client_id = self.module.params['client_id']
         self.url = 'https://' + self.api_url
+        self.api_root_path = None
         self.check_required_library()
 
     def check_required_library(self):
         if not HAS_REQUESTS:
             self.module.fail_json(msg=missing_required_lib('requests'))
 
-    def send_request(self, method, api, params, json=None):
+    def send_request(self, method, api, params, json=None, header=None):
         ''' send http request and process response, including error conditions '''
         if params is not None:
             self.module.fail_json(msg='params is not implemented.  api=%s, params=%s' % (api, repr(params)))
@@ -102,14 +100,18 @@ class CloudManagerRestAPI(object):
         error_details = None
         headers = {
             'Content-type': "application/json",
-            "Authorization": self.token_type + " " + self.token,
+            'Referer': "Ansible_NetApp",
+            'Authorization': self.token_type + " " + self.token,
+            # 'X-Agent-Id': self.client_id + "clients"
         }
+        if header is not None:
+            headers.update(header)
 
         def get_json(response):
             ''' extract json, and error message if present '''
+            error = None
             try:
                 json = response.json()
-
             except ValueError:
                 return None, None
             success_code = [200, 201, 202]
@@ -118,6 +120,7 @@ class CloudManagerRestAPI(object):
             else:
                 error = None
             return json, error
+
         try:
             response = requests.request(method, url, headers=headers, timeout=self.timeout, json=json)
             # If the response was successful, no Exception will be raised
@@ -126,35 +129,35 @@ class CloudManagerRestAPI(object):
             __, json_error = get_json(response)
             if json_error is None:
                 error_details = str(err)
+            # If an error was reported in the json payload, it is handled below
         except requests.exceptions.ConnectionError as err:
             error_details = str(err)
         except Exception as err:
             error_details = str(err)
         if json_error is not None:
             error_details = json_error
-
         return json_dict, error_details
 
     # If an error was reported in the json payload, it is handled below
-    def get(self, api, params=None):
+    def get(self, api, params=None, header=None):
         method = 'GET'
-        return self.send_request(method, api, params)
+        return self.send_request(method, api, params, header=header)
 
-    def post(self, api, data, params=None):
+    def post(self, api, data, params=None, header=None):
         method = 'POST'
-        return self.send_request(method, api, params, json=data)
+        return self.send_request(method, api, params, json=data, header=header)
 
-    def patch(self, api, data, params=None):
+    def patch(self, api, data, params=None, header=None):
         method = 'PATCH'
-        return self.send_request(method, api, params, json=data)
+        return self.send_request(method, api, params, json=data, header=header)
 
-    def put(self, api, data, params=None):
+    def put(self, api, data, params=None, header=None):
         method = 'PUT'
-        return self.send_request(method, api, params, json=data)
+        return self.send_request(method, api, params, json=data, header=header)
 
-    def delete(self, api, data, params=None):
+    def delete(self, api, data, params=None, header=None):
         method = 'DELETE'
-        return self.send_request(method, api, params, json=data)
+        return self.send_request(method, api, params, json=data, header=header)
 
     def get_token(self):
         token_res = requests.post('https://' + AUTH0_DOMAIN + '/oauth/token',

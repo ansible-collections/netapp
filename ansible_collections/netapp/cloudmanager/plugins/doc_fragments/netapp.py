@@ -17,6 +17,11 @@ options:
     type: str
     description:
     - The url to the cloudmanager.
+  refresh_token:
+    required: true
+    type: str
+    description:
+    - The refresh token for NetApp Cloud Manager API operations.
 notes:
   - The modules prefixed with cloudmanager\\_netapp are built to Manage AWS/GCP/Azure CLOUDMANAGER.
 """
