@@ -4,12 +4,12 @@
 # GNU General Public License v3.0+
 # (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
-from __future__ import absolute_import, division, print_function
-__metaclass__ = type
-
 '''
 azure_rm_netapp_account
 '''
+
+from __future__ import absolute_import, division, print_function
+__metaclass__ = type
 
 ANSIBLE_METADATA = {'metadata_version': '1.1',
                     'status': ['preview'],
@@ -153,22 +153,24 @@ RETURN = '''
 
 import traceback
 
+HAS_AZURE_MGMT_NETAPP = False
+IMPORT_ERRORS = list()
+
 try:
     from msrestazure.azure_exceptions import CloudError
-except ImportError:
-    # This is handled in azure_rm_common
-    pass
+    from azure.core.exceptions import AzureError, ResourceNotFoundError
+except ImportError as exc:
+    IMPORT_ERRORS.append(str(exc))
+
+try:
+    from azure.mgmt.netapp.models import NetAppAccount, NetAppAccountPatch, ActiveDirectory
+    HAS_AZURE_MGMT_NETAPP = True
+except ImportError as exc:
+    IMPORT_ERRORS.append(str(exc))
 
 from ansible.module_utils.basic import to_native, AnsibleModule
 from ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common import AzureRMNetAppModuleBase
 from ansible_collections.netapp.azure.plugins.module_utils.netapp_module import NetAppModule
-
-HAS_AZURE_MGMT_NETAPP = False
-try:
-    from azure.mgmt.netapp.models import NetAppAccount, NetAppAccountPatch, ActiveDirectory
-    HAS_AZURE_MGMT_NETAPP = True
-except ImportError:
-    HAS_AZURE_MGMT_NETAPP = False
 
 
 class AzureRMNetAppAccount(AzureRMNetAppModuleBase):
@@ -208,8 +210,7 @@ class AzureRMNetAppAccount(AzureRMNetAppModuleBase):
         self.debug = list()
         self.warnings = list()
 
-        if HAS_AZURE_MGMT_NETAPP is False:
-            self.module.fail_json(msg="the python Azure-mgmt-NetApp module is required")
+        self.fail_when_import_errors(IMPORT_ERRORS, HAS_AZURE_MGMT_NETAPP)
         super(AzureRMNetAppAccount, self).__init__(derived_arg_spec=self.module_arg_spec,
                                                    supports_check_mode=True)
 
@@ -220,7 +221,7 @@ class AzureRMNetAppAccount(AzureRMNetAppModuleBase):
         """
         try:
             account_get = self.netapp_client.accounts.get(self.parameters['resource_group'], self.parameters['name'])
-        except CloudError:  # account does not exist
+        except (CloudError, ResourceNotFoundError):  # account does not exist
             return None
         account = vars(account_get)
         ads = None
@@ -271,10 +272,10 @@ class AzureRMNetAppAccount(AzureRMNetAppModuleBase):
         """
         account_body = self.create_account_request_body()
         try:
-            self.netapp_client.accounts.create_or_update(body=account_body,
-                                                         resource_group_name=self.parameters['resource_group'],
-                                                         account_name=self.parameters['name'])
-        except CloudError as error:
+            self.get_method('accounts', 'create_or_update')(body=account_body,
+                                                            resource_group_name=self.parameters['resource_group'],
+                                                            account_name=self.parameters['name'])
+        except (CloudError, AzureError) as error:
             self.module.fail_json(msg='Error creating Azure NetApp account %s: %s'
                                   % (self.parameters['name'], to_native(error)),
                                   exception=traceback.format_exc())
@@ -286,10 +287,10 @@ class AzureRMNetAppAccount(AzureRMNetAppModuleBase):
         """
         account_body = self.create_account_request_body(modify)
         try:
-            self.netapp_client.accounts.update(body=account_body,
-                                               resource_group_name=self.parameters['resource_group'],
-                                               account_name=self.parameters['name'])
-        except CloudError as error:
+            self.get_method('accounts', 'update')(body=account_body,
+                                                  resource_group_name=self.parameters['resource_group'],
+                                                  account_name=self.parameters['name'])
+        except (CloudError, AzureError) as error:
             self.module.fail_json(msg='Error creating Azure NetApp account %s: %s'
                                   % (self.parameters['name'], to_native(error)),
                                   exception=traceback.format_exc())
@@ -300,9 +301,9 @@ class AzureRMNetAppAccount(AzureRMNetAppModuleBase):
             :return: None
         """
         try:
-            self.netapp_client.accounts.delete(resource_group_name=self.parameters['resource_group'],
-                                               account_name=self.parameters['name'])
-        except CloudError as error:
+            self.get_method('accounts', 'delete')(resource_group_name=self.parameters['resource_group'],
+                                                  account_name=self.parameters['name'])
+        except (CloudError, AzureError) as error:
             self.module.fail_json(msg='Error deleting Azure NetApp account %s: %s'
                                   % (self.parameters['name'], to_native(error)),
                                   exception=traceback.format_exc())

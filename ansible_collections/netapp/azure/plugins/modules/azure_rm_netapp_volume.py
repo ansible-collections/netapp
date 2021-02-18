@@ -135,27 +135,29 @@ mount_path:
 
 '''
 
-try:
-    from msrestazure.azure_exceptions import CloudError
-    from msrest.exceptions import ValidationError
-except ImportError:
-    # This is handled in azure_rm_common
-    pass
-
 import traceback
-from ansible.module_utils.basic import to_native, AnsibleModule
-from ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common import AzureRMNetAppModuleBase
-from ansible_collections.netapp.azure.plugins.module_utils.netapp_module import NetAppModule
 
 AZURE_OBJECT_CLASS = 'NetAppAccount'
 HAS_AZURE_MGMT_NETAPP = False
+IMPORT_ERRORS = list()
+ONE_GIB = 1073741824
+
+try:
+    from msrestazure.azure_exceptions import CloudError
+    from msrest.exceptions import ValidationError
+    from azure.core.exceptions import AzureError, ResourceNotFoundError
+except ImportError as exc:
+    IMPORT_ERRORS.append(str(exc))
+
 try:
     from azure.mgmt.netapp.models import Volume, ExportPolicyRule, VolumePropertiesExportPolicy
     HAS_AZURE_MGMT_NETAPP = True
-except ImportError:
-    HAS_AZURE_MGMT_NETAPP = False
+except ImportError as exc:
+    IMPORT_ERRORS.append(str(exc))
 
-ONE_GIB = 1073741824
+from ansible.module_utils.basic import to_native, AnsibleModule
+from ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common import AzureRMNetAppModuleBase
+from ansible_collections.netapp.azure.plugins.module_utils.netapp_module import NetAppModule
 
 
 class AzureRMNetAppVolume(AzureRMNetAppModuleBase):
@@ -188,8 +190,7 @@ class AzureRMNetAppVolume(AzureRMNetAppModuleBase):
         self.na_helper = NetAppModule()
         self.parameters = self.na_helper.set_parameters(self.module.params)
 
-        if HAS_AZURE_MGMT_NETAPP is False:
-            self.module.fail_json(msg="the python Azure-mgmt-NetApp module is required")
+        self.fail_when_import_errors(IMPORT_ERRORS, HAS_AZURE_MGMT_NETAPP)
         super(AzureRMNetAppVolume, self).__init__(derived_arg_spec=self.module_arg_spec, supports_check_mode=True)
 
     def get_azure_netapp_volume(self):
@@ -200,7 +201,7 @@ class AzureRMNetAppVolume(AzureRMNetAppModuleBase):
         try:
             volume_get = self.netapp_client.volumes.get(self.parameters['resource_group'], self.parameters['account_name'],
                                                         self.parameters['pool_name'], self.parameters['name'])
-        except CloudError:  # volume does not exist
+        except (CloudError, ResourceNotFoundError):  # volume does not exist
             return None
         return volume_get
 
@@ -245,7 +246,7 @@ class AzureRMNetAppVolume(AzureRMNetAppModuleBase):
         if rules is not None:
             options['export_policy'] = rules
         subnet_id = '/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Network/virtualNetworks/%s/subnets/%s'\
-                    % (self.netapp_client.config.subscription_id,
+                    % (self.azure_auth.subscription_id,
                        self.parameters['resource_group'] if self.parameters.get('vnet_resource_group_for_subnet') is None
                        else self.parameters['vnet_resource_group_for_subnet'],
                        self.parameters['virtual_network'],
@@ -257,13 +258,13 @@ class AzureRMNetAppVolume(AzureRMNetAppModuleBase):
             **options
         )
         try:
-            result = self.netapp_client.volumes.create_or_update(body=volume_body, resource_group_name=self.parameters['resource_group'],
-                                                                 account_name=self.parameters['account_name'],
-                                                                 pool_name=self.parameters['pool_name'], volume_name=self.parameters['name'])
+            result = self.get_method('volumes', 'create_or_update')(body=volume_body, resource_group_name=self.parameters['resource_group'],
+                                                                    account_name=self.parameters['account_name'],
+                                                                    pool_name=self.parameters['pool_name'], volume_name=self.parameters['name'])
             # waiting till the status turns Succeeded
             while result.done() is not True:
                 result.result(10)
-        except (CloudError, ValidationError) as error:
+        except (CloudError, ValidationError, AzureError) as error:
             self.module.fail_json(msg='Error creating volume %s for Azure NetApp account %s and subnet ID %s: %s'
                                   % (self.parameters['name'], self.parameters['account_name'], subnet_id, to_native(error)),
                                   exception=traceback.format_exc())
@@ -274,13 +275,13 @@ class AzureRMNetAppVolume(AzureRMNetAppModuleBase):
             :return: None
         """
         try:
-            result = self.netapp_client.volumes.delete(resource_group_name=self.parameters['resource_group'],
-                                                       account_name=self.parameters['account_name'],
-                                                       pool_name=self.parameters['pool_name'], volume_name=self.parameters['name'])
+            result = self.get_method('volumes', 'delete')(resource_group_name=self.parameters['resource_group'],
+                                                          account_name=self.parameters['account_name'],
+                                                          pool_name=self.parameters['pool_name'], volume_name=self.parameters['name'])
             # waiting till the status turns Succeeded
             while result.done() is not True:
                 result.result(10)
-        except CloudError as error:
+        except (CloudError, AzureError) as error:
             self.module.fail_json(msg='Error deleting volume %s for Azure NetApp account %s: %s'
                                   % (self.parameters['name'], self.parameters['account_name'], to_native(error)),
                                   exception=traceback.format_exc())

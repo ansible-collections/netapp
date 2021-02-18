@@ -4,6 +4,10 @@
 # GNU General Public License v3.0+
 # (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
+"""
+azure_rm_netapp_capacity_pool
+"""
+
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
@@ -98,30 +102,32 @@ EXAMPLES = '''
 RETURN = '''
 '''
 
-try:
-    from msrestazure.azure_exceptions import CloudError
-except ImportError:
-    # This is handled in azure_rm_common
-    pass
-
-from ansible.module_utils.basic import to_native, AnsibleModule
-from ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common import AzureRMNetAppModuleBase
-from ansible_collections.netapp.azure.plugins.module_utils.netapp_module import NetAppModule
 import traceback
 
 AZURE_OBJECT_CLASS = 'NetAppAccount'
 HAS_AZURE_MGMT_NETAPP = False
+IMPORT_ERRORS = list()
+SIZE_POOL = 4398046511104
+
+try:
+    from msrestazure.azure_exceptions import CloudError
+    from azure.core.exceptions import AzureError, ResourceNotFoundError
+except ImportError as exc:
+    IMPORT_ERRORS.append(str(exc))
+
 try:
     from azure.mgmt.netapp.models import CapacityPool
     HAS_AZURE_MGMT_NETAPP = True
-except ImportError:
+except ImportError as exc:
     HAS_AZURE_MGMT_NETAPP = False
 
-SIZE_POOL = 4398046511104
+from ansible.module_utils.basic import to_native, AnsibleModule
+from ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common import AzureRMNetAppModuleBase
+from ansible_collections.netapp.azure.plugins.module_utils.netapp_module import NetAppModule
 
 
 class AzureRMNetAppCapacityPool(AzureRMNetAppModuleBase):
-
+    """ create, modify, delete a capacity pool """
     def __init__(self):
 
         self.module_arg_spec = dict(
@@ -143,8 +149,7 @@ class AzureRMNetAppCapacityPool(AzureRMNetAppModuleBase):
         self.na_helper = NetAppModule()
         self.parameters = self.na_helper.set_parameters(self.module.params)
 
-        if HAS_AZURE_MGMT_NETAPP is False:
-            self.module.fail_json(msg="the python Azure-mgmt-NetApp module is required")
+        self.fail_when_import_errors(IMPORT_ERRORS, HAS_AZURE_MGMT_NETAPP)
         super(AzureRMNetAppCapacityPool, self).__init__(derived_arg_spec=self.module_arg_spec,
                                                         supports_check_mode=True)
 
@@ -156,7 +161,7 @@ class AzureRMNetAppCapacityPool(AzureRMNetAppModuleBase):
         try:
             capacity_pool_get = self.netapp_client.pools.get(self.parameters['resource_group'],
                                                              self.parameters['account_name'], self.parameters['name'])
-        except CloudError:  # capacity pool does not exist
+        except (CloudError, ResourceNotFoundError):  # capacity pool does not exist
             return None
         return capacity_pool_get
 
@@ -171,12 +176,12 @@ class AzureRMNetAppCapacityPool(AzureRMNetAppModuleBase):
             service_level=self.parameters['service_level']
         )
         try:
-            self.netapp_client.pools.create_or_update(body=capacity_pool_body, resource_group_name=self.parameters['resource_group'],
-                                                      account_name=self.parameters['account_name'],
-                                                      pool_name=self.parameters['name'])
-        except CloudError as error:
+            self.get_method('pools', 'create_or_update')(body=capacity_pool_body, resource_group_name=self.parameters['resource_group'],
+                                                         account_name=self.parameters['account_name'],
+                                                         pool_name=self.parameters['name'])
+        except (CloudError, AzureError) as error:
             self.module.fail_json(msg='Error creating capacity pool %s for Azure NetApp account %s: %s'
-                                      % (self.parameters['name'], self.parameters['account_name'], to_native(error)),
+                                  % (self.parameters['name'], self.parameters['account_name'], to_native(error)),
                                   exception=traceback.format_exc())
 
     def modify_azure_netapp_capacity_pool(self, modify):
@@ -190,12 +195,12 @@ class AzureRMNetAppCapacityPool(AzureRMNetAppModuleBase):
             size=self.parameters['size'] * SIZE_POOL
         )
         try:
-            self.netapp_client.pools.update(body=capacity_pool_body, resource_group_name=self.parameters['resource_group'],
-                                            account_name=self.parameters['account_name'],
-                                            pool_name=self.parameters['name'])
-        except CloudError as error:
+            self.get_method('pools', 'update')(body=capacity_pool_body, resource_group_name=self.parameters['resource_group'],
+                                               account_name=self.parameters['account_name'],
+                                               pool_name=self.parameters['name'])
+        except (CloudError, AzureError) as error:
             self.module.fail_json(msg='Error modifying capacity pool %s for Azure NetApp account %s: %s'
-                                      % (self.parameters['name'], self.parameters['account_name'], to_native(error)),
+                                  % (self.parameters['name'], self.parameters['account_name'], to_native(error)),
                                   exception=traceback.format_exc())
 
     def delete_azure_netapp_capacity_pool(self):
@@ -204,11 +209,11 @@ class AzureRMNetAppCapacityPool(AzureRMNetAppModuleBase):
             :return: None
         """
         try:
-            self.netapp_client.pools.delete(resource_group_name=self.parameters['resource_group'],
-                                            account_name=self.parameters['account_name'], pool_name=self.parameters['name'])
-        except CloudError as error:
+            self.get_method('pools', 'delete')(resource_group_name=self.parameters['resource_group'],
+                                               account_name=self.parameters['account_name'], pool_name=self.parameters['name'])
+        except (CloudError, AzureError) as error:
             self.module.fail_json(msg='Error deleting capacity pool %s for Azure NetApp account %s: %s'
-                                      % (self.parameters['name'], self.parameters['name'], to_native(error)),
+                                  % (self.parameters['name'], self.parameters['name'], to_native(error)),
                                   exception=traceback.format_exc())
 
     def exec_module(self, **kwargs):
@@ -234,7 +239,7 @@ class AzureRMNetAppCapacityPool(AzureRMNetAppModuleBase):
                 elif modify:
                     self.modify_azure_netapp_capacity_pool(modify)
 
-        self.module.exit_json(changed=self.na_helper.changed)
+        self.module.exit_json(changed=self.na_helper.changed, modify=modify)
 
 
 def main():

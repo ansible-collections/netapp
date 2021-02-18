@@ -30,6 +30,11 @@ Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 
 # Release Notes
 
+## 21.3.0
+
+### Bug Fixes
+  - support for azure-mgmt-netapp 1.0.0, while maintaining compatibility with 0.10.0.
+
 ## 21.2.0
 
 ### New Options
