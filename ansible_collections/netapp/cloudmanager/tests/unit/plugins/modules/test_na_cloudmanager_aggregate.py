@@ -125,19 +125,23 @@ class TestMyModule(unittest.TestCase):
             my_module()
         print('Info: %s' % exc.value.args[0]['msg'])
 
-    def test_module_fail_when_required_args_present(self):
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.get_token')
+    def test_module_fail_when_required_args_present(self, get_token):
         ''' required arguments are reported as errors '''
         with pytest.raises(AnsibleExitJson) as exc:
             set_module_args(self.set_default_args_pass_check())
+            get_token.return_value = 'test', 'test'
             my_module()
             exit_json(changed=True, msg="TestCase Fail when required ars are present")
         assert exc.value.args[0]['changed']
 
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.get_token')
     @patch(
         'ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_aggregate.NetAppCloudmanagerAggregate.get_aggregate')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.post')
-    def test_create_cloudmanager_aggregate_pass(self, get_post_api, get_aggregate_api):
+    def test_create_cloudmanager_aggregate_pass(self, get_post_api, get_aggregate_api, get_token):
         set_module_args(self.set_args_create_cloudmanager_aggregate())
+        get_token.return_value = 'test', 'test'
         my_obj = my_module()
         my_obj.rest_api.api_root_path = "my_root_path"
 
@@ -149,11 +153,13 @@ class TestMyModule(unittest.TestCase):
         print('Info: test_create_cloudmanager_aggregate: %s' % repr(exc.value))
         assert exc.value.args[0]['changed']
 
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.get_token')
     @patch(
         'ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_aggregate.NetAppCloudmanagerAggregate.get_aggregate')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.delete')
-    def test_delete_cloudmanager_aggregate_pass(self, get_delete_api, get_aggregate_api):
+    def test_delete_cloudmanager_aggregate_pass(self, get_delete_api, get_aggregate_api, get_token):
         set_module_args(self.set_args_delete_cloudmanager_aggregate())
+        get_token.return_value = 'test', 'test'
         my_obj = my_module()
         my_obj.rest_api.api_root_path = "my_root_path"
 
@@ -178,10 +184,12 @@ class TestMyModule(unittest.TestCase):
         print('Info: test_delete_cloudmanager_aggregate: %s' % repr(exc.value))
         assert exc.value.args[0]['changed']
 
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.get_token')
     @patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_aggregate.NetAppCloudmanagerAggregate.get_aggregate')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.post')
-    def test_update_cloudmanager_aggregate_pass(self, get_post_api, get_aggregate_api):
+    def test_update_cloudmanager_aggregate_pass(self, get_post_api, get_aggregate_api, get_token):
         set_module_args(self.set_args_update_cloudmanager_aggregate())
+        get_token.return_value = 'test', 'test'
         my_obj = my_module()
         my_obj.rest_api.api_root_path = "my_root_path"
 

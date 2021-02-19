@@ -69,7 +69,7 @@ POW2_BYTE_MAP = dict(
 def cloudmanager_host_argument_spec():
 
     return dict(
-        api_url=dict(required=True, type='str'),
+        api_url=dict(required=False, type='str', default=''),
         refresh_token=dict(required=True, type='str', no_log=True)
     )
 
@@ -81,7 +81,7 @@ class CloudManagerRestAPI(object):
         self.timeout = timeout
         self.api_url = self.module.params['api_url']
         self.refresh_token = self.module.params['refresh_token']
-        self.client_id = self.module.params['client_id']
+        self.token_type, self.token = self.get_token()
         self.url = 'https://' + self.api_url
         self.api_root_path = None
         self.check_required_library()
@@ -102,7 +102,6 @@ class CloudManagerRestAPI(object):
             'Content-type': "application/json",
             'Referer': "Ansible_NetApp",
             'Authorization': self.token_type + " " + self.token,
-            # 'X-Agent-Id': self.client_id + "clients"
         }
         if header is not None:
             headers.update(header)
@@ -123,6 +122,9 @@ class CloudManagerRestAPI(object):
 
         try:
             response = requests.request(method, url, headers=headers, timeout=self.timeout, json=json)
+            status_code = response.status_code
+            if status_code >= 300 or status_code < 200:
+                return response.content, str(status_code)
             # If the response was successful, no Exception will be raised
             json_dict, json_error = get_json(response)
         except requests.exceptions.HTTPError as err:

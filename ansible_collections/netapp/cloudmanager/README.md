@@ -18,3 +18,11 @@ collections:
 
 # Need help
 Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
+
+# Release Notes
+
+## 21.3.0
+
+### New Modules
+
+  - na_cloudmanager_connector_aws: Create or delete Cloud Manager connector for AWS.

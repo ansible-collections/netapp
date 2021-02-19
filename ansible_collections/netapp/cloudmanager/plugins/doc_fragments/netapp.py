@@ -13,7 +13,7 @@ class ModuleDocFragment(object):
     CLOUDMANAGER = """
 options:
   api_url:
-    required: true
+    required: false
     type: str
     description:
     - The url to the cloudmanager.
