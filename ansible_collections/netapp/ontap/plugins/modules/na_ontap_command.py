@@ -171,11 +171,6 @@ class NetAppONTAPCommand(object):
         command_obj = netapp_utils.zapi.NaElement("system-cli")
 
         args_obj = netapp_utils.zapi.NaElement("args")
-        if self.return_dict:
-            args_obj.add_new_child('arg', 'set')
-            args_obj.add_new_child('arg', '-showseparator')
-            args_obj.add_new_child('arg', '"###"')
-            args_obj.add_new_child('arg', ';')
         for arg in self.command:
             args_obj.add_new_child('arg', arg)
         command_obj.add_child_elem(args_obj)
