@@ -57,7 +57,7 @@ class AzureRMNetAppModuleBase(AzureRMModuleBase):
             # note that we always have at least one import error
             self.fail_when_import_errors(IMPORT_ERRORS)
         if self._netapp_client is None:
-            if NEW_STYLE:
+            if self._new_style:
                 self._netapp_client = self.get_mgmt_svc_client(NetAppManagementClient)
             else:
                 self._netapp_client = self.get_mgmt_svc_client(AzureNetAppFilesManagementClient,
@@ -75,7 +75,7 @@ class AzureRMNetAppModuleBase(AzureRMModuleBase):
         except AttributeError as exc:
             self.module.fail_json('Error: category %s not found for netapp_client: %s' % (category, str(exc)))
 
-        if NEW_STYLE:
+        if self._new_style:
             name = 'begin_' + name
         try:
             method = getattr(methods, name)
