@@ -12,11 +12,6 @@ class ModuleDocFragment(object):
     # Documentation fragment for CLOUDMANAGER
     CLOUDMANAGER = """
 options:
-  api_url:
-    required: false
-    type: str
-    description:
-    - The url to the cloudmanager.
   refresh_token:
     required: true
     type: str

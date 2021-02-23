@@ -107,7 +107,6 @@ EXAMPLES = '''
        client_id: "{{ client_id }}"
        number_of_disks: 2
        refresh_token: xxx
-       api_url: xxxx
 
    - name: Delete Volume
      na_cloudmanager_aggregate:
@@ -116,7 +115,6 @@ EXAMPLES = '''
        working_environment_name: testAWS
        client_id: Nw4Q2O1kdnLtvhwegGalFnodEHUfPJWh
        refresh_token: xxx
-       api_url: xxxx
 '''
 
 RETURN = '''
@@ -132,6 +130,8 @@ from ansible.module_utils.basic import AnsibleModule
 import ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp as netapp_utils
 from ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module import NetAppModule
 from ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp import CloudManagerRestAPI
+
+API_URL = "cloudmanager.cloud.netapp.com"
 
 
 class NetAppCloudmanagerAggregate(object):
@@ -176,6 +176,7 @@ class NetAppCloudmanagerAggregate(object):
         self.parameters = self.na_helper.set_parameters(self.module.params)
         # Calling generic rest_api class
         self.rest_api = CloudManagerRestAPI(self.module)
+        self.rest_api.url += API_URL
         self.rest_api.token = self.rest_api.token_type = None
         self.rest_api.api_root_path = None
 

@@ -69,7 +69,6 @@ POW2_BYTE_MAP = dict(
 def cloudmanager_host_argument_spec():
 
     return dict(
-        api_url=dict(required=False, type='str', default=''),
         refresh_token=dict(required=True, type='str', no_log=True)
     )
 
@@ -79,10 +78,9 @@ class CloudManagerRestAPI(object):
     def __init__(self, module, timeout=60):
         self.module = module
         self.timeout = timeout
-        self.api_url = self.module.params['api_url']
         self.refresh_token = self.module.params['refresh_token']
         self.token_type, self.token = self.get_token()
-        self.url = 'https://' + self.api_url
+        self.url = 'https://'
         self.api_root_path = None
         self.check_required_library()
 

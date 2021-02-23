@@ -61,4 +61,4 @@ def test_missing_params():
     module = MockModule()
     with pytest.raises(KeyError) as exc:
         CloudManagerRestAPI(module)
-    assert exc.match('api_url')
+    assert exc.match('refresh_token')

@@ -76,7 +76,6 @@ class TestMyModule(unittest.TestCase):
             'disk_size_size': 100,
             'disk_size_unit': 'GB',
             'refresh_token': 'myrefresh_token',
-            'api_url': 'myapiurl.com',
         })
 
     def set_args_create_cloudmanager_aggregate(self):
@@ -89,7 +88,6 @@ class TestMyModule(unittest.TestCase):
             'disk_size_size': 100,
             'disk_size_unit': 'GB',
             'refresh_token': 'myrefresh_token',
-            'api_url': 'myapiurl.com',
         })
 
     def set_args_delete_cloudmanager_aggregate(self):
@@ -102,7 +100,6 @@ class TestMyModule(unittest.TestCase):
             'disk_size_size': 100,
             'disk_size_unit': 'GB',
             'refresh_token': 'myrefresh_token',
-            'api_url': 'myapiurl.com',
         })
 
     def set_args_update_cloudmanager_aggregate(self):
@@ -115,7 +112,6 @@ class TestMyModule(unittest.TestCase):
             'disk_size_size': 100,
             'disk_size_unit': 'GB',
             'refresh_token': 'myrefresh_token',
-            'api_url': 'myapiurl.com',
         })
 
     def test_module_fail_when_required_args_missing(self):
@@ -169,7 +165,6 @@ class TestMyModule(unittest.TestCase):
             'working_environment_id': 'VsaWorkingEnvironment-abcdefg12345',
             'client_id': 'Nw4Q2O1kdnLtvhwegGalFnodEHUfPJWh',
             'refresh_token': 'myrefresh_token',
-            'api_url': 'myapiurl.com',
             'disks': [{'device': 'xvdh vol-313', 'position': 'data', 'vmDiskProperties': None,
                        'ownerNode': 'testAWSa-01', 'name': 'testAWSa-01-i-12h'},
                       {'device': 'xvdi vol-314', 'position': 'data', 'vmDiskProperties': None,
@@ -199,7 +194,6 @@ class TestMyModule(unittest.TestCase):
             'working_environment_id': 'VsaWorkingEnvironment-abcdefg12345',
             'client_id': 'Nw4Q2O1kdnLtvhwegGalFnodEHUfPJWh',
             'refresh_token': 'myrefresh_token',
-            'api_url': 'myapiurl.com',
             'disks': [{'device': 'xvdh vol-313', 'position': 'data', 'vmDiskProperties': None,
                        'ownerNode': 'testAWSa-01', 'name': 'testAWSa-01-i-12h'},
                       {'device': 'xvdi vol-314', 'position': 'data', 'vmDiskProperties': None,

@@ -26,3 +26,4 @@ Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 ### New Modules
 
   - na_cloudmanager_connector_aws: Create or delete Cloud Manager connector for AWS.
+  - na_cloudmanager_aggregate: Create or delete an aggregate on Cloud Volumes ONTAP, or add disks on an aggregate.
