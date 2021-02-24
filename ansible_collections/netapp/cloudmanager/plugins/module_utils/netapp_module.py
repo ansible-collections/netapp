@@ -31,6 +31,7 @@
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
+from copy import deepcopy
 from ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp import CloudManagerRestAPI
 
 
@@ -221,3 +222,111 @@ class NetAppModule(object):
             return True, None
         else:
             return False, missed_params
+
+    def get_modified_attributes(self, current, desired, get_list_diff=False):
+        ''' takes two dicts of attributes and return a dict of attributes that are
+            not in the current state
+            It is expected that all attributes of interest are listed in current and
+            desired.
+            :param: current: current attributes in ONTAP
+            :param: desired: attributes from playbook
+            :param: get_list_diff: specifies whether to have a diff of desired list w.r.t current list for an attribute
+            :return: dict of attributes to be modified
+            :rtype: dict
+
+            NOTE: depending on the attribute, the caller may need to do a modify or a
+            different operation (eg move volume if the modified attribute is an
+            aggregate name)
+        '''
+        # if the object does not exist,  we can't modify it
+        modified = dict()
+        if current is None:
+            return modified
+
+        # error out if keys do not match
+        # self.check_keys(current, desired)
+
+        # collect changed attributes
+        for key, value in current.items():
+            if key in desired and desired[key] is not None:
+                if isinstance(value, list):
+                    modified_list = self.compare_lists(value, desired[key], get_list_diff)  # get modified list from current and desired
+                    if modified_list is not None:
+                        modified[key] = modified_list
+                elif isinstance(value, dict):
+                    modified_dict = self.get_modified_attributes(value, desired[key])
+                    if modified_dict:
+                        modified[key] = modified_dict
+                else:
+                    try:
+                        result = cmp(value, desired[key])
+                    except TypeError as exc:
+                        raise TypeError("%s, key: %s, value: %s, desired: %s" % (repr(exc), key, repr(value), repr(desired[key])))
+                    else:
+                        if result != 0:
+                            modified[key] = desired[key]
+        if modified:
+            self.changed = True
+        return modified
+
+    @staticmethod
+    def compare_lists(current, desired, get_list_diff):
+        ''' compares two lists and return a list of elements that are either the desired elements or elements that are
+            modified from the current state depending on the get_list_diff flag
+            :param: current: current item attribute in ONTAP
+            :param: desired: attributes from playbook
+            :param: get_list_diff: specifies whether to have a diff of desired list w.r.t current list for an attribute
+            :return: list of attributes to be modified
+            :rtype: list
+        '''
+        current_copy = deepcopy(current)
+        desired_copy = deepcopy(desired)
+
+        # get what in desired and not in current
+        desired_diff_list = list()
+        for item in desired:
+            if item in current_copy:
+                current_copy.remove(item)
+            else:
+                desired_diff_list.append(item)
+
+        # get what in current but not in desired
+        current_diff_list = list()
+        for item in current:
+            if item in desired_copy:
+                desired_copy.remove(item)
+            else:
+                current_diff_list.append(item)
+
+        if desired_diff_list or current_diff_list:
+            # there are changes
+            if get_list_diff:
+                return desired_diff_list
+            else:
+                return desired
+        else:
+            return None
+
+    @staticmethod
+    def convert_module_args_to_api(parameters, exclusion=None):
+        '''
+        Convert a list of string module args to API option format.
+        For example, convert test_option to testOption.
+        :param parameters: dict of parameters to be converted.
+        :param exclusion: list of parameters to be ignored.
+        :return: dict of key value pairs.
+        '''
+        exclude_list = ['api_url', 'token_type', 'refresh_token']
+        if exclusion is not None:
+            exclude_list += exclusion
+        api_keys = dict()
+        for k, v in parameters.items():
+            if k not in exclude_list:
+                words = k.split("_")
+                api_key = ""
+                for word in words:
+                    if len(api_key) > 0:
+                        word = word.title()
+                    api_key = api_key + word
+                api_keys[api_key] = v
+        return api_keys
