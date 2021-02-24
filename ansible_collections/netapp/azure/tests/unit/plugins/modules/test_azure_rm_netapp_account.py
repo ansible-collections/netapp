@@ -44,10 +44,8 @@ try:
 except ImportError:
     HAS_AZURE_CLOUD_ERROR_IMPORT = False
 
-if not HAS_AZURE_CLOUD_ERROR_IMPORT and sys.version_info < (2, 7):
-    pytestmark = pytest.mark.skip('skipping as missing required azure_exceptions on 2.6')
-elif not HAS_AZURE_RMNETAPP_IMPORT and sys.version_info < (2, 8):
-    pytestmark = pytest.mark.skip('skipping as missing required azcollections mock on 2.6 and 2.7')
+if not HAS_AZURE_CLOUD_ERROR_IMPORT and sys.version_info < (3, 5):
+    pytestmark = pytest.mark.skip('skipping as missing required azure_exceptions on 2.6 and 2.7')
 
 
 def set_module_args(args):

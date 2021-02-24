@@ -9,12 +9,18 @@ Wrapper around AzureRMModuleBase base class
 
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
-from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import AzureRMModuleBase
 
-
+HAS_AZURE_COLLECTION = True
 NEW_STYLE = None
 COLLECTION_VERSION = "21.3.0"
 IMPORT_ERRORS = list()
+
+try:
+    from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import AzureRMModuleBase
+except ImportError as exc:
+    IMPORT_ERRORS.append(str(exc))
+    from ansible_collections.netapp.azure.plugins.module_utils.netapp_module import AzureRMModuleBaseMock as AzureRMModuleBase
+    HAS_AZURE_COLLECTION = False
 
 try:
     from azure.mgmt.netapp import NetAppManagementClient                    # 1.0.0 or newer
@@ -33,6 +39,9 @@ class AzureRMNetAppModuleBase(AzureRMModuleBase):
     def __init__(self, derived_arg_spec, supports_check_mode=False):
         self._netapp_client = None
         self._new_style = NEW_STYLE
+        if not HAS_AZURE_COLLECTION:
+            # we can't use self.module yet
+            raise ImportError(IMPORT_ERRORS)
         super(AzureRMNetAppModuleBase, self).__init__(derived_arg_spec=derived_arg_spec,
                                                       supports_check_mode=supports_check_mode)
 

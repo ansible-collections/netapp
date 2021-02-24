@@ -32,6 +32,12 @@ from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
 
+class AzureRMModuleBaseMock():
+    ''' Mock for sanity tests when azcollection is not installed '''
+    def __init__(self):
+        raise NotImplementedError
+
+
 def cmp(obj1, obj2):
     """
     Python 3 does not have a cmp function, this will do the cmp.
@@ -56,7 +62,7 @@ def cmp(obj1, obj2):
     return (obj1 > obj2) - (obj1 < obj2)
 
 
-class NetAppModule(object):
+class NetAppModule():
     '''
     Common class for NetApp modules
     set of support functions to derive actions based
