@@ -88,7 +88,8 @@ options:
     capacity_tier:
         description:
         - The aggregate's capacity tier for tiering cold data to object storage.
-        choices: [ None, 'S3', 'Blob', 'cloudStorage']
+        - If the value is NONE, the capacity_tier won't be set on aggregate creation.
+        choices: [ 'NONE', 'S3', 'Blob', 'cloudStorage']
         type: str
 
     iops:
@@ -159,7 +160,7 @@ class NetAppCloudmanagerAggregate(object):
             disk_size_unit=dict(required=False, choices=['GB', 'TB'], default='TB'),
             home_node=dict(required=False, type='str'),
             provider_volume_type=dict(required=False, type='str'),
-            capacity_tier=dict(required=False, choices=[None, 'S3', 'Blob', 'cloudStorage'], type='str'),
+            capacity_tier=dict(required=False, choices=['NONE', 'S3', 'Blob', 'cloudStorage'], type='str'),
             iops=dict(required=False, type='str'),
         ))
 
@@ -230,7 +231,7 @@ class NetAppCloudmanagerAggregate(object):
             body['homeNode'] = self.parameters['home_node']
         if 'provider_volume_type' in self.parameters:
             body['providerVolumeType'] = self.parameters['provider_volume_type']
-        if 'capacity_tier' in self.parameters:
+        if 'capacity_tier' in self.parameters and self.parameters['capacity_tier'] != "NONE":
             body['capacityTier'] = self.parameters['capacity_tier']
         if 'iops' in self.parameters:
             body['iops'] = self.parameters['iops']

@@ -109,8 +109,8 @@ options:
         description:
         - The volume's capacity tier for tiering cold data to object storage.
         - The default values for each cloud provider are as follows. Amazon as 'S3', Azure as 'Blob', GCP as 'cloudStorage'.
-        - If none, the capacity tier won't be set on volume creation.
-        choices: ['S3', 'Blob', 'cloudStorage']
+        - If 'NONE', the capacity tier won't be set on volume creation.
+        choices: ['NONE', 'S3', 'Blob', 'cloudStorage']
         type: str
 
     tiering_policy:
@@ -196,7 +196,7 @@ class NetAppCloudmanagerVolume(object):
             enable_thin_provisioning=dict(required=False, type='bool'),
             enable_compression=dict(required=False, type='bool'),
             svm_name=dict(required=False, type='str'),
-            capacity_tier=dict(required=False, type='str', choices=['S3', 'Blob', 'cloudStorage']),
+            capacity_tier=dict(required=False, type='str', choices=['NONE', 'S3', 'Blob', 'cloudStorage']),
             tiering_policy=dict(required=False, type='str', choices=['none', 'snapshot_only', 'auto', 'all']),
             export_policy_type=dict(required=False, type='str'),
             export_policy_ip=dict(required=False, type='list', elements='str'),
@@ -273,14 +273,16 @@ class NetAppCloudmanagerVolume(object):
         headers = {
             'X-Agent-Id': self.parameters['client_id'] + "clients"
         }
-        exclude_list = ['client_id', 'size_unit', 'export_policy_name', 'export_policy_type', 'export_policy_ip', 'export_policy_nfs_version']
+        exclude_list = ['client_id', 'size_unit', 'export_policy_name', 'export_policy_type', 'export_policy_ip',
+                        'export_policy_nfs_version', 'capacity_tier']
         quote = self.na_helper.convert_module_args_to_api(self.parameters, exclude_list)
         quote['verifyNameUniqueness'] = True  # Always hard coded to true.
         quote['unit'] = self.parameters['size_unit']
         quote['size'] = {'size': self.parameters['size'], 'unit': self.parameters['size_unit']}
         if self.parameters.get('aggregate_name'):
             quote['aggregateName'] = self.parameters['aggregate_name']
-        response, err = self.rest_api.send_request("POST", "%s/volumes/quote" % self.rest_api.api_root_path, None, quote, header=headers)
+        response, err = self.rest_api.send_request("POST", "%s/volumes/quote" % self.rest_api.api_root_path, None,
+                                                   quote, header=headers)
         if err is not None:
             self.module.fail_json(changed=False, msg=err)
         quote['aggregateName'] = response['aggregateName']
@@ -300,7 +302,7 @@ class NetAppCloudmanagerVolume(object):
             quote['exportPolicyInfo']['nfsVersion'] = self.parameters['export_policy_nfs_version']
         if self.parameters.get('snapshot_policy_name'):
             quote['snapshotPolicy'] = self.parameters['snapshot_policy_name']
-        if self.parameters.get('capacity_tier'):
+        if self.parameters.get('capacity_tier') and self.parameters['capacity_tier'] != "NONE":
             quote['capacityTier'] = self.parameters['capacity_tier']
         if self.parameters.get('tiering_policy'):
             quote['tieringPolicy'] = self.parameters['tiering_policy']
