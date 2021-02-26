@@ -540,12 +540,21 @@ class NetAppCloudManagerConnectorAWS(object):
         client_id = response['clientId']
         client_secret = response['clientSecret']
 
-        user_data = "{\n\t\"instanceName\": \"" + self.parameters['name'] + "\",\n\t\"company\": \"" + self.parameters['company']\
-                    + "\",\n\t\"clientId\": \"" + client_id + "\",\n\t\"clientSecret\": \"" + client_secret + "\",\n\t\"systemId\": \""\
-                    + UUID + "\",\n\t\"tenancyAccountId\": \"" + self.parameters['account_id'] +\
-                    "\",\n\t\"proxySettings\": {\n\t\"proxyPassword\": \"" + self.parameters.get('proxy_password')\
-                    + "\",\n\t\"proxyUserName\": \"" + self.parameters.get('proxy_user_name') + "\",\n\t\"proxyUrl\": \""\
-                    + self.parameters.get('proxy_url') + "\"\n},\n\t\"localAgent\": true\n}"
+        u_data = {
+            'instanceName': self.parameters['name'],
+            'company': self.parameters['company'],
+            'clientId': client_id,
+            'clientSecret': client_secret,
+            'systemId': UUID,
+            'tenancyAccountId': self.parameters['account_id'],
+            'proxySettings': {'proxyPassword': self.parameters.get('proxy_password'),
+                              'proxyUserName': self.parameters.get('proxy_user_name'),
+                              'proxyUrl': self.parameters.get('proxy_url'),
+                              },
+            'localAgent': True
+        }
+
+        user_data = self.na_helper.convert_data_to_tabbed_jsonstring(u_data)
 
         return user_data, client_id
 

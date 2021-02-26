@@ -33,6 +33,8 @@ __metaclass__ = type
 
 from copy import deepcopy
 from ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp import CloudManagerRestAPI
+import json
+import re
 
 
 def cmp(a, b):
@@ -330,3 +332,12 @@ class NetAppModule(object):
                     api_key = api_key + word
                 api_keys[api_key] = v
         return api_keys
+
+    @staticmethod
+    def convert_data_to_tabbed_jsonstring(data):
+        '''
+        Convert a dictionary data to json format string
+        '''
+        dump = json.dumps(data, indent=2, separators=(',', ': '))
+        tabbed = re.sub('\n +', lambda match: '\n' + '\t' * int(len(match.group().strip('\n')) / 2), dump)
+        return tabbed
