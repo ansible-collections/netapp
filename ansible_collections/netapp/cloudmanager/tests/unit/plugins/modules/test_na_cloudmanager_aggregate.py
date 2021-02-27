@@ -142,7 +142,7 @@ class TestMyModule(unittest.TestCase):
         my_obj.rest_api.api_root_path = "my_root_path"
 
         get_aggregate_api.return_value = None
-        get_post_api.return_value = None, None
+        get_post_api.return_value = None, None, None
 
         with pytest.raises(AnsibleExitJson) as exc:
             my_obj.apply()
@@ -172,7 +172,7 @@ class TestMyModule(unittest.TestCase):
             'homeNode': 'testAWSa-01',
         }
         get_aggregate_api.return_value = my_aggregate
-        get_delete_api.return_value = 'Aggregated Deleted', None
+        get_delete_api.return_value = 'Aggregated Deleted', None, None
 
         with pytest.raises(AnsibleExitJson) as exc:
             my_obj.apply()
@@ -201,7 +201,7 @@ class TestMyModule(unittest.TestCase):
             'homeNode': 'testAWSa-01',
         }
         get_aggregate_api.return_value = my_aggregate
-        get_post_api.return_value = None, None
+        get_post_api.return_value = None, None, None
 
         with pytest.raises(AnsibleExitJson) as exc:
             my_obj.apply()

@@ -185,16 +185,19 @@ class NetAppCloudmanagerAggregate(object):
         '''
         Get aggregate details
         '''
+        working_environment_detail = None
         if 'working_environment_id' in self.parameters:
             working_environment_detail, error = self.na_helper.get_working_environment_details(self.rest_api)
+            if error is not None:
+                self.module.fail_json(msg="Error: Cannot find working environment: %s" % str(error))
         elif 'working_environment_name' in self.parameters:
             working_environment_detail, error = self.na_helper.get_working_environment_details_by_name(self.rest_api)
+            if error is not None:
+                self.module.fail_json(msg="Error: Cannot find working environment: %s" % str(error))
         else:
             self.module.fail_json(msg="Error: Missing working environment information")
         if working_environment_detail is not None:
             self.parameters['working_environment_id'] = working_environment_detail['publicId']
-        else:
-            self.module.fail_json(msg="Error: Cannot find working environment: %s" % str(error))
         self.na_helper.set_api_root_path(working_environment_detail, self.rest_api)
         api_root_path = self.rest_api.api_root_path
 
@@ -205,7 +208,7 @@ class NetAppCloudmanagerAggregate(object):
         headers = {
             'X-Agent-Id': self.parameters['client_id'] + "clients"
         }
-        response, error = self.rest_api.get(api, header=headers)
+        response, error, dummy = self.rest_api.get(api, header=headers)
         if error:
             self.module.fail_json(msg="Error: Failed to get aggregate list: %s" % str(error))
         for aggr in response:
@@ -238,7 +241,7 @@ class NetAppCloudmanagerAggregate(object):
         headers = {
             'X-Agent-Id': self.parameters['client_id'] + "clients"
         }
-        response, error = self.rest_api.post(api, body, header=headers)
+        response, error, dummy = self.rest_api.post(api, body, header=headers)
         if error is not None:
             self.module.fail_json(msg="Error: unexpected response on aggregate creation: %s" % str(error))
 
@@ -256,7 +259,7 @@ class NetAppCloudmanagerAggregate(object):
         headers = {
             'X-Agent-Id': self.parameters['client_id'] + "clients"
         }
-        response, error = self.rest_api.post(api, body, header=headers)
+        response, error, dummy = self.rest_api.post(api, body, header=headers)
         if error is not None:
             self.module.fail_json(msg="Error: unexpected response on aggregate adding disks: %s" % str(error))
 
@@ -273,7 +276,7 @@ class NetAppCloudmanagerAggregate(object):
         headers = {
             'X-Agent-Id': self.parameters['client_id'] + "clients"
         }
-        response, error = self.rest_api.delete(api, body, header=headers)
+        response, error, dummy = self.rest_api.delete(api, body, header=headers)
         if error is not None:
             self.module.fail_json(msg="Error: unexpected response on aggregate deletion: %s" % str(error))
 

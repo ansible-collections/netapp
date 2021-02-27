@@ -33,6 +33,7 @@ netapp.py: wrapper around send_requests and other utilities
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
+import time
 from ansible.module_utils.basic import missing_required_lib
 
 try:
@@ -96,6 +97,8 @@ class CloudManagerRestAPI(object):
         json_dict = None
         json_error = None
         error_details = None
+        on_cloud_request_id = None
+        response = None
         headers = {
             'Content-type': "application/json",
             'Referer': "Ansible_NetApp",
@@ -114,15 +117,13 @@ class CloudManagerRestAPI(object):
             success_code = [200, 201, 202]
             if response.status_code not in success_code:
                 error = json.get('message')
-            else:
-                error = None
             return json, error
 
         try:
             response = requests.request(method, url, headers=headers, timeout=self.timeout, json=json)
             status_code = response.status_code
             if status_code >= 300 or status_code < 200:
-                return response.content, str(status_code)
+                return response.content, str(status_code), on_cloud_request_id
             # If the response was successful, no Exception will be raised
             json_dict, json_error = get_json(response)
         except requests.exceptions.HTTPError as err:
@@ -136,7 +137,9 @@ class CloudManagerRestAPI(object):
             error_details = str(err)
         if json_error is not None:
             error_details = json_error
-        return json_dict, error_details
+        if response.headers.get('OnCloud-Request-Id', '') != '':
+            on_cloud_request_id = response.headers.get('OnCloud-Request-Id')
+        return json_dict, error_details, on_cloud_request_id
 
     # If an error was reported in the json payload, it is handled below
     def get(self, api, params=None, header=None):
@@ -168,3 +171,40 @@ class CloudManagerRestAPI(object):
         token_type = token_dict['token_type']
 
         return token_type, token
+
+    def wait_on_completion(self, api_url, action_name, task, retries, wait_interval):
+        while True:
+            cvo_status, failure_error_message, error = self.check_task_status(api_url)
+            if error is not None:
+                return error
+            # status value 1 means success
+            if cvo_status == 1:
+                return None
+            # status value -1 means failed
+            elif cvo_status == -1:
+                return 'Failed to %s %s, error: %s' % (task, action_name, failure_error_message)
+            # status value 0 means pending
+            if retries == 0:
+                return 'Taking too long for %s to %s or not properly setup' % (action_name, task)
+            time.sleep(wait_interval)
+            retries = retries - 1
+
+    def check_task_status(self, api_url):
+
+        headers = {
+            'X-Agent-Id': self.module.params['client_id'] + "clients"
+        }
+
+        network_retries = 3
+        while True:
+            result, error, dummy = self.get(api_url, None, header=headers)
+            if error is not None:
+                if network_retries > 0:
+                    time.sleep(1)
+                    network_retries = network_retries - 1
+                else:
+                    return 0, '', error
+            else:
+                response = result
+                break
+        return response['status'], response['error'], None

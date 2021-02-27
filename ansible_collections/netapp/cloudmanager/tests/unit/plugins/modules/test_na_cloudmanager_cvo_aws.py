@@ -15,8 +15,8 @@ from ansible.module_utils._text import to_bytes
 from ansible_collections.netapp.cloudmanager.tests.unit.compat import unittest
 from ansible_collections.netapp.cloudmanager.tests.unit.compat.mock import patch, Mock
 
-from ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_connector_aws \
-    import NetAppCloudManagerConnectorAWS as my_module
+from ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_cvo_aws \
+    import NetAppCloudManagerCVOAWS as my_module
 
 
 def set_module_args(args):
@@ -52,7 +52,7 @@ class MockCMConnection():
     def __init__(self, kind=None, parm1=None):
         self.type = kind
         self.parm1 = parm1
-        self.token_type, self.token = self.get_token()
+        # self.token_type, self.token = self.get_token()
 
 
 class TestMyModule(unittest.TestCase):
@@ -69,45 +69,36 @@ class TestMyModule(unittest.TestCase):
         return dict({
             'state': 'present',
             'name': 'TestA',
+            'client_id': 'test',
             'region': 'us-west-1',
-            'key_name': 'dev_automation',
+            'vpc_id': 'vpc-test',
             'subnet_id': 'subnet-test',
-            'ami': 'ami-test',
-            'security_group_ids': ['sg-test'],
+            'svm_password': 'password',
             'refresh_token': 'myrefresh_token',
-            'iam_instance_profile_name': 'OCCM_AUTOMATION',
-            'account_id': 'account-test',
-            'company': 'NetApp'
         })
 
-    def set_args_create_cloudmanager_connector_aws(self):
+    def set_args_create_cloudmanager_cvo_aws(self):
         return dict({
             'state': 'present',
             'name': 'Dummyname',
+            'client_id': 'test',
             'region': 'us-west-1',
-            'key_name': 'dev_automation',
+            'vpc_id': 'vpc-test',
             'subnet_id': 'subnet-test',
-            'ami': 'ami-test',
-            'security_group_ids': ['sg-test'],
+            'svm_password': 'password',
             'refresh_token': 'myrefresh_token',
-            'iam_instance_profile_name': 'OCCM_AUTOMATION',
-            'account_id': 'account-test',
-            'company': 'NetApp'
         })
 
-    def set_args_delete_cloudmanager_connector_aws(self):
+    def set_args_delete_cloudmanager_cvo_aws(self):
         return dict({
             'state': 'absent',
             'name': 'Dummyname',
             'client_id': 'test',
-            'instance_id': 'test',
             'region': 'us-west-1',
-            'key_name': 'dev_automation',
+            'vpc_id': 'vpc-test',
             'subnet_id': 'subnet-test',
-            'security_group_ids': ['sg-test'],
-            'iam_instance_profile_name': 'OCCM_AUTOMATION',
+            'svm_password': 'password',
             'refresh_token': 'myrefresh_token',
-            'company': 'NetApp'
         })
 
     def test_module_fail_when_required_args_missing(self):
@@ -129,46 +120,46 @@ class TestMyModule(unittest.TestCase):
         assert exc.value.args[0]['changed']
 
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.get_token')
-    @patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_connector_aws.NetAppCloudManagerConnectorAWS.create_instance')
-    @patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_connector_aws.NetAppCloudManagerConnectorAWS.get_vpc')
-    @patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_connector_aws.NetAppCloudManagerConnectorAWS.register_agent_to_service')
-    @patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_connector_aws.NetAppCloudManagerConnectorAWS.get_ami')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.wait_on_completion')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_cvo_aws.NetAppCloudManagerCVOAWS.get_vpc')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_cvo_aws.NetAppCloudManagerCVOAWS.get_tenant')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_cvo_aws.NetAppCloudManagerCVOAWS.get_nss')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_cvo_aws.NetAppCloudManagerCVOAWS.get_working_environment')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.post')
-    def test_create_cloudmanager_connector_aws_pass(self, get_post_api, get_ami, register_agent_to_service, get_vpc, create_instance, get_token):
-        set_module_args(self.set_args_create_cloudmanager_connector_aws())
+    def test_create_cloudmanager_cvo_aws_pass(self, get_post_api, get_working_environment, get_nss, get_tenant, get_vpc, wait_on_completion, get_token):
+        set_module_args(self.set_args_create_cloudmanager_cvo_aws())
         get_token.return_value = 'test', 'test'
         my_obj = my_module()
 
         get_post_api.return_value = None, None, None
-        get_ami.return_value = 'ami-test'
-        register_agent_to_service.return_value = 'test', 'test'
+        get_working_environment.return_value = None
+        get_nss.return_value = 'nss-test'
+        get_tenant.return_value = 'test'
         get_vpc.return_value = 'test'
-        create_instance.return_value = None
+        wait_on_completion.return_value = None
 
         with pytest.raises(AnsibleExitJson) as exc:
             my_obj.apply()
-        print('Info: test_create_cloudmanager_connector_aws: %s' % repr(exc.value))
+        print('Info: test_create_cloudmanager_cvo_aws_pass: %s' % repr(exc.value))
         assert exc.value.args[0]['changed']
 
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.get_token')
-    @patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_connector_aws.NetAppCloudManagerConnectorAWS.delete_instance')
-    @patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_connector_aws.NetAppCloudManagerConnectorAWS.get_instance')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.wait_on_completion')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_cvo_aws.NetAppCloudManagerCVOAWS.get_working_environment')
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.delete')
-    def test_delete_cloudmanager_connector_aws_pass(self, get_delete_api, get_connector_aws, delete_instance, get_token):
-        set_module_args(self.set_args_delete_cloudmanager_connector_aws())
+    def test_delete_cloudmanager_cvo_aws_pass(self, get_delete_api, get_working_environment, wait_on_completion, get_token):
+        set_module_args(self.set_args_delete_cloudmanager_cvo_aws())
         get_token.return_value = 'test', 'test'
         my_obj = my_module()
 
-        my_connector_aws = {
-            'name': 'Dummyname',
-            'client_id': 'test',
-            'refresh_token': 'myrefresh_token',
-        }
-        get_connector_aws.return_value = my_connector_aws
+        my_cvo = {
+            'name': 'test',
+            'publicId': 'test'}
+        get_working_environment.return_value = my_cvo
         get_delete_api.return_value = None, None, None
-        delete_instance.return_value = 'terminated'
+        wait_on_completion.return_value = None
 
         with pytest.raises(AnsibleExitJson) as exc:
             my_obj.apply()
-        print('Info: test_delete_cloudmanager_connector_aws: %s' % repr(exc.value))
+        print('Info: test_delete_cloudmanager_cvo_aws_pass: %s' % repr(exc.value))
         assert exc.value.args[0]['changed']

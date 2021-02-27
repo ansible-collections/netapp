@@ -44,7 +44,6 @@ options:
     type: str
 
   instance_type:
-    required: false
     description:
     - The type of instance (for example, t3.xlarge). At least 4 CPU and 16 GB of memory are required.
     type: str
@@ -69,19 +68,16 @@ options:
     type: str
 
   instance_id:
-    required: false
     description:
     - The ID of the EC2 instance used for delete.
     type: str
 
   client_id:
-    required: false
     description:
     - The unique client ID of the Connector.
     type: str
 
   ami:
-    required: false
     description:
     - The image ID.
     type: str
@@ -106,45 +102,38 @@ options:
     type: str
 
   enable_termination_protection:
-    required: false
     description:
     - Indicates whether to enable termination protection on the instance.
     type: bool
     default: false
 
   associate_public_ip_address:
-    required: false
     description:
     - Indicates whether to associate a public IP address to the instance. If not provided, the association will be done based on the subnet's configuration.
     type: bool
     default: true
 
   account_id:
-    required: false
     description:
     - The NetApp tenancy account ID.
     type: str
 
   proxy_url:
-    required: false
     description:
     - The proxy URL, if using a proxy to connect to the internet.
     type: str
 
   proxy_user_name:
-    required: false
     description:
     - The proxy user name, if using a proxy to connect to the internet.
     type: str
 
   proxy_password:
-    required: false
     description:
     - The proxy password, if using a proxy to connect to the internet.
     type: str
 
   aws_tag:
-    required: false
     description:
     - Additional tags for the AWS EC2 instance.
     type: list
@@ -296,6 +285,9 @@ class NetAppCloudManagerConnectorAWS(object):
         except ClientError as error:
             self.module.fail_json(msg=to_native(error), exception=traceback.format_exc())
 
+        if len(response['Reservations']) == 0:
+            return None
+
         return response['Reservations'][0]['Instances'][0]['State']['Name']
 
     def get_ami(self):
@@ -438,7 +430,7 @@ class NetAppCloudManagerConnectorAWS(object):
             "X-User-Token": self.rest_api.token_type + " " + self.rest_api.token,
         }
 
-        account_res, error = self.rest_api.get("cloudmanager.cloud.netapp.com/tenancy/account", header=headers)
+        account_res, error, dummy = self.rest_api.get("cloudmanager.cloud.netapp.com/tenancy/account", header=headers)
         if error is not None:
             self.module.fail_json(msg="Error: unexpected response on getting account: %s, %s" % (str(error), str(account_res)))
         if len(account_res) == 0:
@@ -457,7 +449,7 @@ class NetAppCloudManagerConnectorAWS(object):
             "X-User-Token": self.rest_api.token_type + " " + self.rest_api.token,
         }
 
-        account_res, error = self.rest_api.post("cloudmanager.cloud.netapp.com//tenancy/account/MyAccount", header=headers)
+        account_res, error, dummy = self.rest_api.post("cloudmanager.cloud.netapp.com//tenancy/account/MyAccount", header=headers)
         if error is not None:
             self.module.fail_json(msg="Error: unexpected response on creating account: %s, %s" % (str(error), str(account_res)))
 
@@ -476,7 +468,7 @@ class NetAppCloudManagerConnectorAWS(object):
             "X-User-Token": self.rest_api.token_type + " " + self.rest_api.token,
         }
 
-        occm_status, error = self.rest_api.get(get_occum_url, header=headers)
+        occm_status, error, dummy = self.rest_api.get(get_occum_url, header=headers)
         if error is not None:
             self.module.fail_json(msg="Error: unexpected response on checking occm status: %s, %s" % (str(error), str(occm_status)))
 
@@ -484,8 +476,8 @@ class NetAppCloudManagerConnectorAWS(object):
 
     def get_vpc(self):
         """
-        Delete aggregate object store config
-        :return: None
+        Get vpc
+        :return: vpc ID
         """
 
         vpc_result = None
@@ -534,7 +526,7 @@ class NetAppCloudManagerConnectorAWS(object):
             }
         }
 
-        response, error = self.rest_api.post("cloudmanager.cloud.netapp.com/agents-mgmt/connector-setup", body, header=headers)
+        response, error, dummy = self.rest_api.post("cloudmanager.cloud.netapp.com/agents-mgmt/connector-setup", body, header=headers)
         if error is not None:
             self.module.fail_json(msg="Error: unexpected response on getting userdata for connector setup: %s, %s" % (str(error), str(response)))
         client_id = response['clientId']
@@ -593,7 +585,7 @@ class NetAppCloudManagerConnectorAWS(object):
             "X-Tenancy-Account-Id": self.parameters['account_id']
         }
 
-        response, error = self.rest_api.delete(delete_occum_url, None, header=headers)
+        response, error, dummy = self.rest_api.delete(delete_occum_url, None, header=headers)
         if error is not None:
             self.module.fail_json(msg="Error: unexpected response on deleting OCCM: %s, %s" % (str(error), str(response)))
 
