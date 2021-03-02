@@ -144,23 +144,23 @@ class CloudManagerRestAPI(object):
     # If an error was reported in the json payload, it is handled below
     def get(self, api, params=None, header=None):
         method = 'GET'
-        return self.send_request(method, api, params, header=header)
+        return self.send_request(method=method, api=api, params=params, json=None, header=header)
 
     def post(self, api, data, params=None, header=None):
         method = 'POST'
-        return self.send_request(method, api, params, json=data, header=header)
+        return self.send_request(method=method, api=api, params=params, json=data, header=header)
 
     def patch(self, api, data, params=None, header=None):
         method = 'PATCH'
-        return self.send_request(method, api, params, json=data, header=header)
+        return self.send_request(method=method, api=api, params=params, json=data, header=header)
 
     def put(self, api, data, params=None, header=None):
         method = 'PUT'
-        return self.send_request(method, api, params, json=data, header=header)
+        return self.send_request(method=method, api=api, params=params, json=data, header=header)
 
     def delete(self, api, data, params=None, header=None):
         method = 'DELETE'
-        return self.send_request(method, api, params, json=data, header=header)
+        return self.send_request(method=method, api=api, params=params, json=data, header=header)
 
     def get_token(self):
         token_res = requests.post('https://' + AUTH0_DOMAIN + '/oauth/token',

@@ -145,13 +145,13 @@ class NetAppModule(object):
         headers = {
             'X-Agent-Id': self.parameters['client_id'] + "clients"
         }
-        response, error = rest_api.get(api, None, header=headers)
+        response, error, dummy = rest_api.get(api, None, header=headers)
         if error is not None:
             return None, error
 
         # get working environment lists
         api = "/occm/api/working-environments"
-        response, error = rest_api.get(api, None, header=headers)
+        response, error, dummy = rest_api.get(api, None, header=headers)
         if error is not None:
             return None, error
         # look up the working environment in the working environment lists
@@ -186,7 +186,7 @@ class NetAppModule(object):
         headers = {
             'X-Agent-Id': self.parameters['client_id'] + "clients"
         }
-        response, error = rest_api.get(api, None, header=headers)
+        response, error, dummy = rest_api.get(api, None, header=headers)
         if error:
             return None, error
         return response, None

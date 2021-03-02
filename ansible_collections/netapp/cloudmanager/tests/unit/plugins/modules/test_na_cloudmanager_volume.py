@@ -93,7 +93,7 @@ class TestMyModule(unittest.TestCase):
         set_module_args(self.set_default_args_pass_check())
         get.return_value = None
         create.return_value = None
-        send_request.side_effect = [({'publicId': 'id', 'svmName': 'svm_name', 'cloudProviderName': "aws", 'isHA': False}, None)]
+        send_request.side_effect = [({'publicId': 'id', 'svmName': 'svm_name', 'cloudProviderName': "aws", 'isHA': False}, None, None)]
         get_token.return_value = ("type", "token")
         obj = my_module()
         obj.rest_api.api_root_path = "test_root_path"
@@ -114,7 +114,7 @@ class TestMyModule(unittest.TestCase):
             'export_policy_ip': ["10.30.0.1/16"],
             'export_policy_nfs_version': ["nfs4"],
         }
-        send_request.side_effect = [({'publicId': 'id', 'svmName': 'svm_name', 'cloudProviderName': "aws", 'isHA': False}, None)]
+        send_request.side_effect = [({'publicId': 'id', 'svmName': 'svm_name', 'cloudProviderName': "aws", 'isHA': False}, None, None)]
         get_token.return_value = ("type", "token")
         obj = my_module()
         obj.rest_api.api_root_path = "test_root_path"
@@ -136,7 +136,7 @@ class TestMyModule(unittest.TestCase):
             'export_policy_ip': ["10.30.0.1/16"],
             'export_policy_nfs_version': ["nfs3", "nfs4"],
         }
-        send_request.side_effect = [({'publicId': 'id', 'svmName': 'svm_name', 'cloudProviderName': "aws", 'isHA': False}, None)]
+        send_request.side_effect = [({'publicId': 'id', 'svmName': 'svm_name', 'cloudProviderName': "aws", 'isHA': False}, None, None)]
         get_token.return_value = ("type", "token")
         modify.return_value = None
         obj = my_module()
@@ -159,7 +159,7 @@ class TestMyModule(unittest.TestCase):
             'export_policy_ip': ["10.30.0.1/16"],
             'export_policy_nfs_version': ["nfs4"],
         }
-        send_request.side_effect = [({'publicId': 'id', 'svmName': 'svm_name', 'cloudProviderName': "aws", 'isHA': False}, None)]
+        send_request.side_effect = [({'publicId': 'id', 'svmName': 'svm_name', 'cloudProviderName': "aws", 'isHA': False}, None, None)]
         get_token.return_value = ("type", "token")
         modify.return_value = None
         obj = my_module()

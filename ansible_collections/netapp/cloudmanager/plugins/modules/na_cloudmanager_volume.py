@@ -239,7 +239,7 @@ class NetAppCloudmanagerVolume(object):
         headers = {
             'X-Agent-Id': self.parameters['client_id'] + "clients"
         }
-        response, err = self.rest_api.send_request("GET", "%s/volumes?workingEnvironmentId=%s" % (
+        response, err, dummy = self.rest_api.send_request("GET", "%s/volumes?workingEnvironmentId=%s" % (
             self.rest_api.api_root_path, self.parameters['working_environment_id']), None, header=headers)
         if err is not None:
             self.module.fail_json(changed=False, msg=err)
@@ -281,8 +281,8 @@ class NetAppCloudmanagerVolume(object):
         quote['size'] = {'size': self.parameters['size'], 'unit': self.parameters['size_unit']}
         if self.parameters.get('aggregate_name'):
             quote['aggregateName'] = self.parameters['aggregate_name']
-        response, err = self.rest_api.send_request("POST", "%s/volumes/quote" % self.rest_api.api_root_path, None,
-                                                   quote, header=headers)
+        response, err, dummy = self.rest_api.send_request("POST", "%s/volumes/quote" % self.rest_api.api_root_path, None,
+                                                          quote, header=headers)
         if err is not None:
             self.module.fail_json(changed=False, msg=err)
         quote['aggregateName'] = response['aggregateName']
@@ -310,7 +310,7 @@ class NetAppCloudmanagerVolume(object):
             quote['providerVolumeType'] = self.parameters['provider_volume_type']
         if self.parameters.get('iops'):
             quote['iops'] = self.parameters.get('iops')
-        response, err = self.rest_api.send_request("POST", "%s/volumes?createAggregateIfNotFound=%s" % (
+        response, err, dummy = self.rest_api.send_request("POST", "%s/volumes?createAggregateIfNotFound=%s" % (
             self.rest_api.api_root_path, True), None, quote, header=headers)
         if err is not None:
             self.module.fail_json(changed=False, msg=err)
@@ -330,7 +330,7 @@ class NetAppCloudmanagerVolume(object):
         vol['exportPolicyInfo'] = export_policy_info
         if modify.get('snapshot_policy_name'):
             vol['snapshotPolicyName'] = self.parameters.get('snapshot_policy_name')
-        dummy, err = self.rest_api.send_request("PUT", "%s/volumes/%s/%s/%s" % (
+        dummy, err, dummy = self.rest_api.send_request("PUT", "%s/volumes/%s/%s/%s" % (
             self.rest_api.api_root_path, self.parameters['working_environment_id'], self.parameters['svm_name'],
             self.parameters['name']), None, vol, header=headers)
         if err is not None:
@@ -340,7 +340,7 @@ class NetAppCloudmanagerVolume(object):
         headers = {
             'X-Agent-Id': self.parameters['client_id'] + "clients"
         }
-        dummy, err = self.rest_api.send_request("DELETE", "%s/volumes/%s/%s/%s" % (
+        dummy, err, dummy = self.rest_api.send_request("DELETE", "%s/volumes/%s/%s/%s" % (
             self.rest_api.api_root_path, self.parameters['working_environment_id'], self.parameters['svm_name'],
             self.parameters['name']), None, None, header=headers)
         if err is not None:
