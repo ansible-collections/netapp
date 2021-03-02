@@ -26,6 +26,7 @@ Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 ### New Modules
 
   - na_cloudmanager_aggregate: Create or delete an aggregate on Cloud Volumes ONTAP, or add disks on an aggregate.
+  - na_cloudmanager_cifs_server: Create or delete CIFS server for Cloud Volumes ONTAP.
   - na_cloudmanager_connector_aws: Create or delete Cloud Manager connector for AWS.
   - na_cloudmanager_cvo_aws: Create or delete Cloud Manager CVO for AWS for both single and HA.
   - na_cloudmanager_volume: Create or delete a volume on Cloud Volumes ONTAP.
