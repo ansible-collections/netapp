@@ -29,4 +29,6 @@ Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
   - na_cloudmanager_cifs_server: Create or delete CIFS server for Cloud Volumes ONTAP.
   - na_cloudmanager_connector_aws: Create or delete Cloud Manager connector for AWS.
   - na_cloudmanager_cvo_aws: Create or delete Cloud Manager CVO for AWS for both single and HA.
-  - na_cloudmanager_volume: Create or delete a volume on Cloud Volumes ONTAP.
+  - na_cloudmanager_nss_account: Create or delete a nss account on Cloud Manager.
+  - na_cloudmanager_volume: Create, modify or delete a volume on Cloud Volumes ONTAP.
+
