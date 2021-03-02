@@ -75,6 +75,7 @@ class TestMyModule(unittest.TestCase):
             'subnet_id': 'subnet-test',
             'svm_password': 'password',
             'refresh_token': 'myrefresh_token',
+            'is_ha': False
         })
 
     def set_args_create_cloudmanager_cvo_aws(self):
@@ -87,6 +88,7 @@ class TestMyModule(unittest.TestCase):
             'subnet_id': 'subnet-test',
             'svm_password': 'password',
             'refresh_token': 'myrefresh_token',
+            'is_ha': False
         })
 
     def set_args_delete_cloudmanager_cvo_aws(self):
@@ -99,6 +101,7 @@ class TestMyModule(unittest.TestCase):
             'subnet_id': 'subnet-test',
             'svm_password': 'password',
             'refresh_token': 'myrefresh_token',
+            'is_ha': False
         })
 
     def test_module_fail_when_required_args_missing(self):
@@ -141,6 +144,33 @@ class TestMyModule(unittest.TestCase):
         with pytest.raises(AnsibleExitJson) as exc:
             my_obj.apply()
         print('Info: test_create_cloudmanager_cvo_aws_pass: %s' % repr(exc.value))
+        assert exc.value.args[0]['changed']
+
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.get_token')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.wait_on_completion')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_cvo_aws.NetAppCloudManagerCVOAWS.get_vpc')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_cvo_aws.NetAppCloudManagerCVOAWS.get_tenant')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_cvo_aws.NetAppCloudManagerCVOAWS.get_nss')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_cvo_aws.NetAppCloudManagerCVOAWS.get_working_environment')
+    @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.post')
+    def test_create_cloudmanager_cvo_aws_ha_pass(self, get_post_api, get_working_environment, get_nss, get_tenant, get_vpc, wait_on_completion, get_token):
+        data = self.set_args_create_cloudmanager_cvo_aws()
+        data['is_ha'] = True
+        data.pop('subnet_id')
+        set_module_args(data)
+        get_token.return_value = 'test', 'test'
+        my_obj = my_module()
+
+        get_post_api.return_value = None, None, None
+        get_working_environment.return_value = None
+        get_nss.return_value = 'nss-test'
+        get_tenant.return_value = 'test'
+        get_vpc.return_value = 'test'
+        wait_on_completion.return_value = None
+
+        with pytest.raises(AnsibleExitJson) as exc:
+            my_obj.apply()
+        print('Info: test_create_cloudmanager_cvo_aws_ha_pass: %s' % repr(exc.value))
         assert exc.value.args[0]['changed']
 
     @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.get_token')

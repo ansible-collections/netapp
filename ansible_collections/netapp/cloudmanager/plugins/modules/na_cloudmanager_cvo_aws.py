@@ -71,7 +71,6 @@ options:
     type: str
 
   subnet_id:
-    required: true
     description:
     - The subnet id where the working environment will be created. Required when single node only.
     type: str
@@ -244,6 +243,80 @@ options:
         description: The tag value.
         type: str
 
+  is_ha:
+    description:
+    - Indicate whether the working environment is an HA pair or not.
+    type: bool
+    default: false
+
+  platform_serial_number_node1:
+    description:
+    - For HA BYOL, the serial number for the first node. This is required when using 'ha-cot-premium-byol'.
+    type: str
+
+  platform_serial_number_node2:
+    description:
+    - For HA BYOL, the serial number for the second node. This is required when using 'ha-cot-premium-byol'.
+    type: str
+
+  node1_subnet_id:
+    description:
+    - For HA, the subnet ID of the first node.
+    type: str
+
+  node2_subnet_id:
+    description:
+    - For HA, the subnet ID of the second node.
+    type: str
+
+  mediator_subnet_id:
+    description:
+    - For HA, the subnet ID of the mediator.
+    type: str
+
+  failover_mode:
+    description:
+    - For HA, the failover mode for the HA pair. 'PrivateIP' is for a single availability zone and 'FloatingIP' is for multiple availability zones.
+    type: str
+    choices: ['PrivateIP', 'FloatingIP']
+
+  mediator_assign_public_ip:
+    description:
+    - bool option to assign public IP.
+    type: bool
+    default: true
+
+  mediator_key_pair_name:
+    description:
+    - For HA, the key pair name for the mediator instance.
+    type: str
+
+  cluster_floating_ip:
+    description:
+    - For HA FloatingIP, the cluster management floating IP address.
+    type: str
+
+  data_floating_ip:
+    description:
+    - For HA FloatingIP, the data floating IP address.
+    type: str
+
+  data_floating_ip2:
+    description:
+    - For HA FloatingIP, the data floating IP address.
+    type: str
+
+  svm_floating_ip:
+    description:
+    - For HA FloatingIP, the SVM management floating IP address.
+    type: str
+
+  route_table_ids:
+    description:
+    - For HA FloatingIP, the list of route table IDs that will be updated with the floating IPs.
+    type: list
+    elements: str
+
   refresh_token:
     required: true
     description:
@@ -267,6 +340,32 @@ EXAMPLES = """
     aws_tag: [
         {tag_key: abc,
         tag_value: a123}]
+
+- name: create NetApp Cloud Manager CVO for AWS HA
+  na_cloudmanager_cvo_aws:
+    state: present
+    refresh_token: "{{ xxxxxxxxxxxxxxx }}"
+    name: TerraformCVO
+    region: us-west-1
+    subnet_id: subnet-xxxxxxx
+    vpc_id: vpc-xxxxxxxx
+    svm_password: P@assword!
+    client_id: "{{ xxxxxxxxxxxxxxx }}"
+    writing_speed_state: NORMAL
+    aws_tag: [
+        {tag_key: abc,
+        tag_value: a123}]
+    is_ha: true
+    failover_mode: FloatingIP
+    node1_subnet_id: subnet-1
+    node2_subnet_id: subnet-1
+    mediator_subnet_id: subnet-1
+    mediator_key_pair_name: key1
+    cluster_floating_ip: 2.1.1.1
+    data_floating_ip: 2.1.1.2
+    data_floating_ip2: 2.1.1.3
+    svm_floating_ip: 2.1.1.4
+    route_table_ids: [rt-1,rt-2]
 
 - name: delete NetApp Cloud Manager cvo for AWS
   na_cloudmanager_cvo_aws:
@@ -316,7 +415,7 @@ class NetAppCloudManagerCVOAWS:
             instance_type=dict(required=False, type='str', default='m5.2xlarge'),
             license_type=dict(required=False, type='str', choices=AWS_License_Types, default='cot-standard-paygo'),
             workspace_id=dict(required=False, type='str'),
-            subnet_id=dict(required=True, type='str'),
+            subnet_id=dict(required=False, type='str'),
             vpc_id=dict(required=False, type='str'),
             region=dict(required=True, type='str'),
             data_encryption_type=dict(required=False, type='str', choices=['AWS', 'NONE'], default='AWS'),
@@ -346,6 +445,20 @@ class NetAppCloudManagerCVOAWS:
                 tag_key=dict(type='str'),
                 tag_value=dict(type='str')
             )),
+            is_ha=dict(required=False, type='bool', default=False),
+            platform_serial_number_node1=dict(required=False, type='str'),
+            platform_serial_number_node2=dict(required=False, type='str'),
+            failover_mode=dict(required=False, type='str', choices=['PrivateIP', 'FloatingIP']),
+            mediator_assign_public_ip=dict(required=False, type='bool', default=True),
+            node1_subnet_id=dict(required=False, type='str'),
+            node2_subnet_id=dict(required=False, type='str'),
+            mediator_subnet_id=dict(required=False, type='str'),
+            mediator_key_pair_name=dict(required=False, type='str'),
+            cluster_floating_ip=dict(required=False, type='str'),
+            data_floating_ip=dict(required=False, type='str'),
+            data_floating_ip2=dict(required=False, type='str'),
+            svm_floating_ip=dict(required=False, type='str'),
+            route_table_ids=dict(required=False, type='list', elements='str'),
         ))
 
         self.module = AnsibleModule(
@@ -438,18 +551,22 @@ class NetAppCloudManagerCVOAWS:
         if self.parameters.get('workspace_id') is None:
             self.parameters['workspace_id'] = self.get_tenant()
 
-        if self.parameters.get('vpc_id') is None:
+        if self.parameters.get('vpc_id') is None and self.parameters['is_ha'] is False:
             self.parameters['vpc_id'] = self.get_vpc()
 
         if self.parameters.get('nss_account') is None:
             if self.parameters.get('platform_serial_number') is not None:
                 if not self.parameters['platform_serial_number'].startswith('Eval-') and self.parameters['license_type'] == 'cot-premium-byol':
                     self.parameters['nss_account'] = self.get_nss()
+            elif self.parameters.get('platform_serial_number_node1') is not None and self.parameters.get('platform_serial_number_node2') is not None:
+                if not self.parameters['platform_serial_number_node1'].startswith('Eval-')\
+                        and not self.parameters['platform_serial_number_node2'].startswith('Eval-')\
+                        and self.parameters['license_type'] == 'ha-cot-premium-byol':
+                    self.parameters['nss_account'] = self.get_nss()
 
         json = {"name": self.parameters['name'],
                 "region": self.parameters['region'],
                 "tenantId": self.parameters['workspace_id'],
-                "subnetId": self.parameters['subnet_id'],
                 "vpcId": self.parameters['vpc_id'],
                 "dataEncryptionType": self.parameters['data_encryption_type'],
                 "ebsVolumeSize": {
@@ -510,7 +627,58 @@ class NetAppCloudManagerCVOAWS:
                 tags.append(tag)
             json.update({"awsTags": tags})
 
-        api_url = '%s/occm/api/vsa/working-environments' % Cloud_Manager_Host
+        if self.parameters['is_ha'] is True:
+            ha_params = dict({
+                "mediatorAssignPublicIP": self.parameters['mediator_assign_public_ip']
+            })
+
+            if self.parameters.get('failover_mode'):
+                ha_params["failoverMode"] = self.parameters['failover_mode']
+
+            if self.parameters.get('node1_subnet_id'):
+                ha_params["node1SubnetId"] = self.parameters['node1_subnet_id']
+
+            if self.parameters.get('node2_subnet_id'):
+                ha_params["node2SubnetId"] = self.parameters['node2_subnet_id']
+
+            if self.parameters.get('mediator_subnet_id'):
+                ha_params["mediatorSubnetId"] = self.parameters['mediator_subnet_id']
+
+            if self.parameters.get('mediator_key_pair_name'):
+                ha_params["mediatorKeyPairName"] = self.parameters['mediator_key_pair_name']
+
+            if self.parameters.get('cluster_floating_ip'):
+                ha_params["clusterFloatingIP"] = self.parameters['cluster_floating_ip']
+
+            if self.parameters.get('data_floating_ip'):
+                ha_params["dataFloatingIP"] = self.parameters['data_floating_ip']
+
+            if self.parameters.get('data_floating_ip2'):
+                ha_params["dataFloatingIP2"] = self.parameters['data_floating_ip2']
+
+            if self.parameters.get('svm_floating_ip'):
+                ha_params["svmFloatingIP"] = self.parameters['svm_floating_ip']
+
+            if self.parameters.get('route_table_ids'):
+                ha_params["routeTableIds"] = self.parameters['route_table_ids']
+
+            if self.parameters.get('platform_serial_number_node1'):
+                ha_params["platformSerialNumberNode1"] = self.parameters['platform_serial_number_node1']
+
+            if self.parameters.get('platform_serial_number_node2'):
+                ha_params["platformSerialNumberNode2"] = self.parameters['platform_serial_number_node2']
+
+            json["haParams"] = ha_params
+
+        else:
+            json["subnetId"] = self.parameters['subnet_id']
+
+        if self.parameters['is_ha'] is True:
+            base_url = '/occm/api/aws/ha/working-environments'
+        else:
+            base_url = '/occm/api/vsa/working-environments'
+
+        api_url = '%s%s' % (Cloud_Manager_Host, base_url)
         response, error, on_cloud_request_id = self.rest_api.post(api_url, json, header=self.headers)
         if error is not None:
             self.module.fail_json(
@@ -526,7 +694,12 @@ class NetAppCloudManagerCVOAWS:
         """
         Delete AWS CVO
         """
-        api_url = '%s/occm/api/vsa/working-environments/%s' % (Cloud_Manager_Host, we_id)
+        if self.parameters['is_ha'] is True:
+            base_url = '/occm/api/aws/ha/working-environments'
+        else:
+            base_url = '/occm/api/vsa/working-environments'
+
+        api_url = '%s%s/%s' % (Cloud_Manager_Host, base_url, we_id)
         response, error, on_cloud_request_id = self.rest_api.delete(api_url, None, header=self.headers)
         if error is not None:
             self.module.fail_json(msg="Error: unexpected response on deleting cvo aws: %s, %s" % (str(error), str(response)))
@@ -547,6 +720,11 @@ class NetAppCloudManagerCVOAWS:
         if (self.parameters.get('iops') is None and self.parameters['ebs_volume_type'] == "io1")\
                 or (self.parameters.get('iops') is not None and self.parameters['ebs_volume_type'] != "io1"):
             self.module.fail_json(msg="iops parameter required when having ebs_volume_type as io1")
+
+        if self.parameters['is_ha'] is True and self.parameters['license_type'] == "ha-cot-premium-byol":
+            if self.parameters.get('platform_serial_number_node1') is None or self.parameters.get('platform_serial_number_node2') is None:
+                self.module.fail_json(msg="both platform_serial_number_node1 and platform_serial_number_node2 parameters are required"
+                                          "when having ha type as true and license_type as ha-cot-premium-byol")
 
     def apply(self):
         """

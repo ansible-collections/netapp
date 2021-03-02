@@ -126,6 +126,8 @@ class CloudManagerRestAPI(object):
                 return response.content, str(status_code), on_cloud_request_id
             # If the response was successful, no Exception will be raised
             json_dict, json_error = get_json(response)
+            if response.headers.get('OnCloud-Request-Id', '') != '':
+                on_cloud_request_id = response.headers.get('OnCloud-Request-Id')
         except requests.exceptions.HTTPError as err:
             __, json_error = get_json(response)
             if json_error is None:
@@ -137,8 +139,6 @@ class CloudManagerRestAPI(object):
             error_details = str(err)
         if json_error is not None:
             error_details = json_error
-        if response.headers.get('OnCloud-Request-Id', '') != '':
-            on_cloud_request_id = response.headers.get('OnCloud-Request-Id')
         return json_dict, error_details, on_cloud_request_id
 
     # If an error was reported in the json payload, it is handled below
