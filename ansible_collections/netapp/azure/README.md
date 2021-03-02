@@ -32,8 +32,12 @@ Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 
 ## 21.3.0
 
+### New Options
+  - azure_rm_netapp_account - new suboptions `ad_name`, `kdc_ip`, `service_root_ca_certificate` for Active Directory.
+
 ### Bug Fixes
   - support for azure-mgmt-netapp 1.0.0, while maintaining compatibility with 0.10.0.
+  - azure_rm_netapp_account - wait for job completion for asynchroneous requests, and report belated errors.
 
 ## 21.2.0
 

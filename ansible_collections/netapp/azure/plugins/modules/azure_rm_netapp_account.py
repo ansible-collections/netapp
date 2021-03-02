@@ -87,6 +87,20 @@ options:
         ldap_signing:
           description: Specifies whether or not the LDAP traffic needs to be signed.
           type: bool
+        ad_name:
+          description: Name of the active directory machine.  Used only while creating kerberos volume.
+          type: str
+          version_added: 21.3.0
+        kdc_ip:
+          description: kdc server IP addresses for the active directory machine.  Used only while creating kerberos volume.
+          type: str
+          version_added: 21.3.0
+        server_root_ca_certificate:
+          description:
+            - When LDAP over SSL/TLS is enabled, the LDAP client is required to have base64 encoded Active Directory Certificate Service's
+              self-signed root CA certificate, this optional parameter is used only for dual protocol with LDAP user-mapping volumes.
+          type: str
+          version_added: 21.3.0
     state:
         description:
             - State C(present) will check that the NetApp account exists with the requested configuration.
@@ -195,6 +209,9 @@ class AzureRMNetAppAccount(AzureRMNetAppModuleBase):
                 password=dict(type='str', no_log=True),
                 aes_encryption=dict(type='bool'),
                 ldap_signing=dict(type='bool'),
+                ad_name=dict(type='str'),
+                kdc_ip=dict(type='str'),
+                server_root_ca_certificate=dict(type='str', no_log=True),
             )),
             debug=dict(type='bool', default=False)
         )
@@ -272,9 +289,11 @@ class AzureRMNetAppAccount(AzureRMNetAppModuleBase):
         """
         account_body = self.create_account_request_body()
         try:
-            self.get_method('accounts', 'create_or_update')(body=account_body,
-                                                            resource_group_name=self.parameters['resource_group'],
-                                                            account_name=self.parameters['name'])
+            response = self.get_method('accounts', 'create_or_update')(body=account_body,
+                                                                       resource_group_name=self.parameters['resource_group'],
+                                                                       account_name=self.parameters['name'])
+            while response.done() is not True:
+                response.result(10)
         except (CloudError, AzureError) as error:
             self.module.fail_json(msg='Error creating Azure NetApp account %s: %s'
                                   % (self.parameters['name'], to_native(error)),
@@ -287,9 +306,11 @@ class AzureRMNetAppAccount(AzureRMNetAppModuleBase):
         """
         account_body = self.create_account_request_body(modify)
         try:
-            self.get_method('accounts', 'update')(body=account_body,
-                                                  resource_group_name=self.parameters['resource_group'],
-                                                  account_name=self.parameters['name'])
+            response = self.get_method('accounts', 'update')(body=account_body,
+                                                             resource_group_name=self.parameters['resource_group'],
+                                                             account_name=self.parameters['name'])
+            while response.done() is not True:
+                response.result(10)
         except (CloudError, AzureError) as error:
             self.module.fail_json(msg='Error creating Azure NetApp account %s: %s'
                                   % (self.parameters['name'], to_native(error)),
@@ -301,8 +322,10 @@ class AzureRMNetAppAccount(AzureRMNetAppModuleBase):
             :return: None
         """
         try:
-            self.get_method('accounts', 'delete')(resource_group_name=self.parameters['resource_group'],
-                                                  account_name=self.parameters['name'])
+            response = self.get_method('accounts', 'delete')(resource_group_name=self.parameters['resource_group'],
+                                                             account_name=self.parameters['name'])
+            while response.done() is not True:
+                response.result(10)
         except (CloudError, AzureError) as error:
             self.module.fail_json(msg='Error deleting Azure NetApp account %s: %s'
                                   % (self.parameters['name'], to_native(error)),
