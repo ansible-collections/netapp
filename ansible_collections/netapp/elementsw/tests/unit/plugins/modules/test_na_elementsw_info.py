@@ -93,6 +93,22 @@ class MockSFConnection(object):
         account_list = self.Bunch(accounts=accounts)
         return account_list
 
+    def list_all_nodes(self, *args, **kwargs):  # pylint: disable=unused-argument
+        ''' build all_node list: all_node.name, all_node.all_node_id '''
+        self.record(repr(args), repr(kwargs))
+        all_nodes = list()
+        all_nodes.append({'id': 123})
+        all_node_list = self.Bunch(all_nodes=all_nodes)
+        return all_node_list
+
+    def list_drives(self, *args, **kwargs):  # pylint: disable=unused-argument
+        ''' build drive list: drive.name, drive.drive_id '''
+        self.record(repr(args), repr(kwargs))
+        drives = list()
+        drives.append({'id': 123})
+        drive_list = self.Bunch(drives=drives)
+        return drive_list
+
     def get_config(self, *args, **kwargs):  # pylint: disable=unused-argument
         self.record(repr(args), repr(kwargs))
         if self.force_error and self.where == 'get_config_exception':

@@ -141,10 +141,58 @@ options:
         - Provisioned IOPS. Needed only when provider_volume_type is "io1".
         type: int
 
+    volume_protocol:
+        description:
+        - The protocol for the volume. This affects the provided parameters.
+        choices: ['nfs', 'cifs', 'iscsi']
+        type: str
+        default: 'nfs'
+
+    share_name:
+        description:
+        - Share name. (CIFS protocol parameters)
+        type: str
+
+    permission:
+        description:
+        - CIFS share permission type. (CIFS protocol parameters)
+        type: str
+
+    users:
+        description:
+        - List of users with the permission. (CIFS protocol parameters)
+        type: list
+        elements: str
+
+    igroups:
+        description:
+        - List of igroups. (iSCSI protocol parameters)
+        type: list
+        elements: str
+
+    os_name:
+        description:
+        - Operating system. (iSCSI protocol parameters)
+        type: str
+
+    initiators:
+        description:
+        - Set of attributes of Initiators. (iSCSI protocol parameters)
+        type: list
+        elements: dict
+        suboptions:
+          iqn:
+            description: The initiator node name.
+            required: true
+            type: str
+          alias:
+            description: The alias which associates with the node.
+            required: true
+            type: str
 '''
 
 EXAMPLES = '''
-    - name: create volume with working_environment_name
+    - name: create nfs volume with working_environment_name
       na_cloudmanager_volume:
         state: present
         name: test_vol
@@ -201,7 +249,17 @@ class NetAppCloudmanagerVolume(object):
             export_policy_type=dict(required=False, type='str'),
             export_policy_ip=dict(required=False, type='list', elements='str'),
             export_policy_nfs_version=dict(required=False, type='list', elements='str'),
-            iops=dict(required=False, type='int')
+            iops=dict(required=False, type='int'),
+            volume_protocol=dict(required=False, type='str', choices=['nfs', 'cifs', 'iscsi'], default='nfs'),
+            share_name=dict(required=False, type='str'),
+            permission=dict(required=False, type='str'),
+            users=dict(required=False, type='list', elements='str'),
+            igroups=dict(required=False, type='list', elements='str'),
+            os_name=dict(required=False, type='str'),
+            initiators=dict(required=False, type='list', elements='dict', options=dict(
+                alias=dict(required=True, type='str'),
+                iqn=dict(required=True, type='str'),)),
+
         ))
         self.module = AnsibleModule(
             argument_spec=self.argument_spec,
@@ -223,17 +281,73 @@ class NetAppCloudmanagerVolume(object):
             working_environment_detail, error = self.na_helper.get_working_environment_details_by_name(self.rest_api)
         if working_environment_detail is not None:
             self.parameters['working_environment_id'] = working_environment_detail['publicId']
-            if self.parameters.get('svm_name') is None:
-                self.parameters['svm_name'] = working_environment_detail['svmName']
         else:
             self.module.fail_json(msg="Error: Cannot find working environment: %s" % str(error))
         self.na_helper.set_api_root_path(working_environment_detail, self.rest_api)
+
+        if self.parameters.get('svm_name') is None:
+            headers = {
+                'X-Agent-Id': self.parameters['client_id'] + "clients"
+            }
+            response, err, dummy = self.rest_api.send_request("GET", "%s/working-environments/%s" % (
+                self.rest_api.api_root_path, self.parameters['working_environment_id']), None, None, header=headers)
+            self.parameters['svm_name'] = response['svmName']
+
+        if self.parameters['volume_protocol'] == 'nfs':
+            extra_options = []
+            for option in ['share_name', 'permission', 'users', 'igroups', 'os_name', 'initiator']:
+                if self.parameters.get(option) is not None:
+                    extra_options.append(option)
+            if len(extra_options) > 0:
+                self.module.fail_json(msg="Error: The following options are not allowed when volume_protocol is nfs: "
+                                          " %s" % extra_options)
+        elif self.parameters['volume_protocol'] == 'cifs':
+            extra_options = []
+            for option in ['export_policy_type', 'export_policy_ip', 'export_policy_nfs_version', 'igroups', 'os_name', 'initiator']:
+                if self.parameters.get(option) is not None:
+                    extra_options.append(option)
+            if len(extra_options) > 0:
+                self.module.fail_json(msg="Error: The following options are not allowed when volume_protocol is cifs: "
+                                          "%s" % extra_options)
+        else:
+            extra_options = []
+            for option in ['export_policy_type', 'export_policy_ip', 'export_policy_nfs_version', 'share_name', 'permission', 'users']:
+                if self.parameters.get(option) is not None:
+                    extra_options.append(option)
+            if len(extra_options) > 0:
+                self.module.fail_json(msg="Error: The following options are not allowed when volume_protocol is iscsi: "
+                                          "%s" % extra_options)
 
         if self.parameters.get('capacity_tier') == 'S3' and not self.parameters.get('tiering_policy'):
             self.module.fail_json(msg="Error: tiering policy is required when capacity tier is S3")
 
         if self.parameters.get('provider_volume_type') and not self.parameters.get('iops'):
             self.module.fail_json(msg="Error: iops is required when provider_volume_type is io1")
+
+        if self.parameters.get('igroups'):
+            current_igroups = []
+            for igroup in self.parameters['igroups']:
+                current = self.get_igroup(igroup)
+                current_igroups.append(current)
+            if any(isinstance(x, dict) for x in current_igroups) and None in current_igroups:
+                self.module.fail_json(changed=False, msg="Error: can not specify existing"
+                                                         "igroup and new igroup togther.")
+            if len(current_igroups) > 1 and None in current_igroups:
+                self.module.fail_json(changed=False, msg="Error: can not create more than one igroups.")
+            if current_igroups[0] is None:
+                if self.parameters.get('initiators') is None:
+                    self.module.fail_json(changed=False, msg="Error: initiator is required when creating new igroup.")
+
+        if self.parameters.get('users'):
+            # When creating volume, 'Everyone' must have upper case E, 'everyone' will not work.
+            # When modifying volume, 'everyone' is fine.
+            new_users = []
+            for user in self.parameters['users']:
+                if user.lower() == 'everyone':
+                    new_users.append('Everyone')
+                else:
+                    new_users.append(user)
+            self.parameters['users'] = new_users
 
     def get_volume(self):
         headers = {
@@ -262,10 +376,26 @@ class NetAppCloudmanagerVolume(object):
                     target_vol['snapshot_policy'] = volume['snapshotPolicy']
                 if self.parameters.get('provider_volume_type'):
                     target_vol['provider_volume_type'] = volume['providerVolumeType']
-                if self.parameters.get('capacity_tier'):
+                if self.parameters.get('capacity_tier') and self.parameters.get('capacity_tier') != 'NONE':
                     target_vol['capacity_tier'] = volume['capacityTier']
                 if self.parameters.get('tiering_policy'):
                     target_vol['tiering_policy'] = volume['tieringPolicy']
+                if self.parameters.get('share_name') and volume.get('shareInfo'):
+                    target_vol['share_name'] = volume['shareInfo'][0]['shareName']
+                if self.parameters.get('users') and volume.get('shareInfo'):
+                    if len(volume['shareInfo'][0]['accessControlList']) > 0:
+                        target_vol['users'] = volume['shareInfo'][0]['accessControlList'][0]['users']
+                    else:
+                        target_vol['users'] = []
+                if self.parameters.get('users') and volume.get('shareInfo'):
+                    if len(volume['shareInfo'][0]['accessControlList']) > 0:
+                        target_vol['permission'] = volume['shareInfo'][0]['accessControlList'][0]['permission']
+                    else:
+                        target_vol['permission'] = []
+                if self.parameters.get('os_name') and volume.get('iscsiInfo'):
+                    target_vol['os_name'] = volume['iscsiInfo']['osName']
+                if self.parameters.get('igroups') and volume.get('iscsiInfo'):
+                    target_vol['igroups'] = volume['iscsiInfo']['igroups']
                 return target_vol
         return None
 
@@ -281,25 +411,38 @@ class NetAppCloudmanagerVolume(object):
         quote['size'] = {'size': self.parameters['size'], 'unit': self.parameters['size_unit']}
         if self.parameters.get('aggregate_name'):
             quote['aggregateName'] = self.parameters['aggregate_name']
-        response, err, dummy = self.rest_api.send_request("POST", "%s/volumes/quote" % self.rest_api.api_root_path, None,
-                                                          quote, header=headers)
+
+        if self.parameters['volume_protocol'] == 'nfs':
+            quote['exportPolicyInfo'] = dict()
+            if self.parameters.get('export_policy_type'):
+                quote['exportPolicyInfo']['policyType'] = self.parameters['export_policy_type']
+            if self.parameters.get('export_policy_ip'):
+                quote['exportPolicyInfo']['ips'] = self.parameters['export_policy_ip']
+            if self.parameters.get('export_policy_nfs_version'):
+                quote['exportPolicyInfo']['nfsVersion'] = self.parameters['export_policy_nfs_version']
+        elif self.parameters['volume_protocol'] == 'iscsi':
+            iscsi_info = self.iscsi_volume_helper()
+            quote.update(iscsi_info)
+        else:
+            quote['shareInfo'] = dict()
+            quote['shareInfo']['accessControl'] = dict()
+            quote['shareInfo']['accessControl']['users'] = self.parameters['users']
+            if self.parameters.get('permission'):
+                quote['shareInfo']['accessControl']['permission'] = self.parameters['permission']
+            if self.parameters.get('share_name'):
+                quote['shareInfo']['shareName'] = self.parameters['share_name']
+        response, err, dummy = self.rest_api.send_request("POST", "%s/volumes/quote" % self.rest_api.api_root_path,
+                                                          None, quote, header=headers)
         if err is not None:
             self.module.fail_json(changed=False, msg=err)
         quote['aggregateName'] = response['aggregateName']
         quote['maxNumOfDisksApprovedToAdd'] = response['numOfDisks']
-        quote['exportPolicyInfo'] = dict()
         if self.parameters.get('enable_deduplication'):
             quote['deduplication'] = self.parameters.get('enable_deduplication')
         if self.parameters.get('enable_thin_provisioning'):
             quote['thinProvisioning'] = self.parameters.get('enable_thin_provisioning')
         if self.parameters.get('enable_compression'):
             quote['compression'] = self.parameters.get('enable_compression')
-        if self.parameters.get('export_policy_type'):
-            quote['exportPolicyInfo']['policyType'] = self.parameters['export_policy_type']
-        if self.parameters.get('export_policy_ip'):
-            quote['exportPolicyInfo']['ips'] = self.parameters['export_policy_ip']
-        if self.parameters.get('export_policy_nfs_version'):
-            quote['exportPolicyInfo']['nfsVersion'] = self.parameters['export_policy_nfs_version']
         if self.parameters.get('snapshot_policy_name'):
             quote['snapshotPolicy'] = self.parameters['snapshot_policy_name']
         if self.parameters.get('capacity_tier') and self.parameters['capacity_tier'] != "NONE":
@@ -310,8 +453,12 @@ class NetAppCloudmanagerVolume(object):
             quote['providerVolumeType'] = self.parameters['provider_volume_type']
         if self.parameters.get('iops'):
             quote['iops'] = self.parameters.get('iops')
-        response, err, dummy = self.rest_api.send_request("POST", "%s/volumes?createAggregateIfNotFound=%s" % (
+        response, err, on_cloud_request_id = self.rest_api.send_request("POST", "%s/volumes?createAggregateIfNotFound=%s" % (
             self.rest_api.api_root_path, True), None, quote, header=headers)
+        if err is not None:
+            self.module.fail_json(changed=False, msg=err)
+        wait_on_completion_api_url = '/occm/api/audit/activeTask/%s' % (str(on_cloud_request_id))
+        err = self.rest_api.wait_on_completion(wait_on_completion_api_url, "volume", "create", 20, 5)
         if err is not None:
             self.module.fail_json(changed=False, msg=err)
 
@@ -320,17 +467,28 @@ class NetAppCloudmanagerVolume(object):
             'X-Agent-Id': self.parameters['client_id'] + "clients"
         }
         vol = dict()
-        export_policy_info = dict()
-        if self.parameters.get('export_policy_type'):
-            export_policy_info['policyType'] = self.parameters['export_policy_type']
-        if self.parameters.get('export_policy_ip'):
-            export_policy_info['ips'] = self.parameters['export_policy_ip']
-        if self.parameters.get('export_policy_nfs_version'):
-            export_policy_info['nfsVersion'] = self.parameters['export_policy_nfs_version']
-        vol['exportPolicyInfo'] = export_policy_info
+        if self.parameters['volume_protocol'] == 'nfs':
+            export_policy_info = dict()
+            if self.parameters.get('export_policy_type'):
+                export_policy_info['policyType'] = self.parameters['export_policy_type']
+            if self.parameters.get('export_policy_ip'):
+                export_policy_info['ips'] = self.parameters['export_policy_ip']
+            if self.parameters.get('export_policy_nfs_version'):
+                export_policy_info['nfsVersion'] = self.parameters['export_policy_nfs_version']
+            vol['exportPolicyInfo'] = export_policy_info
+        elif self.parameters['volume_protocol'] == 'cifs':
+            vol['shareInfo'] = dict()
+            vol['shareInfo']['accessControlList'] = []
+            vol['shareInfo']['accessControlList'].append(dict())
+            if self.parameters.get('users'):
+                vol['shareInfo']['accessControlList'][0]['users'] = self.parameters['users']
+            if self.parameters.get('permission'):
+                vol['shareInfo']['accessControlList'][0]['permission'] = self.parameters['permission']
+            if self.parameters.get('share_name'):
+                vol['shareInfo']['shareName'] = self.parameters['share_name']
         if modify.get('snapshot_policy_name'):
             vol['snapshotPolicyName'] = self.parameters.get('snapshot_policy_name')
-        dummy, err, dummy = self.rest_api.send_request("PUT", "%s/volumes/%s/%s/%s" % (
+        dummy, err, dummy_second = self.rest_api.send_request("PUT", "%s/volumes/%s/%s/%s" % (
             self.rest_api.api_root_path, self.parameters['working_environment_id'], self.parameters['svm_name'],
             self.parameters['name']), None, vol, header=headers)
         if err is not None:
@@ -340,11 +498,93 @@ class NetAppCloudmanagerVolume(object):
         headers = {
             'X-Agent-Id': self.parameters['client_id'] + "clients"
         }
-        dummy, err, dummy = self.rest_api.send_request("DELETE", "%s/volumes/%s/%s/%s" % (
+        dummy, err, dummy_second = self.rest_api.send_request("DELETE", "%s/volumes/%s/%s/%s" % (
             self.rest_api.api_root_path, self.parameters['working_environment_id'], self.parameters['svm_name'],
             self.parameters['name']), None, None, header=headers)
         if err is not None:
             self.module.fail_json(changed=False, msg=err)
+
+    def get_initiator(self, alias_name):
+        headers = {
+            'X-Agent-Id': self.parameters['client_id'] + "clients"
+        }
+        response, err, dummy_second = self.rest_api.send_request("GET", "%s/volumes/initiator" % (
+            self.rest_api.api_root_path), None, header=headers)
+        if err is not None:
+            self.module.fail_json(changed=False, msg=err)
+        result = dict()
+        if response is None:
+            return None
+        for initiator in response:
+            if initiator.get('aliasName') and initiator.get('aliasName') == alias_name:
+                result['alias'] = initiator.get('aliasName')
+                result['iqn'] = initiator.get('iqn')
+                return result
+        return None
+
+    def create_initiator(self, initiator):
+        ini = self.na_helper.convert_module_args_to_api(initiator)
+        headers = {
+            'X-Agent-Id': self.parameters['client_id'] + "clients"
+        }
+        response, err, dummy_second = self.rest_api.send_request("POST", "%s/volumes/initiator" % (
+            self.rest_api.api_root_path), None, ini, header=headers)
+        if err is not None:
+            self.module.fail_json(changed=False, msg=err)
+
+    def get_igroup(self, igroup_name):
+        headers = {
+            'X-Agent-Id': self.parameters['client_id'] + "clients"
+        }
+        response, err, dummy_second = self.rest_api.send_request("GET", "%s/volumes/igroups/%s/%s" % (
+            self.rest_api.api_root_path, self.parameters['working_environment_id'], self.parameters['svm_name']),
+            None, None, header=headers)
+        if err is not None:
+            self.module.fail_json(changed=False, msg=err)
+        result = dict()
+        if response is None:
+            return None
+        for igroup in response:
+            if igroup['igroupName'] == igroup_name:
+                result['igroup_name'] = igroup['igroupName']
+                result['os_type'] = igroup['osType']
+                result['portset_name'] = igroup['portsetName']
+                result['igroup_type'] = igroup['igroupType']
+                result['initiators'] = igroup['initiators']
+                return result
+        return None
+
+    def iscsi_volume_helper(self):
+        quote = dict()
+        quote['iscsiInfo'] = dict()
+        if self.parameters.get('igroups'):
+            current_igroups = []
+            for igroup in self.parameters['igroups']:
+                current = self.get_igroup(igroup)
+                current_igroups.append(current)
+            for igroup in current_igroups:
+                if igroup is None:
+                    quote['iscsiInfo']['igroupCreationRequest'] = dict()
+                    quote['iscsiInfo']['igroupCreationRequest']['igroupName'] = self.parameters['igroups'][0]
+                    iqn_list = []
+                    for initiator in self.parameters['initiators']:
+                        if initiator.get('iqn'):
+                            iqn_list.append(initiator['iqn'])
+                            current_initiator = self.get_initiator(initiator['alias'])
+                            if current_initiator is None:
+                                initiator_request = dict()
+                                if initiator.get('alias'):
+                                    initiator_request['aliasName'] = initiator['alias']
+                                if initiator.get('iqn'):
+                                    initiator_request['iqn'] = initiator['iqn']
+                                self.create_initiator(initiator_request)
+                        quote['iscsiInfo']['igroupCreationRequest']['initiators'] = iqn_list
+                        quote['iscsiInfo']['osName'] = self.parameters['os_name']
+
+                else:
+                    quote['iscsiInfo']['igroups'] = self.parameters['igroups']
+                    quote['iscsiInfo']['osName'] = self.parameters['os_name']
+        return quote
 
     def apply(self):
         current = self.get_volume()
@@ -354,7 +594,8 @@ class NetAppCloudmanagerVolume(object):
             modify = self.na_helper.get_modified_attributes(current, self.parameters)
             unmodifiable = []
             for attr in modify:
-                if attr not in ['export_policy_ip', 'export_policy_nfs_version', 'snapshot_policy_name']:
+                if attr not in ['export_policy_ip', 'export_policy_nfs_version', 'snapshot_policy_name', 'users',
+                                'permission']:
                     unmodifiable.append(attr)
             if len(unmodifiable) > 0:
                 self.module.fail_json(changed=False, msg="%s can't be modified." % str(unmodifiable))
