@@ -50,6 +50,9 @@ SF_BYTE_MAP = dict(
     yb=1000 ** 8
 )
 
+# uncomment this to log API calls
+# import logging
+
 try:
     from solidfire.factory import ElementFactory
     import solidfire.common
@@ -57,7 +60,7 @@ try:
 except ImportError:
     HAS_SF_SDK = False
 
-COLLECTION_VERSION = "20.11.0"
+COLLECTION_VERSION = "21.3.0"
 
 
 def has_sf_sdk():
@@ -86,6 +89,12 @@ def create_sf_connection(module, hostname=None, port=None, raise_on_connection_e
 
     if not HAS_SF_SDK:
         module.fail_json(msg="the python SolidFire SDK module is required")
+
+    try:
+        logging.basicConfig(filename='/tmp/elementsw_apis.log', level=logging.DEBUG, format='%(asctime)s %(levelname)-8s %(message)s')
+    except NameError:
+        # logging was not imported
+        pass
 
     try:
         return_val = ElementFactory.create(hostname, username, password, **options)

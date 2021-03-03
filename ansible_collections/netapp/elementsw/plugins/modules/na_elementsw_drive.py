@@ -59,11 +59,13 @@ options:
     force_during_upgrade:
         description:
         - Flag to force drive operation during upgrade.
+        - Not supported with latest version of SolidFire SDK (1.7.0.152)
         type: 'bool'
 
     force_during_bin_sync:
         description:
         - Flag to force during a bin sync operation.
+        - Not supported with latest version of SolidFire SDK (1.7.0.152)
         type: 'bool'
 '''
 
@@ -274,10 +276,13 @@ class ElementSWDrive(object):
         """
         Add Drive available for Cluster storage expansion
         """
+        kwargs = dict()
+        if self.force_during_upgrade is not None:
+            kwargs['force_during_upgrade'] = self.force_during_upgrade
+        if self.force_during_bin_sync is not None:
+            kwargs['force_during_bin_sync'] = self.force_during_bin_sync
         try:
-            self.sfe.add_drives(drives,
-                                force_during_upgrade=self.force_during_upgrade,
-                                force_during_bin_sync=self.force_during_bin_sync)
+            self.sfe.add_drives(drives, **kwargs)
         except Exception as exception_object:
             self.module.fail_json(msg='Error adding drive%s: %s: %s' %
                                   ('s' if len(drives) > 1 else '',
@@ -289,9 +294,11 @@ class ElementSWDrive(object):
         """
         Remove Drive active in Cluster
         """
+        kwargs = dict()
+        if self.force_during_upgrade is not None:
+            kwargs['force_during_upgrade'] = self.force_during_upgrade
         try:
-            self.sfe.remove_drives(drives,
-                                   force_during_upgrade=self.force_during_upgrade)
+            self.sfe.remove_drives(drives, **kwargs)
         except Exception as exception_object:
             self.module.fail_json(msg='Error removing drive%s: %s: %s' %
                                   ('s' if len(drives) > 1 else '',

@@ -33,7 +33,7 @@ options:
     description:
       - list of subsets to gather from target cluster or node
       - supported values
-      - node_config, cluster_accounts
+      - node_config, cluster_accounts, cluster_nodes, cluster_drives.
       - additional values
       - all - for all subsets,
       - all_clusters - all subsets at cluster scope,
@@ -164,7 +164,9 @@ class ElementSWInfo(object):
         )
         # TODO: add new cluster methods here
         self.cluster_methods = dict(
-            cluster_accounts=self.sfe_cluster.list_accounts
+            cluster_accounts=self.sfe_cluster.list_accounts,
+            cluster_drives=self.sfe_cluster.list_drives,
+            cluster_nodes=self.sfe_cluster.list_all_nodes
         )
         self.methods = dict(self.node_methods)
         self.methods.update(self.cluster_methods)
@@ -187,7 +189,8 @@ class ElementSWInfo(object):
             info = self.methods[name]()
             return info.to_json()
         except netapp_utils.solidfire.common.ApiServerError as exc:
-            if 'err_json=500 xUnknownAPIMethod  method=' in str(exc):
+            # the new SDK rearranged the fields in a different order
+            if all(x in str(exc) for x in ('err_json', '500', 'xUnknownAPIMethod', 'method=')):
                 info = 'Error (API not in scope?)'
             else:
                 info = 'Error'

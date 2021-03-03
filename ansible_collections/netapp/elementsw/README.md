@@ -19,6 +19,14 @@ Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 
 # Release Notes
 
+## 21.3.0
+
+### Minor changes
+- na_elementsw_info - add `cluster_nodes` and `cluster_drives`.
+
+### Bug Fixes
+- na_elementsw_drive - latest SDK does not accept ``force_during_bin_sync`` and ``force_during_upgrade``.
+
 ## 20.11.0
 
 ### Minor changes
