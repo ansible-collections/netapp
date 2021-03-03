@@ -21,11 +21,15 @@ Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 
 ## 21.3.0
 
+### New Options
+  - na_elementsw_qos_policy: explicitly define `minIOPS`, `maxIOPS`, `burstIOPS` as int.
+
 ### Minor changes
-- na_elementsw_info - add `cluster_nodes` and `cluster_drives`.
+  - na_elementsw_info - add `cluster_nodes` and `cluster_drives`.
 
 ### Bug Fixes
-- na_elementsw_drive - latest SDK does not accept ``force_during_bin_sync`` and ``force_during_upgrade``.
+  - na_elementsw_drive - latest SDK does not accept ``force_during_bin_sync`` and ``force_during_upgrade``.
+  - na_elementsw_qos_policy: loop would convert `minIOPS`, `maxIOPS`, `burstIOPS` to str, causing type mismatch issues in comparisons.
 
 ## 20.11.0
 

@@ -50,10 +50,28 @@ options:
 
     qos:
         description:
-        - The quality of service (QQOS) for the policy.
-        - Required for create
-        - Supported keys are minIOPS, maxIOPS, burstIOPS
+          - The quality of service (QQOS) for the policy.
+          - Required for create
+          - Supported keys are minIOPS, maxIOPS, burstIOPS
         type: dict
+        suboptions:
+          minIOPS:
+            description: The minimum number of IOPS guaranteed for the volume.
+            type: int
+            version_added: 21.3.0
+          maxIOPS:
+            description: The maximum number of IOPS allowed for the volume.
+            type: int
+            version_added: 21.3.0
+          burstIOPS:
+            description: The maximum number of IOPS allowed over a short period of time for the volume.
+            type: int
+            version_added: 21.3.0
+    debug:
+        description: report additional information when set to true.
+        type: bool
+        default: false
+        version_added: 21.3.0
 '''
 
 EXAMPLES = """
@@ -125,7 +143,12 @@ class ElementSWQosPolicy(object):
             state=dict(required=False, type='str', choices=['present', 'absent'], default='present'),
             name=dict(required=True, type='str'),
             from_name=dict(required=False, type='str'),
-            qos=dict(required=False, type='dict'),
+            qos=dict(required=False, type='dict', options=dict(
+                minIOPS=dict(type='int'),
+                maxIOPS=dict(type='int'),
+                burstIOPS=dict(type='int'),
+            )),
+            debug=dict(required=False, type='bool', default=False)
         ))
 
         self.module = AnsibleModule(
@@ -137,6 +160,7 @@ class ElementSWQosPolicy(object):
         self.na_helper = NetAppModule()
         self.parameters = self.na_helper.set_parameters(self.module.params)
         self.qos_policy_id = None
+        self.debug = dict()
 
         if HAS_SF_SDK is False:
             self.module.fail_json(msg="Unable to import the SolidFire Python SDK")
@@ -155,6 +179,7 @@ class ElementSWQosPolicy(object):
         policy, error = self.elementsw_helper.get_qos_policy(name)
         if error is not None:
             self.module.fail_json(msg=error, exception=traceback.format_exc())
+        self.debug['current_policy'] = policy
         return policy
 
     def create_qos_policy(self, name, qos):
@@ -215,6 +240,7 @@ class ElementSWQosPolicy(object):
             modify = self.na_helper.get_modified_attributes(from_qos_policy, self.parameters)
         if cd_action == 'create' and 'qos' not in self.parameters:
             self.module.fail_json(msg="Error creating qos policy: %s, 'qos:' option is required" % self.parameters['name'])
+        self.debug['modify'] = modify
 
         if not self.module.check_mode:
             if cd_action == 'create':
@@ -226,7 +252,10 @@ class ElementSWQosPolicy(object):
             elif modify:
                 self.update_qos_policy(qos_policy_id, modify)
 
-        self.module.exit_json(changed=self.na_helper.changed)
+        results = dict(changed=self.na_helper.changed)
+        if self.parameters['debug']:
+            results['debug'] = self.debug
+        self.module.exit_json(**results)
 
 
 def main():
