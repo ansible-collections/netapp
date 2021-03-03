@@ -29,7 +29,8 @@ Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 
 ### Bug Fixes
   - na_elementsw_drive - latest SDK does not accept ``force_during_bin_sync`` and ``force_during_upgrade``.
-  - na_elementsw_qos_policy: loop would convert `minIOPS`, `maxIOPS`, `burstIOPS` to str, causing type mismatch issues in comparisons.
+  - na_elementsw_qos_policy - loop would convert `minIOPS`, `maxIOPS`, `burstIOPS` to str, causing type mismatch issues in comparisons.
+  - na_elementsw_snapshot_schedule - change of interface in SDK ('ScheduleInfo' object has no attribute 'minutes')
 
 ## 20.11.0
 

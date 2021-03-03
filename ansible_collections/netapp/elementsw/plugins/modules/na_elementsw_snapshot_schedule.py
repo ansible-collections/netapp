@@ -189,11 +189,19 @@ from ansible_collections.netapp.elementsw.plugins.module_utils.netapp_elementsw_
 HAS_SF_SDK = netapp_utils.has_sf_sdk()
 try:
     from solidfire.custom.models import DaysOfWeekFrequency, Weekday, DaysOfMonthFrequency
-    from solidfire.common import ApiServerError
+    from solidfire.common import ApiConnectionError, ApiServerError
     from solidfire.custom.models import TimeIntervalFrequency
     from solidfire.models import Schedule, ScheduleInfo
 except ImportError:
     HAS_SF_SDK = False
+
+try:
+    # Hack to see if we we have the 1.7 version of the SDK, or later
+    from solidfire.common.model import VER3
+    HAS_SF_SDK_1_7 = True
+    del VER3
+except ImportError:
+    HAS_SF_SDK_1_7 = False
 
 
 class ElementSWSnapShotSchedule(object):
@@ -397,16 +405,18 @@ class ElementSWSnapShotSchedule(object):
                 snapshot_name=self.snapshot_name,
                 retention=self.retention
             )
-
-            sched = Schedule(schedule_info, name, frequency)
+            if HAS_SF_SDK_1_7:
+                sched = Schedule(frequency, name, schedule_info)
+            else:
+                sched = Schedule(schedule_info, name, frequency)
             sched.paused = self.paused
             sched.recurring = self.recurring
             sched.starting_date = self.starting_date
 
             self.create_schedule_result = self.sfe.create_schedule(sched)
 
-        except Exception as e:
-            self.module.fail_json(msg='Error creating schedule %s: %s' % (self.name, to_native(e)),
+        except (ApiServerError, ApiConnectionError) as exc:
+            self.module.fail_json(msg='Error creating schedule %s: %s' % (self.name, to_native(exc)),
                                   exception=traceback.format_exc())
 
     def delete_schedule(self, schedule_id):
@@ -417,8 +427,8 @@ class ElementSWSnapShotSchedule(object):
             sched.to_be_deleted = True
             self.sfe.modify_schedule(schedule=sched)
 
-        except Exception as e:
-            self.module.fail_json(msg='Error deleting schedule %s: %s' % (self.name, to_native(e)),
+        except (ApiServerError, ApiConnectionError) as exc:
+            self.module.fail_json(msg='Error deleting schedule %s: %s' % (self.name, to_native(exc)),
                                   exception=traceback.format_exc())
 
     def update_schedule(self, schedule_id):
@@ -447,8 +457,8 @@ class ElementSWSnapShotSchedule(object):
             # Make API call
             self.sfe.modify_schedule(schedule=sched)
 
-        except Exception as e:
-            self.module.fail_json(msg='Error updating schedule %s: %s' % (self.name, to_native(e)),
+        except (ApiServerError, ApiConnectionError) as exc:
+            self.module.fail_json(msg='Error updating schedule %s: %s' % (self.name, to_native(exc)),
                                   exception=traceback.format_exc())
 
     def apply(self):
@@ -496,8 +506,8 @@ class ElementSWSnapShotSchedule(object):
                     update_schedule = True
                     changed = True
                 elif self.volumes is not None and len(self.volumes) > 0:
-                    for volumeID in schedule_detail.schedule_info.volume_ids:
-                        if volumeID not in self.volumes:
+                    for volume_id in schedule_detail.schedule_info.volume_ids:
+                        if volume_id not in self.volumes:
                             update_schedule = True
                             changed = True
 
@@ -568,8 +578,8 @@ class ElementSWSnapShotSchedule(object):
 
 
 def main():
-    v = ElementSWSnapShotSchedule()
-    v.apply()
+    sss = ElementSWSnapShotSchedule()
+    sss.apply()
 
 
 if __name__ == '__main__':
