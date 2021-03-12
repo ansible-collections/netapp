@@ -1,1 +1,1 @@
-solidfire
+solidfire-sdk-python
