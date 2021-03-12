@@ -21,10 +21,14 @@ Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 
 # Release Notes
 
+## 21.4.0
+
+### New Modules
+  - na_cloudmanager_info: Gather Cloud Manager subset information using REST APIs. Support for two subsets `working_environments_info`, `aggregates_info`.
+
 ## 21.3.0
 
 ### New Modules
-
   - na_cloudmanager_aggregate: Create or delete an aggregate on Cloud Volumes ONTAP, or add disks on an aggregate.
   - na_cloudmanager_cifs_server: Create or delete CIFS server for Cloud Volumes ONTAP.
   - na_cloudmanager_connector_aws: Create or delete Cloud Manager connector for AWS.

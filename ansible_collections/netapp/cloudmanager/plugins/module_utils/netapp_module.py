@@ -119,6 +119,24 @@ class NetAppModule(object):
 
         return updated_values, is_changed
 
+    def get_working_environments_info(self, rest_api):
+        '''
+        Get all working environments info
+        '''
+        if rest_api.token is None:
+            rest_api.token_type, rest_api.token = rest_api.get_token()
+
+        headers = {
+            'X-Agent-Id': self.parameters['client_id'] + "clients"
+        }
+
+        api = "/occm/api/working-environments"
+        response, error, dummy = rest_api.get(api, None, header=headers)
+        if error is not None:
+            return None, error
+        else:
+            return response, None
+
     def look_up_working_environment_by_name_in_list(self, we_list):
         '''
         Look up working environment by the name in working environment list
