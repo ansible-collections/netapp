@@ -42,6 +42,7 @@ options:
       - Possible values for this argument include
       - 'working_environments_info'
       - 'aggregates_info'
+      - 'accounts_info'
     default: ['all']
 '''
 
@@ -102,21 +103,24 @@ class NetAppCloudmanagerInfo(object):
         # Calling generic rest_api class
         self.rest_api = CloudManagerRestAPI(self.module)
         self.rest_api.url += CM_API_URL
-        self.rest_api.token = self.rest_api.token_type = None
         self.rest_api.api_root_path = None
         self.methods = dict(
             working_environments_info=self.na_helper.get_working_environments_info,
-            aggregates_info=self.get_aggregates_info
+            aggregates_info=self.get_aggregates_info,
+            accounts_info=self.na_helper.get_accounts_info,
         )
+        self.headers = {
+            'X-Agent-Id': self.parameters['client_id'] + "clients"
+        }
 
-    def get_aggregates_info(self, rest_api):
+    def get_aggregates_info(self, rest_api, headers):
         '''
         Get aggregates info: there are 4 types of working environments.
         Each of the aggregates will be categorized by working environment type and working environment id
         '''
         aggregates = {}
         # get list of working environments
-        working_environments, error = self.na_helper.get_working_environments_info(rest_api)
+        working_environments, error = self.na_helper.get_working_environments_info(rest_api, headers)
         if error is not None:
             self.module.fail_json(msg="Error: Failed to get working environments: %s" % str(error))
         # Four types of working environments:
@@ -127,26 +131,23 @@ class NetAppCloudmanagerInfo(object):
             for we in working_environments[working_env_type]:
                 provider = we['cloudProviderName']
                 working_environment_id = we['publicId']
-                self.na_helper.set_api_root_path(we, self.rest_api)
+                self.na_helper.set_api_root_path(we, rest_api)
                 if provider != "Amazon":
-                    api = '%s/aggregates/%s' % (self.rest_api.api_root_path, working_environment_id)
+                    api = '%s/aggregates/%s' % (rest_api.api_root_path, working_environment_id)
                 else:
-                    api = '%s/aggregates?workingEnvironmentId=%s' % (self.rest_api.api_root_path, working_environment_id)
-                headers = {
-                    'X-Agent-Id': self.parameters['client_id'] + "clients"
-                }
-                response, error, dummy = self.rest_api.get(api, header=headers)
+                    api = '%s/aggregates?workingEnvironmentId=%s' % (rest_api.api_root_path, working_environment_id)
+                response, error, dummy = rest_api.get(api, None, header=headers)
                 if error:
                     self.module.fail_json(msg="Error: Failed to get aggregate list: %s" % str(error))
                 we_aggregates[working_environment_id] = response
             aggregates[working_env_type] = we_aggregates
         return aggregates
 
-    def get_info(self, func):
+    def get_info(self, func, rest_api):
         '''
         Main get info function
         '''
-        info = self.methods[func](self.rest_api)
+        info = self.methods[func](rest_api, self.headers)
         return info
 
     def apply(self):
@@ -155,12 +156,12 @@ class NetAppCloudmanagerInfo(object):
         :return: None
         '''
         info = dict()
-        function_list = ["working_environments_info", "aggregates_info"]
+        function_list = ["working_environments_info", "aggregates_info", "accounts_info"]
         if 'all' in self.parameters['gather_subsets']:
             self.parameters['gather_subsets'] = function_list
         for func in self.parameters['gather_subsets']:
             if func in function_list:
-                info[func] = self.get_info(func)
+                info[func] = self.get_info(func, self.rest_api)
             else:
                 msg = '%s is not a valid gather_subset. Only %s are allowed' % (func, function_list)
                 self.module.fail_json(msg=msg)

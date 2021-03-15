@@ -180,10 +180,13 @@ class NetAppCloudmanagerCifsServer:
         self.rest_api = netapp_utils.CloudManagerRestAPI(self.module)
         self.rest_api.token_type, self.rest_api.token = self.rest_api.get_token()
         self.rest_api.url += "cloudmanager.cloud.netapp.com"
+        self.headers = {
+            'X-Agent-Id': self.parameters['client_id'] + "clients"
+        }
         if self.parameters.get('working_environment_id'):
-            working_environment_detail, error = self.na_helper.get_working_environment_details(self.rest_api)
+            working_environment_detail, error = self.na_helper.get_working_environment_details(self.rest_api, self.headers)
         else:
-            working_environment_detail, error = self.na_helper.get_working_environment_details_by_name(self.rest_api)
+            working_environment_detail, error = self.na_helper.get_working_environment_details_by_name(self.rest_api, self.headers)
         if working_environment_detail is not None:
             self.parameters['working_environment_id'] = working_environment_detail['publicId']
         else:
@@ -191,11 +194,8 @@ class NetAppCloudmanagerCifsServer:
         self.na_helper.set_api_root_path(working_environment_detail, self.rest_api)
 
     def get_cifs_server(self):
-        headers = {
-            'X-Agent-Id': self.parameters['client_id'] + "clients"
-        }
         response, err, dummy = self.rest_api.send_request("GET", "%s/working-environments/%s/cifs" % (
-            self.rest_api.api_root_path, self.parameters['working_environment_id']), None, header=headers)
+            self.rest_api.api_root_path, self.parameters['working_environment_id']), None, header=self.headers)
         if err is not None:
             self.module.fail_json(changed=False, msg=err)
         current_cifs = dict()
@@ -226,23 +226,17 @@ class NetAppCloudmanagerCifsServer:
             server['activeDirectoryUsername'] = self.parameters['username']
         if self.parameters.get('password'):
             server['activeDirectoryPassword'] = self.parameters['password']
-        headers = {
-            'X-Agent-Id': self.parameters['client_id'] + "clients"
-        }
         url = "%s/working-environments/%s/cifs" % (self.rest_api.api_root_path,
                                                    self.parameters['working_environment_id'])
         if self.parameters.get('is_workgroup'):
             url = url + "workgroup"
-        response, err, dummy = self.rest_api.send_request("POST", url, None, server, header=headers)
+        response, err, dummy = self.rest_api.send_request("POST", url, None, server, header=self.headers)
         if err is not None:
             self.module.fail_json(changed=False, msg=err)
 
     def delete_cifs_server(self):
-        headers = {
-            'X-Agent-Id': self.parameters['client_id'] + "clients"
-        }
         response, err, dummy = self.rest_api.send_request("POST", "%s/working-environments/%s/delete-cifs" % (
-            self.rest_api.api_root_path, self.parameters['working_environment_id']), None, {}, header=headers)
+            self.rest_api.api_root_path, self.parameters['working_environment_id']), None, {}, header=self.headers)
         if err is not None:
             self.module.fail_json(changed=False, msg=err)
 

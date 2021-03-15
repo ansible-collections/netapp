@@ -24,7 +24,7 @@ Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 ## 21.4.0
 
 ### New Modules
-  - na_cloudmanager_info: Gather Cloud Manager subset information using REST APIs. Support for two subsets `working_environments_info`, `aggregates_info`.
+  - na_cloudmanager_info: Gather Cloud Manager subset information using REST APIs. Support for subsets `working_environments_info`, `aggregates_info`, `accounts_info`.
 
 ## 21.3.0
 

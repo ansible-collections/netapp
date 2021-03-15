@@ -119,17 +119,10 @@ class NetAppModule(object):
 
         return updated_values, is_changed
 
-    def get_working_environments_info(self, rest_api):
+    def get_working_environments_info(self, rest_api, headers):
         '''
         Get all working environments info
         '''
-        if rest_api.token is None:
-            rest_api.token_type, rest_api.token = rest_api.get_token()
-
-        headers = {
-            'X-Agent-Id': self.parameters['client_id'] + "clients"
-        }
-
         api = "/occm/api/working-environments"
         response, error, dummy = rest_api.get(api, None, header=headers)
         if error is not None:
@@ -146,7 +139,7 @@ class NetAppModule(object):
                 return we, None
         return None, "Not found"
 
-    def get_working_environment_details_by_name(self, rest_api):
+    def get_working_environment_details_by_name(self, rest_api, headers):
         '''
         Use working environment name to get working environment details including:
         name: working environment name,
@@ -155,14 +148,8 @@ class NetAppModule(object):
         isHA,
         svmName
         '''
-        if rest_api.token is None:
-            rest_api.token_type, rest_api.token = rest_api.get_token()
-
         # check the working environment exist or not
         api = "/occm/api/working-environments/exists/" + self.parameters['working_environment_name']
-        headers = {
-            'X-Agent-Id': self.parameters['client_id'] + "clients"
-        }
         response, error, dummy = rest_api.get(api, None, header=headers)
         if error is not None:
             return None, error
@@ -187,7 +174,7 @@ class NetAppModule(object):
             return working_environment_details, None
         return None, "Not found"
 
-    def get_working_environment_details(self, rest_api):
+    def get_working_environment_details(self, rest_api, headers):
         '''
         Use working environment id to get working environment details including:
         name: working environment name,
@@ -196,18 +183,23 @@ class NetAppModule(object):
         isHA,
         svmName
         '''
-        if rest_api.token is None:
-            rest_api.token_type, rest_api.token = rest_api.get_token()
-
         api = "/occm/api/working-environments/"
         api += self.parameters['working_environment_id']
-        headers = {
-            'X-Agent-Id': self.parameters['client_id'] + "clients"
-        }
         response, error, dummy = rest_api.get(api, None, header=headers)
         if error:
             return None, error
         return response, None
+
+    def get_accounts_info(self, rest_api, headers):
+        '''
+        Get all accounts info
+        '''
+        api = "/occm/api/accounts"
+        response, error, dummy = rest_api.get(api, None, header=headers)
+        if error is not None:
+            return None, error
+        else:
+            return response, None
 
     def set_api_root_path(self, working_environment_details, rest_api):
         provider = working_environment_details['cloudProviderName']

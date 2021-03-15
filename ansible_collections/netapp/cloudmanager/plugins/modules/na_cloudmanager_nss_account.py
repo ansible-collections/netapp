@@ -120,13 +120,13 @@ class NetAppCloudmanagerNssAccount(object):
         self.rest_api.token_type, self.rest_api.token = self.rest_api.get_token()
         self.rest_api.url += "cloudmanager.cloud.netapp.com"
         self.rest_api.api_root_path = '/occm/api/'
-
-    def get_nss_account(self):
-        headers = {
+        self.headers = {
             'X-Agent-Id': self.parameters['client_id'] + "clients"
         }
+
+    def get_nss_account(self):
         response, err, dummy = self.rest_api.send_request("GET", "%s/accounts" % (
-            self.rest_api.api_root_path), None, header=headers)
+            self.rest_api.api_root_path), None, header=self.headers)
         if err is not None:
             self.module.fail_json(changed=False, msg=err)
         if response is None:
@@ -151,9 +151,6 @@ class NetAppCloudmanagerNssAccount(object):
         return None
 
     def create_nss_account(self):
-        headers = {
-            'X-Agent-Id': self.parameters['client_id'] + "clients"
-        }
         account = dict()
         if self.parameters.get('name'):
             account['accountName'] = self.parameters['name']
@@ -163,16 +160,13 @@ class NetAppCloudmanagerNssAccount(object):
         if self.parameters.get('vsa_list'):
             account['vsaList'] = self.parameters['vsa_list']
         dummy, err, second_dummy = self.rest_api.send_request("POST", "%s/accounts/nss" % (
-            self.rest_api.api_root_path), None, account, header=headers)
+            self.rest_api.api_root_path), None, account, header=self.headers)
         if err is not None:
             self.module.fail_json(changed=False, msg=err)
 
     def delete_nss_account(self):
-        headers = {
-            'X-Agent-Id': self.parameters['client_id'] + "clients"
-        }
         dummy, err, second_dummy = self.rest_api.send_request("DELETE", "%s/accounts/%s" % (
-            self.rest_api.api_root_path, self.parameters['public_id']), None, None, header=headers)
+            self.rest_api.api_root_path, self.parameters['public_id']), None, None, header=self.headers)
         if err is not None:
             self.module.fail_json(changed=False, msg=err)
         return None

@@ -275,10 +275,14 @@ class NetAppCloudmanagerVolume(object):
         self.rest_api = netapp_utils.CloudManagerRestAPI(self.module)
         self.rest_api.token_type, self.rest_api.token = self.rest_api.get_token()
         self.rest_api.url += "cloudmanager.cloud.netapp.com"
+        self.headers = {
+            'X-Agent-Id': self.parameters['client_id'] + "clients"
+        }
+
         if self.parameters.get('working_environment_id'):
-            working_environment_detail, error = self.na_helper.get_working_environment_details(self.rest_api)
+            working_environment_detail, error = self.na_helper.get_working_environment_details(self.rest_api, self.headers)
         else:
-            working_environment_detail, error = self.na_helper.get_working_environment_details_by_name(self.rest_api)
+            working_environment_detail, error = self.na_helper.get_working_environment_details_by_name(self.rest_api, self.headers)
         if working_environment_detail is not None:
             self.parameters['working_environment_id'] = working_environment_detail['publicId']
         else:
@@ -286,11 +290,8 @@ class NetAppCloudmanagerVolume(object):
         self.na_helper.set_api_root_path(working_environment_detail, self.rest_api)
 
         if self.parameters.get('svm_name') is None:
-            headers = {
-                'X-Agent-Id': self.parameters['client_id'] + "clients"
-            }
             response, err, dummy = self.rest_api.send_request("GET", "%s/working-environments/%s" % (
-                self.rest_api.api_root_path, self.parameters['working_environment_id']), None, None, header=headers)
+                self.rest_api.api_root_path, self.parameters['working_environment_id']), None, None, header=self.headers)
             self.parameters['svm_name'] = response['svmName']
 
         if self.parameters['volume_protocol'] == 'nfs':
@@ -350,11 +351,8 @@ class NetAppCloudmanagerVolume(object):
             self.parameters['users'] = new_users
 
     def get_volume(self):
-        headers = {
-            'X-Agent-Id': self.parameters['client_id'] + "clients"
-        }
         response, err, dummy = self.rest_api.send_request("GET", "%s/volumes?workingEnvironmentId=%s" % (
-            self.rest_api.api_root_path, self.parameters['working_environment_id']), None, header=headers)
+            self.rest_api.api_root_path, self.parameters['working_environment_id']), None, header=self.headers)
         if err is not None:
             self.module.fail_json(changed=False, msg=err)
         target_vol = dict()
@@ -400,9 +398,6 @@ class NetAppCloudmanagerVolume(object):
         return None
 
     def create_volume(self):
-        headers = {
-            'X-Agent-Id': self.parameters['client_id'] + "clients"
-        }
         exclude_list = ['client_id', 'size_unit', 'export_policy_name', 'export_policy_type', 'export_policy_ip',
                         'export_policy_nfs_version', 'capacity_tier']
         quote = self.na_helper.convert_module_args_to_api(self.parameters, exclude_list)
@@ -432,7 +427,7 @@ class NetAppCloudmanagerVolume(object):
             if self.parameters.get('share_name'):
                 quote['shareInfo']['shareName'] = self.parameters['share_name']
         response, err, dummy = self.rest_api.send_request("POST", "%s/volumes/quote" % self.rest_api.api_root_path,
-                                                          None, quote, header=headers)
+                                                          None, quote, header=self.headers)
         if err is not None:
             self.module.fail_json(changed=False, msg=err)
         quote['aggregateName'] = response['aggregateName']
@@ -454,7 +449,7 @@ class NetAppCloudmanagerVolume(object):
         if self.parameters.get('iops'):
             quote['iops'] = self.parameters.get('iops')
         response, err, on_cloud_request_id = self.rest_api.send_request("POST", "%s/volumes?createAggregateIfNotFound=%s" % (
-            self.rest_api.api_root_path, True), None, quote, header=headers)
+            self.rest_api.api_root_path, True), None, quote, header=self.headers)
         if err is not None:
             self.module.fail_json(changed=False, msg=err)
         wait_on_completion_api_url = '/occm/api/audit/activeTask/%s' % (str(on_cloud_request_id))
@@ -463,9 +458,6 @@ class NetAppCloudmanagerVolume(object):
             self.module.fail_json(changed=False, msg=err)
 
     def modify_volume(self, modify):
-        headers = {
-            'X-Agent-Id': self.parameters['client_id'] + "clients"
-        }
         vol = dict()
         if self.parameters['volume_protocol'] == 'nfs':
             export_policy_info = dict()
@@ -490,26 +482,20 @@ class NetAppCloudmanagerVolume(object):
             vol['snapshotPolicyName'] = self.parameters.get('snapshot_policy_name')
         dummy, err, dummy_second = self.rest_api.send_request("PUT", "%s/volumes/%s/%s/%s" % (
             self.rest_api.api_root_path, self.parameters['working_environment_id'], self.parameters['svm_name'],
-            self.parameters['name']), None, vol, header=headers)
+            self.parameters['name']), None, vol, header=self.headers)
         if err is not None:
             self.module.fail_json(changed=False, msg=err)
 
     def delete_volume(self):
-        headers = {
-            'X-Agent-Id': self.parameters['client_id'] + "clients"
-        }
         dummy, err, dummy_second = self.rest_api.send_request("DELETE", "%s/volumes/%s/%s/%s" % (
             self.rest_api.api_root_path, self.parameters['working_environment_id'], self.parameters['svm_name'],
-            self.parameters['name']), None, None, header=headers)
+            self.parameters['name']), None, None, header=self.headers)
         if err is not None:
             self.module.fail_json(changed=False, msg=err)
 
     def get_initiator(self, alias_name):
-        headers = {
-            'X-Agent-Id': self.parameters['client_id'] + "clients"
-        }
         response, err, dummy_second = self.rest_api.send_request("GET", "%s/volumes/initiator" % (
-            self.rest_api.api_root_path), None, header=headers)
+            self.rest_api.api_root_path), None, header=self.headers)
         if err is not None:
             self.module.fail_json(changed=False, msg=err)
         result = dict()
@@ -524,21 +510,15 @@ class NetAppCloudmanagerVolume(object):
 
     def create_initiator(self, initiator):
         ini = self.na_helper.convert_module_args_to_api(initiator)
-        headers = {
-            'X-Agent-Id': self.parameters['client_id'] + "clients"
-        }
         response, err, dummy_second = self.rest_api.send_request("POST", "%s/volumes/initiator" % (
-            self.rest_api.api_root_path), None, ini, header=headers)
+            self.rest_api.api_root_path), None, ini, header=self.headers)
         if err is not None:
             self.module.fail_json(changed=False, msg=err)
 
     def get_igroup(self, igroup_name):
-        headers = {
-            'X-Agent-Id': self.parameters['client_id'] + "clients"
-        }
         response, err, dummy_second = self.rest_api.send_request("GET", "%s/volumes/igroups/%s/%s" % (
             self.rest_api.api_root_path, self.parameters['working_environment_id'], self.parameters['svm_name']),
-            None, None, header=headers)
+            None, None, header=self.headers)
         if err is not None:
             self.module.fail_json(changed=False, msg=err)
         result = dict()

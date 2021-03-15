@@ -12,7 +12,6 @@ import pytest
 
 from ansible.module_utils import basic
 from ansible.module_utils._text import to_bytes
-from ansible_collections.netapp.cloudmanager.tests.unit.compat import unittest
 from ansible_collections.netapp.cloudmanager.tests.unit.compat.mock import patch, Mock
 
 from ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_info \
@@ -86,6 +85,15 @@ def set_args_get_cloudmanager_aggregates_info():
         'client_id': 'Nw4Q2O1kdnLtvhwegGalFnodEHUfPJWh',
         'refresh_token': 'myrefresh_token',
         'gather_subsets': ['working_environments_info']
+    }
+    return args
+
+
+def set_args_get_accounts_info():
+    args = {
+        'client_id': 'Nw4Q2O1kdnLtvhwegGalFnodEHUfPJWh',
+        'refresh_token': 'myrefresh_token',
+        'gather_subsets': ['accounts_info']
     }
     return args
 
@@ -458,6 +466,118 @@ def test_get_aggregates_info(aggregates_info, get_token, patch_ansible):
             ]
         }
     }
+    my_obj = my_module()
+    my_obj.rest_api.api_root_path = "my_root_path"
+
+    with pytest.raises(AnsibleExitJson) as exc:
+        my_obj.apply()
+    print('Info: test_create_cloudmanager_info: %s' % repr(exc.value))
+    assert not exc.value.args[0]['changed']
+
+
+@patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.get_token')
+@patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module.NetAppModule.get_accounts_info')
+def test_get_accounts_info(accounts_info, get_token, patch_ansible):
+    args = dict(set_args_get_accounts_info())
+    set_module_args(args)
+    get_token.return_value = 'token_type', 'token'
+    accounts_info.return_value = {
+        "awsAccounts": [
+            {
+                "accessKey": "1",
+                "accountId": "123456789011",
+                "accountName": "tami",
+                "accountType": "AWS_KEYS",
+                "publicId": "CloudProviderAccount-Ekj6L9QX",
+                "subscriptionId": "hackExp10Days",
+                "vsaList": []
+            },
+            {
+                "accessKey": "",
+                "accountId": "123456789011",
+                "accountName": "Instance Profile",
+                "accountType": "INSTANCE_PROFILE",
+                "occmRole": "occmRole",
+                "publicId": "InstanceProfile",
+                "subscriptionId": "hackExp10Days",
+                "vsaList": [
+                    {
+                        "name": "CVO_AWSCluster",
+                        "publicId": "VsaWorkingEnvironment-9m3I6i3I",
+                        "workingEnvironmentType": "AWS"
+                    },
+                    {
+                        "name": "testAWS1",
+                        "publicId": "VsaWorkingEnvironment-JCzkA9OX",
+                        "workingEnvironmentType": "AWS"
+                    },
+                ]
+            }
+        ],
+        "azureAccounts": [
+            {
+                "accountName": "AzureKeys",
+                "accountType": "AZURE_KEYS",
+                "applicationId": "1",
+                "publicId": "CloudProviderAccount-T84ceMYu",
+                "tenantId": "1",
+                "vsaList": [
+                    {
+                        "name": "testAZURE",
+                        "publicId": "VsaWorkingEnvironment-jI0tbceH",
+                        "workingEnvironmentType": "AZURE"
+                    },
+                    {
+                        "name": "test",
+                        "publicId": "VsaWorkingEnvironment-00EnDcfB",
+                        "workingEnvironmentType": "AZURE"
+                    },
+                ]
+            },
+            {
+                "accountName": "s",
+                "accountType": "AZURE_KEYS",
+                "applicationId": "1",
+                "publicId": "CloudProviderAccount-XxbN95dj",
+                "tenantId": "1",
+                "vsaList": []
+            }
+        ],
+        "gcpStorageAccounts": [],
+        "nssAccounts": [
+            {
+                "accountName": "TESTCLOUD2",
+                "accountType": "NSS_KEYS",
+                "nssUserName": "TESTCLOUD2",
+                "publicId": "be2f3cac-352a-46b9-a341-a446c35b61c9",
+                "vsaList": [
+                    {
+                        "name": "testAWS",
+                        "publicId": "VsaWorkingEnvironment-3txYJOsX",
+                        "workingEnvironmentType": "AWS"
+                    },
+                    {
+                        "name": "testAZURE",
+                        "publicId": "VsaWorkingEnvironment-jI0tbceH",
+                        "workingEnvironmentType": "AZURE"
+                    },
+                ]
+            },
+            {
+                "accountName": "ntapitdemo",
+                "accountType": "NSS_KEYS",
+                "nssUserName": "ntapitdemo",
+                "publicId": "01e43a7d-cfc9-4682-aa12-15374ce81638",
+                "vsaList": [
+                    {
+                        "name": "test",
+                        "publicId": "VsaWorkingEnvironment-00EnDcfB",
+                        "workingEnvironmentType": "AZURE"
+                    }
+                ]
+            }
+        ]
+    }, None
     my_obj = my_module()
     my_obj.rest_api.api_root_path = "my_root_path"
 
