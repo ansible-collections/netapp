@@ -10,3 +10,6 @@ repository: https://github.com/ansible-collections/netapp
 homepage: https://netapp.io/configuration-management-and-automation/
 tags:
     - storage
+    - netapp
+    - aiqum
+    - um

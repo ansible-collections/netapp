@@ -7,5 +7,6 @@ authors:
 description: "NetApp StorageGRID Collection"
 license: "GPL-2.0-or-later"
 tags:
-    - "storage"
+    - storage
+    - netapp
 homepage: https://netapp.io/configuration-management-and-automation/
