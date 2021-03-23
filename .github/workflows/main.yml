@@ -48,4 +48,4 @@ jobs:
       #  ansible-test units --docker=default --python ${{ matrix.python-version }}
       run: |
         cd ansible_collections/netapp/ontap
-        ansible-test units --docker=default --python ${{ matrix.python-version }}
+        ansible-test units --docker=default
