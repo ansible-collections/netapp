@@ -11,14 +11,10 @@ from __future__ import absolute_import, division, print_function
 
 __metaclass__ = type
 
-ANSIBLE_METADATA = {'metadata_version': '1.1',
-                    'status': ['preview'],
-                    'supported_by': 'certified'}
-
 DOCUMENTATION = '''
 
 module: na_cloudmanager_volume
-short_description: NetApp Cloud Manager volume.
+short_description: NetApp Cloud Manager volume
 extends_documentation_fragment:
     - netapp.cloudmanager.netapp.cloudmanager
 version_added: '21.3.0'
@@ -79,7 +75,7 @@ options:
         - The underlying cloud provider volume type.
         - For AWS is ["gp2", "io1", "st1", "sc1"].
         - For Azure is ['Premium_LRS','Standard_LRS','StandardSSD_LRS'].
-        - For GCP is ['pd-ssd','pd-standard']
+        - For GCP is ['pd-ssd','pd-standard'].
         type: str
 
     enable_deduplication:
@@ -102,14 +98,14 @@ options:
 
     svm_name:
         description:
-        - The name of the SVM. The default SVM name is used, if a name isn't provided.
+        - The name of the SVM. The default SVM name is used, if a name is not provided.
         type: str
 
     capacity_tier:
         description:
         - The volume's capacity tier for tiering cold data to object storage.
         - The default values for each cloud provider are as follows. Amazon as 'S3', Azure as 'Blob', GCP as 'cloudStorage'.
-        - If 'NONE', the capacity tier won't be set on volume creation.
+        - If 'NONE', the capacity tier will not be set on volume creation.
         choices: ['NONE', 'S3', 'Blob', 'cloudStorage']
         type: str
 
@@ -121,18 +117,18 @@ options:
 
     export_policy_type:
         description:
-        - The export policy type. (NFS protocol parameters)
+        - The export policy type (NFS protocol parameters).
         type: str
 
     export_policy_ip:
         description:
-        - Custom export policy list of IPs. (NFS protocol parameters)
+        - Custom export policy list of IPs (NFS protocol parameters).
         type: list
         elements: str
 
     export_policy_nfs_version:
         description:
-        - Export policy protocol. (NFS protocol parameters)
+        - Export policy protocol (NFS protocol parameters).
         type: list
         elements: str
 
@@ -150,34 +146,34 @@ options:
 
     share_name:
         description:
-        - Share name. (CIFS protocol parameters)
+        - Share name (CIFS protocol parameters).
         type: str
 
     permission:
         description:
-        - CIFS share permission type. (CIFS protocol parameters)
+        - CIFS share permission type (CIFS protocol parameters).
         type: str
 
     users:
         description:
-        - List of users with the permission. (CIFS protocol parameters)
+        - List of users with the permission (CIFS protocol parameters).
         type: list
         elements: str
 
     igroups:
         description:
-        - List of igroups. (iSCSI protocol parameters)
+        - List of igroups (iSCSI protocol parameters).
         type: list
         elements: str
 
     os_name:
         description:
-        - Operating system. (iSCSI protocol parameters)
+        - Operating system (iSCSI protocol parameters).
         type: str
 
     initiators:
         description:
-        - Set of attributes of Initiators. (iSCSI protocol parameters)
+        - Set of attributes of Initiators (iSCSI protocol parameters).
         type: list
         elements: dict
         suboptions:
@@ -189,33 +185,38 @@ options:
             description: The alias which associates with the node.
             required: true
             type: str
+
+notes:
+- Support check_mode.
 '''
 
 EXAMPLES = '''
-    - name: create nfs volume with working_environment_name
-      na_cloudmanager_volume:
-        state: present
-        name: test_vol
-        size: 15
-        size_unit: GB
-        working_environment_name: working_environment_1
-        client_id: client_id
-        refresh_token: refresh_token
-        svm_name: svm_1
-        snapshot_policy_name: default
-        export_policy_type: custom
-        export_policy_ip: ["10.0.0.1/16"]
-        export_policy_nfs_version: ["nfs3","nfs4"]
+- name: Create nfs volume with working_environment_name
+  netapp.cloudmanager.na_cloudmanager_volume:
+    state: present
+    name: test_vol
+    size: 15
+    size_unit: GB
+    working_environment_name: working_environment_1
+    client_id: client_id
+    refresh_token: refresh_token
+    svm_name: svm_1
+    snapshot_policy_name: default
+    export_policy_type: custom
+    export_policy_ip: ["10.0.0.1/16"]
+    export_policy_nfs_version: ["nfs3","nfs4"]
 
-    - name: delete volume
-      na_cloudmanager_volume:
-        state: absent
-        name: test_vol
-        working_environment_name: working_environment_1
-        client_id: client_id
-        refresh_token: refresh_token
-        svm_name: svm_1
+- name: Delete volume
+  netapp.cloudmanager.na_cloudmanager_volume:
+    state: absent
+    name: test_vol
+    working_environment_name: working_environment_1
+    client_id: client_id
+    refresh_token: refresh_token
+    svm_name: svm_1
 '''
+
+RETURN = r''' # '''
 
 from ansible.module_utils.basic import AnsibleModule
 import ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp as netapp_utils
@@ -332,7 +333,7 @@ class NetAppCloudmanagerVolume(object):
                 current_igroups.append(current)
             if any(isinstance(x, dict) for x in current_igroups) and None in current_igroups:
                 self.module.fail_json(changed=False, msg="Error: can not specify existing"
-                                                         "igroup and new igroup togther.")
+                                                         "igroup and new igroup together.")
             if len(current_igroups) > 1 and None in current_igroups:
                 self.module.fail_json(changed=False, msg="Error: can not create more than one igroups.")
             if current_igroups[0] is None:
@@ -578,7 +579,7 @@ class NetAppCloudmanagerVolume(object):
                                 'permission']:
                     unmodifiable.append(attr)
             if len(unmodifiable) > 0:
-                self.module.fail_json(changed=False, msg="%s can't be modified." % str(unmodifiable))
+                self.module.fail_json(changed=False, msg="%s cannot be modified." % str(unmodifiable))
         if self.na_helper.changed and not self.module.check_mode:
             if cd_action == 'create':
                 self.create_volume()

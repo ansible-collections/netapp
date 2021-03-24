@@ -11,14 +11,10 @@ from __future__ import absolute_import, division, print_function
 
 __metaclass__ = type
 
-ANSIBLE_METADATA = {'metadata_version': '1.1',
-                    'status': ['preview'],
-                    'supported_by': 'certified'}
-
 DOCUMENTATION = '''
 
 module: na_cloudmanager_nss_account
-short_description: NetApp Cloud Manager nss account.
+short_description: NetApp Cloud Manager nss account
 extends_documentation_fragment:
     - netapp.cloudmanager.netapp.cloudmanager
 version_added: '21.3.0'
@@ -68,20 +64,22 @@ options:
         type: list
         elements: str
 
+notes:
+- Support check_mode.
 '''
 
 EXAMPLES = '''
-
-    - name: create nss account
-      na_cloudmanager_nss_account:
-        state: present
-        name: test_cloud
-        username: test_cloud
-        password: password
-        client_id: your_client_id
-        refresh_token: your_refresh_token
-
+- name: Create nss account
+  netapp.cloudmanager.na_cloudmanager_nss_account:
+    state: present
+    name: test_cloud
+    username: test_cloud
+    password: password
+    client_id: your_client_id
+    refresh_token: your_refresh_token
 '''
+
+RETURN = r''' # '''
 
 from ansible.module_utils.basic import AnsibleModule
 import ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp as netapp_utils

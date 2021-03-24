@@ -10,16 +10,10 @@ na_cloudmanager_connector_aws
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
-
-ANSIBLE_METADATA = {'metadata_version': '1.1',
-                    'status': ['preview'],
-                    'supported_by': 'certified'}
-
-
 DOCUMENTATION = '''
 
 module: na_cloudmanager_connector_aws
-short_description: NetApp Cloud Manager connector for AWS.
+short_description: NetApp Cloud Manager connector for AWS
 extends_documentation_fragment:
     - netapp.cloudmanager.netapp.cloudmanager
 version_added: '21.3.0'
@@ -91,7 +85,7 @@ options:
   security_group_ids:
     required: true
     description:
-    - The IDs of the security groups for the instance, multiple security groups can be provided seperated by ','.
+    - The IDs of the security groups for the instance, multiple security groups can be provided separated by ','.
     type: list
     elements: str
 
@@ -152,11 +146,13 @@ options:
     - The refresh token for NetApp Cloud Manager API operations.
     type: str
 
+notes:
+- Support check_mode.
 '''
 
 EXAMPLES = """
-- name: create NetApp Cloud Manager connector for AWS
-  na_cloudmanager_connector_aws:
+- name: Create NetApp Cloud Manager connector for AWS
+  netapp.cloudmanager.na_cloudmanager_connector_aws:
     state: present
     refresh_token: "{{ xxxxxxxxxxxxxxx }}"
     name: bsuhas_ansible_occm
@@ -175,8 +171,8 @@ EXAMPLES = """
         {tag_key: abc,
         tag_value: a123}]
 
-- name: delete NetApp Cloud Manager connector for AWS
-  na_cloudmanager_connector_aws:
+- name: Delete NetApp Cloud Manager connector for AWS
+  netapp.cloudmanager.na_cloudmanager_connector_aws:
     state: absent
     name: ansible
     region: us-west-1
@@ -184,9 +180,8 @@ EXAMPLES = """
     client_id: xxxxxxxxxxxxxxxxxxx
 """
 
-RETURN = """
+RETURN = r''' # '''
 
-"""
 import traceback
 import uuid
 import time

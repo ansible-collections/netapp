@@ -21,7 +21,18 @@ Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 
 # Release Notes
 
+# Code of Conduct
+This collection follows the [Ansible project's Code of Conduct](https://docs.ansible.com/ansible/devel/community/code_of_conduct.html).
+
+# Documentation
+https://github.com/ansible-collections/netapp/wiki
+
 ## 21.4.0
+
+### Module documentation changes
+  - Remove the period at the end of the line on short_description
+  - Add period at the end of the names in examples
+  - Add notes mentioning support check_mode
 
 ### New Modules
   - na_cloudmanager_info: Gather Cloud Manager subset information using REST APIs. Support for subsets `working_environments_info`, `aggregates_info`, `accounts_info`.

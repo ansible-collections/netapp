@@ -10,11 +10,6 @@ na_cloudmanager_info
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
-
-ANSIBLE_METADATA = {'metadata_version': '1.1',
-                    'status': ['preview'],
-                    'supported_by': 'certified'}
-
 DOCUMENTATION = '''
 
 module: na_cloudmanager_info
@@ -43,30 +38,86 @@ options:
       - 'working_environments_info'
       - 'aggregates_info'
       - 'accounts_info'
-    default: ['all']
+    default: 'all'
+
+notes:
+- Not support check_mode
 '''
 
 EXAMPLES = """
+- name: Get all available subsets
+  netapp.cloudmanager.na_cloudmanager_info:
+    client_id: "{{ client_id }}"
+    refresh_token: "{{ refresh_token }}"
+    gather_subsets:
+      - all
 
-  - name: get all available subsets
-    na_cloudmanager_info:
-      client_id: "{{ client_id }}"
-      refresh_token: "{{ refresh_token }}"
-      gather_subsets:
-        - all
-    register: result
-
-  - name: collect data for cloud manager with indicated subsets
-    na_cloudmanager_info:
-      client_id: "{{ client_id }}"
-      refresh_token: "{{ refresh_token }}"
-      gather_subsets:
-        - aggregates_info
-        - working_environments_info
-    register: result
+- name: Collect data for cloud manager with indicated subsets
+  netapp.cloudmanager.na_cloudmanager_info:
+    client_id: "{{ client_id }}"
+    refresh_token: "{{ refresh_token }}"
+    gather_subsets:
+      - aggregates_info
+      - working_environments_info
 """
 
 RETURN = """
+info:
+  description:
+    - a dictionary of collected subsets
+    - each subset if in JSON format
+  returned: success
+  type: dict
+  sample: '{
+    "info": {
+      "working_environments_info": [
+        {
+          "azureVsaWorkingEnvironments": [],
+          "gcpVsaWorkingEnvironments": [],
+          "onPremWorkingEnvironments": [],
+          "vsaWorkingEnvironments": [
+            {
+                "actionsRequired": null,
+                "activeActions": null,
+                "awsProperties": null,
+                "capacityFeatures": null,
+                "cbsProperties": null,
+                "cloudProviderName": "Amazon",
+                "cloudSyncProperties": null,
+                "clusterProperties": null,
+                "complianceProperties": null,
+                "creatorUserEmail": "samlp|NetAppSAML|test_user",
+                "cronJobSchedules": null,
+                "encryptionProperties": null,
+                "fpolicyProperties": null,
+                "haProperties": null,
+                "interClusterLifs": null,
+                "isHA": false,
+                "k8sProperties": null,
+                "monitoringProperties": null,
+                "name": "testAWS",
+                "ontapClusterProperties": null,
+                "publicId": "VsaWorkingEnvironment-3txYJOsX",
+                "replicationProperties": null,
+                "reservedSize": null,
+                "saasProperties": null,
+                "schedules": null,
+                "snapshotPolicies": null,
+                "status": null,
+                "supportRegistrationInformation": [],
+                "supportRegistrationProperties": null,
+                "supportedFeatures": null,
+                "svmName": "svm_testAWS",
+                "svms": null,
+                "tenantId": "Tenant-2345",
+                "workingEnvironmentType": "VSA"
+            }
+          ]
+        },
+        null
+      ]
+    }
+  }'
 """
 
 from ansible.module_utils.basic import AnsibleModule

@@ -11,22 +11,17 @@ from __future__ import absolute_import, division, print_function
 
 __metaclass__ = type
 
-ANSIBLE_METADATA = {'metadata_version': '1.1',
-                    'status': ['preview'],
-                    'supported_by': 'certified'}
-
 DOCUMENTATION = '''
 
 module: na_cloudmanager_cifs_server
-short_description: NetApp Cloud Manager cifs server.
+short_description: NetApp Cloud Manager cifs server
 extends_documentation_fragment:
     - netapp.cloudmanager.netapp.cloudmanager
 version_added: '21.3.0'
 author: NetApp Ansible Team (@carchi8py) <ng-ansibleteam@netapp.com>
 
 description:
-- Create or Delete a CIFS server on the Cloud Volume ONTAP system
-  to support CIFS volumes, based on an Active Directory or Workgroup.
+- Create or Delete a CIFS server on the Cloud Volume ONTAP system to support CIFS volumes, based on an Active Directory or Workgroup.
 
 options:
     state:
@@ -102,24 +97,28 @@ options:
         description:
         - The workgroup name. For CIFS workgroup only.
         type: str
+
+notes:
+- Support check_mode.
 '''
 
 EXAMPLES = '''
-    - name: create cifs server with working_environment_id
-      na_cloudmanager_cifs_server:
-        state: present
-        working_environment_id: VsaWorkingEnvironment-abcdefgh
-        client_id: your_client_id
-        refresh_token: your_refresh_token
-        domain: example.com
-        username: admin
-        password: pass
-        dns_domain: example.com
-        ip_addresses: ["1.0.0.0"]
-        netbios: cvoname
-        organizational_unit: CN=Computers
+- name: Create cifs server with working_environment_id
+  netapp.cloudmanager.na_cloudmanager_cifs_server:
+    state: present
+    working_environment_id: VsaWorkingEnvironment-abcdefgh
+    client_id: your_client_id
+    refresh_token: your_refresh_token
+    domain: example.com
+    username: admin
+    password: pass
+    dns_domain: example.com
+    ip_addresses: ["1.0.0.0"]
+    netbios: cvoname
+    organizational_unit: CN=Computers
 '''
 
+RETURN = r''' # '''
 
 from ansible.module_utils.basic import AnsibleModule
 import ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp as netapp_utils

@@ -10,16 +10,10 @@ na_cloudmanager_cvo_aws
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
-
-ANSIBLE_METADATA = {'metadata_version': '1.1',
-                    'status': ['preview'],
-                    'supported_by': 'certified'}
-
-
 DOCUMENTATION = '''
 
 module: na_cloudmanager_cvo_aws
-short_description: NetApp Cloud Manager CVO for AWS.
+short_description: NetApp Cloud Manager CVO for AWS
 extends_documentation_fragment:
     - netapp.cloudmanager.netapp.cloudmanager
 version_added: '21.3.0'
@@ -46,9 +40,9 @@ options:
   instance_type:
     description:
     - The instance type to use, which depends on the license type.
-    - Explore ['m5.xlarge']
-    - Standard ['m5.2xlarge','r5.xlarge']
-    - Premium ['m5.4xlarge','r5.2xlarge','c4.8xlarge']
+    - Explore ['m5.xlarge'].
+    - Standard ['m5.2xlarge','r5.xlarge'].
+    - Premium ['m5.4xlarge','r5.2xlarge','c4.8xlarge'].
     - For more supported instance types, refer to Cloud Volumes ONTAP Release Notes.
     type: str
     default: m5.2xlarge
@@ -56,8 +50,8 @@ options:
   license_type:
     description:
     - The type of license to use.
-    - For single node ['cot-explore-paygo','cot-standard-paygo', 'cot-premium-paygo', 'cot-premium-byol']
-    - For HA ['ha-cot-explore-paygo','ha-cot-standard-paygo','ha-cot-premium-paygo','ha-cot-premium-byol']
+    - For single node ['cot-explore-paygo','cot-standard-paygo', 'cot-premium-paygo', 'cot-premium-byol'].
+    - For HA ['ha-cot-explore-paygo','ha-cot-standard-paygo','ha-cot-premium-paygo','ha-cot-premium-byol'].
     choices: ['cot-standard-paygo', 'cot-premium-paygo', 'cot-explore-paygo', 'cot-premium-byol',
     'ha-cot-standard-paygo','ha-cot-premium-paygo', 'ha-cot-premium-byol', 'ha-cot-explore-paygo']
     default: 'cot-standard-paygo'
@@ -67,7 +61,7 @@ options:
     description:
     - The ID of the Cloud Manager workspace where you want to deploy Cloud Volumes ONTAP.
     - If not provided, Cloud Manager uses the first workspace.
-    - You can find the ID from the Workspace tab on [https://cloudmanager.netapp.com].
+    - You can find the ID from the Workspace tab on U(https://cloudmanager.netapp.com).
     type: str
 
   subnet_id:
@@ -78,7 +72,7 @@ options:
   vpc_id:
     description:
     - The VPC ID where the working environment will be created.
-    - If this argument isn't provided, the VPC will be calculated by using the provided subnet ID.
+    - If this argument is not provided, the VPC will be calculated by using the provided subnet ID.
     type: str
 
   region:
@@ -98,7 +92,7 @@ options:
     required: true
     description:
     - The client ID of the Cloud Manager Connector.
-    - You can find the ID from the Connector tab on [https://cloudmanager.netapp.com].
+    - You can find the ID from the Connector tab on U(https://cloudmanager.netapp.com).
     type: str
 
   ebs_volume_size:
@@ -141,7 +135,7 @@ options:
 
   ontap_version:
     description:
-    - The required ONTAP version. Ignored if 'use_latest_version' is set to true
+    - The required ONTAP version. Ignored if 'use_latest_version' is set to true.
     type: str
     default: 'latest'
 
@@ -158,7 +152,7 @@ options:
 
   tier_level:
     description:
-    - The tiering level when 'capacity_tier' is set to 'S3'
+    - The tiering level when 'capacity_tier' is set to 'S3'.
     choices: ['normal', 'ia', 'ia-single', 'intelligent']
     default: 'normal'
     type: str
@@ -166,7 +160,7 @@ options:
   nss_account:
     description:
     - The NetApp Support Site account ID to use with this Cloud Volumes ONTAP system.
-    - If the license type is BYOL and an NSS account isn't provided, Cloud Manager tries to use the first existing NSS account.
+    - If the license type is BYOL and an NSS account is not provided, Cloud Manager tries to use the first existing NSS account.
     type: str
 
   writing_speed_state:
@@ -177,19 +171,19 @@ options:
 
   iops:
     description:
-    - Provisioned IOPS. Required only when provider_volume_type is 'io1'
+    - Provisioned IOPS. Required only when provider_volume_type is 'io1'.
     type: int
 
   capacity_tier:
     description:
-    - Whether to enable data tiering for the first data aggregate
+    - Whether to enable data tiering for the first data aggregate.
     choices: ['S3', 'NONE']
     default: 'S3'
     type: str
 
   instance_tenancy:
     description:
-    - The EC2 instance tenancy
+    - The EC2 instance tenancy.
     choices: ['default', 'dedicated']
     default: 'default'
     type: str
@@ -282,7 +276,7 @@ options:
 
   mediator_assign_public_ip:
     description:
-    - bool option to assign public IP.
+    - Boolean option to assign public IP.
     type: bool
     default: true
 
@@ -323,11 +317,13 @@ options:
     - The refresh token for NetApp Cloud Manager API operations.
     type: str
 
+notes:
+- Support check_mode.
 '''
 
 EXAMPLES = """
-- name: create NetApp Cloud Manager CVO for AWS single
-  na_cloudmanager_cvo_aws:
+- name: Create NetApp Cloud Manager CVO for AWS single
+  netapp.cloudmanager.na_cloudmanager_cvo_aws:
     state: present
     refresh_token: "{{ xxxxxxxxxxxxxxx }}"
     name: TerraformCVO
@@ -341,8 +337,8 @@ EXAMPLES = """
         {tag_key: abc,
         tag_value: a123}]
 
-- name: create NetApp Cloud Manager CVO for AWS HA
-  na_cloudmanager_cvo_aws:
+- name: Create NetApp Cloud Manager CVO for AWS HA
+  netapp.cloudmanager.na_cloudmanager_cvo_aws:
     state: present
     refresh_token: "{{ xxxxxxxxxxxxxxx }}"
     name: TerraformCVO
@@ -367,8 +363,8 @@ EXAMPLES = """
     svm_floating_ip: 2.1.1.4
     route_table_ids: [rt-1,rt-2]
 
-- name: delete NetApp Cloud Manager cvo for AWS
-  na_cloudmanager_cvo_aws:
+- name: Delete NetApp Cloud Manager cvo for AWS
+  netapp.cloudmanager.na_cloudmanager_cvo_aws:
     state: absent
     name: ansible
     region: us-west-1
@@ -378,9 +374,8 @@ EXAMPLES = """
     client_id: "{{ xxxxxxxxxxxxxxx }}"
 """
 
-RETURN = """
+RETURN = r''' # '''
 
-"""
 import traceback
 
 from ansible.module_utils.basic import AnsibleModule

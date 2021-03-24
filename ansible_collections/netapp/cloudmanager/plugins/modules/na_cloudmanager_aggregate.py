@@ -11,14 +11,10 @@ from __future__ import absolute_import, division, print_function
 
 __metaclass__ = type
 
-ANSIBLE_METADATA = {'metadata_version': '1.1',
-                    'status': ['preview'],
-                    'supported_by': 'certified'}
-
 DOCUMENTATION = '''
 
 module: na_cloudmanager_aggregate
-short_description: NetApp Cloud Manager Aggregate.
+short_description: NetApp Cloud Manager Aggregate
 extends_documentation_fragment:
     - netapp.cloudmanager.netapp.cloudmanager
 version_added: '21.3.0'
@@ -60,7 +56,6 @@ options:
     number_of_disks:
         description:
         - The required number of disks in the new aggregate.
-        required: false
         type: int
 
     disk_size_size:
@@ -70,7 +65,7 @@ options:
 
     disk_size_unit:
         description:
-        - The disk size unit ['GB' or 'TB']. The default is 'TB'
+        - The disk size unit ['GB' or 'TB']. The default is 'TB'.
         choices: ['GB', 'TB']
         default: 'TB'
         type: str
@@ -88,43 +83,44 @@ options:
     capacity_tier:
         description:
         - The aggregate's capacity tier for tiering cold data to object storage.
-        - If the value is NONE, the capacity_tier won't be set on aggregate creation.
+        - If the value is NONE, the capacity_tier will not be set on aggregate creation.
         choices: [ 'NONE', 'S3', 'Blob', 'cloudStorage']
         type: str
 
     iops:
         description:
-        - Provisioned IOPS. Needed only when providerVolumeType is "io1"
+        - Provisioned IOPS. Needed only when providerVolumeType is "io1".
         type: str
 
+notes:
+- Support check_mode.
 '''
 
 EXAMPLES = '''
-   - name: Create Aggregate
-     na_cloudmanager_aggregate:
-       state: present
-       name: AnsibleAggregate
-       working_environment_name: testAWS
-       client_id: "{{ client_id }}"
-       number_of_disks: 2
-       refresh_token: xxx
+- name: Create Aggregate
+  netapp.cloudmanager.na_cloudmanager_aggregate:
+    state: present
+    name: AnsibleAggregate
+    working_environment_name: testAWS
+    client_id: "{{ client_id }}"
+    number_of_disks: 2
+    refresh_token: xxx
 
-   - name: Delete Volume
-     na_cloudmanager_aggregate:
-       state: absent
-       name: AnsibleAggregate
-       working_environment_name: testAWS
-       client_id: Nw4Q2O1kdnLtvhwegGalFnodEHUfPJWh
-       refresh_token: xxx
+- name: Delete Volume
+  netapp.cloudmanager.na_cloudmanager_aggregate:
+    state: absent
+    name: AnsibleAggregate
+    working_environment_name: testAWS
+    client_id: "{{ client_id }}"
+    refresh_token: xxx
 '''
 
 RETURN = '''
-
 msg:
-    description: Success message
+    description: Success message.
     returned: success
     type: str
-
+    sample: "Aggregate Created"
 '''
 
 from ansible.module_utils.basic import AnsibleModule
