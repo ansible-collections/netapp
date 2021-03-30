@@ -35,6 +35,7 @@ https://github.com/ansible-collections/netapp/wiki
   - Add notes mentioning support check_mode
 
 ### New Modules
+  - na_cloudmanager_cvo_azure: Create or delete Cloud Manager CVO for AZURE for both single and HA.
   - na_cloudmanager_info: Gather Cloud Manager subset information using REST APIs. Support for subsets `working_environments_info`, `aggregates_info`, `accounts_info`.
 
 ## 21.3.0
