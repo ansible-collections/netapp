@@ -1,0 +1,23 @@
+ancestor: null
+releases:
+  21.3.0:
+    modules:
+    - description: NetApp Cloud Manager Aggregate
+      name: na_cloudmanager_aggregate
+      namespace: ''
+    - description: NetApp Cloud Manager cifs server
+      name: na_cloudmanager_cifs_server
+      namespace: ''
+    - description: NetApp Cloud Manager connector for AWS
+      name: na_cloudmanager_connector_aws
+      namespace: ''
+    - description: NetApp Cloud Manager CVO for AWS
+      name: na_cloudmanager_cvo_aws
+      namespace: ''
+    - description: NetApp Cloud Manager nss account
+      name: na_cloudmanager_nss_account
+      namespace: ''
+    - description: NetApp Cloud Manager volume
+      name: na_cloudmanager_volume
+      namespace: ''
+    release_date: '2021-03-03'
