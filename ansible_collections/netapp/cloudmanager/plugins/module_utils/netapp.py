@@ -89,7 +89,7 @@ class CloudManagerRestAPI(object):
         if not HAS_REQUESTS:
             self.module.fail_json(msg=missing_required_lib('requests'))
 
-    def send_request(self, method, api, params, json=None, header=None):
+    def send_request(self, method, api, params, json=None, data=None, header=None):
         ''' send http request and process response, including error conditions '''
         if params is not None:
             self.module.fail_json(msg='params is not implemented.  api=%s, params=%s' % (api, repr(params)))
@@ -120,7 +120,7 @@ class CloudManagerRestAPI(object):
             return json, error
 
         try:
-            response = requests.request(method, url, headers=headers, timeout=self.timeout, json=json)
+            response = requests.request(method, url, headers=headers, timeout=self.timeout, json=json, data=data)
             status_code = response.status_code
             if status_code >= 300 or status_code < 200:
                 return response.content, str(status_code), on_cloud_request_id
@@ -146,9 +146,12 @@ class CloudManagerRestAPI(object):
         method = 'GET'
         return self.send_request(method=method, api=api, params=params, json=None, header=header)
 
-    def post(self, api, data, params=None, header=None):
+    def post(self, api, data, params=None, header=None, gcp_type=False):
         method = 'POST'
-        return self.send_request(method=method, api=api, params=params, json=data, header=header)
+        if gcp_type:
+            return self.send_request(method=method, api=api, params=params, data=data, header=header)
+        else:
+            return self.send_request(method=method, api=api, params=params, json=data, header=header)
 
     def patch(self, api, data, params=None, header=None):
         method = 'PATCH'

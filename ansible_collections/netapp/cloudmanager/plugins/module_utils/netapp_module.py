@@ -35,6 +35,7 @@ from copy import deepcopy
 from ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp import CloudManagerRestAPI
 import json
 import re
+import base64
 
 
 def cmp(a, b):
@@ -190,6 +191,47 @@ class NetAppModule(object):
             return None, error
         return response, None
 
+    def create_account(self, host, rest_api):
+        """
+        Create Account
+        :return: Account ID
+        """
+        headers = {
+            "X-User-Token": rest_api.token_type + " " + rest_api.token,
+        }
+
+        url = host + '/tenancy/account/MyAccount'
+        account_res, error, dummy = rest_api.post(url, header=headers)
+        if error is not None:
+            account_id = None
+        else:
+            account_id = account_res['accountPublicId']
+
+        return account_id, error
+
+    def get_account(self, host, rest_api):
+        """
+        Get Account
+        :return: Account ID
+        """
+        headers = {
+            "X-User-Token": rest_api.token_type + " " + rest_api.token,
+        }
+
+        url = host + '/tenancy/account'
+        account_res, error, dummy = rest_api.get(url, header=headers)
+        if error is not None:
+            return None, error
+        if len(account_res) == 0:
+            account_id, error = self.create_account()
+            if error is not None:
+                return None, error
+            return account_id, None
+        else:
+            account_id = account_res[0]['accountPublicId']
+
+        return account_id, None
+
     def get_accounts_info(self, rest_api, headers):
         '''
         Get all accounts info
@@ -202,6 +244,9 @@ class NetAppModule(object):
             return response, None
 
     def set_api_root_path(self, working_environment_details, rest_api):
+        '''
+        set API url root path based on the working environment provider
+        '''
         provider = working_environment_details['cloudProviderName']
         is_ha = working_environment_details['isHA']
         api_root_path = None
@@ -351,3 +396,77 @@ class NetAppModule(object):
         dump = json.dumps(data, indent=2, separators=(',', ': '))
         tabbed = re.sub('\n +', lambda match: '\n' + '\t' * int(len(match.group().strip('\n')) / 2), dump)
         return tabbed
+
+    def encode_certificates(self, certificate_file):
+        '''
+        Read certificate file and encode it
+        '''
+        try:
+            fh = open(certificate_file, mode='rb')
+        except (OSError, IOError) as error:
+            return None, error
+        with fh:
+            cert = fh.read()
+            if cert is None:
+                return None, "Error: file is empty"
+            return base64.b64encode(cert), None
+
+    def check_occm_status(self, host, rest_api, client):
+        """
+        Check OCCM status
+        :return: status
+        """
+
+        get_occum_url = host + "/agents-mgmt/agent/" + client + "clients"
+        headers = {
+            "X-User-Token": rest_api.token_type + " " + rest_api.token,
+        }
+        occm_status, error, dummy = rest_api.get(get_occum_url, header=headers)
+        return occm_status, error
+
+    def register_agent_to_service(self, host, rest_api, provider, vpc):
+        '''
+        register agent to service
+        '''
+        api_url = host + '/agents-mgmt/connector-setup'
+
+        headers = {
+            "X-User-Token": rest_api.token_type + " " + rest_api.token,
+        }
+        body = {
+            "accountId": self.parameters['account_id'],
+            "name": self.parameters['name'],
+            "company": self.parameters['company'],
+            "placement": {
+                "provider": provider,
+                "region": self.parameters['region'],
+                "network": vpc,
+                "subnet": self.parameters['subnet_id'],
+            },
+            "extra": {
+                "proxy": {
+                    "proxyUrl": self.parameters.get('proxy_url'),
+                    "proxyUserName": self.parameters.get('proxy_user_name'),
+                    "proxyPassword": self.parameters.get('proxy_password'),
+                }
+            }
+        }
+
+        if provider == "AWS":
+            body['placement']['network'] = vpc
+
+        response, error, dummy = rest_api.post(api_url, body, header=headers)
+        return response, error
+
+    def delete_occm(self, host, rest_api, client):
+        '''
+        delete occm
+        '''
+        api_url = host + '/agents-mgmt/agent/' + client + 'clients'
+        headers = {
+            "X-User-Token": rest_api.token_type + " " + rest_api.token,
+            "X-Tenancy-Account-Id": self.parameters['account_id'],
+        }
+
+        occm_status, error, dummy = rest_api.delete(api_url, None, header=headers)
+        return occm_status, error

@@ -1,2 +1,3 @@
 unittest2 ; python_version < '2.7'
 boto3
+google-auth ; python_version >= '3.5'
