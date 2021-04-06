@@ -7,45 +7,29 @@ jobs:
 
     runs-on: ubuntu-latest
     strategy:
-      max-parallel: 4
-      # Python version 2.6 does not exist in github
-      # Python Version 3.8 does not exist in github
+      max-parallel: 7
       matrix:
-        python-version: [2.7, 3.5, 3.6, 3.7]
-    
+        collection: [aws, azure, cloudmanager, elementsw, ontap, storagegrid, um_info]
     steps:
     - uses: actions/checkout@v1
-    - name: Set up Python ${{ matrix.python-version }}
+    - name: Setting up ansible test on ${{ matrix.collection }}
       uses: actions/setup-python@v1
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: 3.7
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install netapp-lib pycodestyle
-        pip install ansible
+        pip install ansible==4.0.0a3
+        cd ansible_collections/netapp/${{ matrix.collection }}
+        pwd
+        ls -l
+
+        pip install -r requirements.txt
     - name: Run Ansible Sanity
       run: |
-        cd ansible_collections/netapp/ontap
-        ansible-test sanity --docker=default --python ${{ matrix.python-version }} plugins/modules/*
-        cd ../elementsw
-        ansible-test sanity --docker=default --python ${{ matrix.python-version }} plugins/modules/*
-        cd ../azure
-        pwd
-        ansible-galaxy collection build -f
-        ansible-galaxy collection install -f netapp-azure-20.8.0.tar.gz
-        cd /home/runner/.ansible/collections/ansible_collections/netapp/azure 
-        ansible-test sanity --docker=default --python ${{ matrix.python-version }} plugins/modules/*
-        cd /home/runner/work/netapp/netapp/ansible_collections/netapp/aws
-        ansible-test sanity --docker=default --python ${{ matrix.python-version }} plugins/modules/*
+        cd ansible_collections/netapp/${{ matrix.collection }}
+        ansible-test sanity --docker=default
     - name: Run unit tests
-      # Need to fix unit test for thing other than ontap later.
-      # cd ../elementsw
-      # ansible-test units --docker=default --python ${{ matrix.python-version }}
-      #  cd ../azure
-      #  ansible-test units --docker=default --python ${{ matrix.python-version }}
-      #  cd ../aws
-      #  ansible-test units --docker=default --python ${{ matrix.python-version }}
       run: |
-        cd ansible_collections/netapp/ontap
+        cd ansible_collections/netapp/${{ matrix.collection }}
         ansible-test units --docker=default
