@@ -90,7 +90,7 @@ class SgOrgUserS3Key(object):
                 state=dict(required=False, type="str", choices=["present", "absent"], default="present"),
                 unique_user_name=dict(required=True, type="str"),
                 expires=dict(required=False, type="str"),
-                access_key=dict(required=False, type="str"),
+                access_key=dict(required=False, type="str", no_log=False),
             )
         )
 

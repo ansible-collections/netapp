@@ -231,7 +231,7 @@ class NetAppCloudManagerConnectorAWS(object):
             proxy_user_name=dict(required=False, type='str', default=''),
             proxy_password=dict(required=False, type='str', default='', no_log=True),
             aws_tag=dict(required=False, type='list', elements='dict', options=dict(
-                tag_key=dict(type='str'),
+                tag_key=dict(type='str', no_log=False),
                 tag_value=dict(type='str')
             )),
         ))

@@ -184,7 +184,7 @@ class AwsCvsNetappFileSystem(object):
         self.argument_spec.update(dict(
             state=dict(required=True, choices=['present', 'absent']),
             region=dict(required=True, type='str'),
-            creationToken=dict(required=True, type='str'),
+            creationToken=dict(required=True, type='str', no_log=False),
             quotaInBytes=dict(required=False, type='int'),
             serviceLevel=dict(required=False, choices=['standard', 'premium', 'extreme']),
             exportPolicy=dict(
