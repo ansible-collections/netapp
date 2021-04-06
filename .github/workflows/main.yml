@@ -7,7 +7,7 @@ jobs:
 
     runs-on: ubuntu-latest
     strategy:
-      max-parallel: 6
+      max-parallel: 7
       matrix:
         collection: [aws, azure, cloudmanager, elementsw, ontap, storagegrid, um_info]
     steps:
