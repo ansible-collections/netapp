@@ -437,7 +437,7 @@ class NetAppCloudManagerCVOAWS:
             kms_key_id=dict(required=False, type='str'),
             client_id=dict(required=True, type='str'),
             aws_tag=dict(required=False, type='list', elements='dict', options=dict(
-                tag_key=dict(type='str'),
+                tag_key=dict(type='str', no_log=False),
                 tag_value=dict(type='str')
             )),
             is_ha=dict(required=False, type='bool', default=False),

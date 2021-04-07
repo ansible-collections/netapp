@@ -1,3 +1,10 @@
 unittest2 ; python_version < '2.7'
 boto3
+azure-mgmt-compute ; python_version >= '3.5'
+azure-mgmt-network ; python_version >= '3.5'
+azure-mgmt-storage ; python_version >= '3.5'
+azure-mgmt-resource ; python_version >= '3.5'
+azure-cli-core ; python_version >= '3.5'
+msrestazure ; python_version >= '3.5'
+azure-common ; python_version >= '3.5'
 google-auth ; python_version >= '3.5'

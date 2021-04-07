@@ -361,7 +361,7 @@ class NetAppCloudManagerCVOAZURE:
             allow_deploy_in_existing_rg=dict(required=False, type='bool', default=False),
             client_id=dict(required=True, type='str'),
             azure_tag=dict(required=False, type='list', elements='dict', options=dict(
-                tag_key=dict(type='str'),
+                tag_key=dict(type='str', no_log=False),
                 tag_value=dict(type='str')
             )),
             serial_number=dict(required=False, type='str'),
