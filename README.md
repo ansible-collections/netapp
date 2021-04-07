@@ -18,6 +18,8 @@ There are currently 7 NetApp Collections
   * modules to support ElementSW configuration on SolidFire and HCI systems.
 * [StorageGRID](https://galaxy.ansible.com/netapp/storagegrid)
   * modules to support StorageGRID configuration.
+## Versioning
+[Releasing, Versioning and Deprecation](https://github.com/ansible-collections/netapp/issues/93)
 
 ## Requirements
 - ansible version >= 2.9
