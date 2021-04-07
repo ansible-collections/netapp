@@ -7,9 +7,9 @@ jobs:
 
     runs-on: ubuntu-latest
     strategy:
-      max-parallel: 7
+      max-parallel: 6
       matrix:
-        collection: [aws, azure, cloudmanager, elementsw, ontap, storagegrid, um_info]
+        collection: [aws, azure, cloudmanager, elementsw, ontap, um_info]
     steps:
     - uses: actions/checkout@v1
     - name: Setting up ansible test on ${{ matrix.collection }}
