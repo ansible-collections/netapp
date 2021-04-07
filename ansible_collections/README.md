@@ -5,8 +5,9 @@ There are currently 7 NetApp Collections
   * over 100 modules to support ONTAP configuration.
 * [CloudManager](https://galaxy.ansible.com/netapp/cloudmanager)
   * new modules to create a connector, single or HA CVO instances, aggregates, volumes, CIFS server, NSS accounts, iSCSI igroups/initiators.
-  * modules for connector and CVO only support AWS at present.  Azure and GCP are being added.
-  * modules for aggregates and volumes support AWS, and are expected to work on Azure and GCP as well (more testing underway).
+  * new info module to gather information about accounts, working_environments, aggregates. 
+  * modules for connector and CVO support AWS, Azure, and GCP.  Modules are specialized for each cloud provider.
+  * modules for aggregates and volumes support AWS, Azure, and GCP.
   * In addition, a [Terraform provider for CloudManager](https://registry.terraform.io/providers/NetApp/netapp-cloudmanager/latest) already supports all of the above on the 3 clouds.
 * [ANF for Azure](https://galaxy.ansible.com/netapp/azure)
   * Azure NetApp Files on Azure - accounts, resource pools, volumes, snapshots.
@@ -19,6 +20,9 @@ There are currently 7 NetApp Collections
 * [StorageGRID](https://galaxy.ansible.com/netapp/storagegrid)
   * modules to support StorageGRID configuration.
 
+## Versioning
+[Releasing, Versioning and Deprecation](https://github.com/ansible-collections/netapp/issues/93)
+
 ## Requirements
 - ansible version >= 2.9
 - requests >= 2.20
@@ -27,7 +31,7 @@ There are currently 7 NetApp Collections
   - six
 - only for ElementSW, or when using ONTAP SnapMirror with ElementSW
   - solidfire-sdk-python >= 1.5.0.87
-- check the `requirement.txt` file provided with the collection as of 21.3.0 for a detailed list.
+- check the `requirements.txt` file provided with the collection as of 21.3.0 for a detailed list.
 
 ## Installation
 ### ONTAP
@@ -59,6 +63,38 @@ ansible-galaxy collection install netapp.elementsw
 ansible-galaxy collection install netapp.storagegrid
 ```
 
+## Installation in a closed environment
+If you do not have connectivity to Galaxy in your production environment, you will need to:
+- download a collection tarball in an environment with access to internet,
+- move the tarball from the public environment to your private environment.  The specifics depends on your company,
+- use `galaxy collection install` with the tarball file in your private environment.
+
+There are two ways to download the collection tarball:
+- CLI: `galaxy collection download <collection_path>`
+- GUI: using the Ansible Galaxy web site, locate the collection of interest and click the `Download tarball` button.
+
+### Example
+```bash
+ansible-galaxy collection download netapp.cloudmanager
+```
+
+Transfer file, then install it:
+
+```bash
+ansible-galaxy collection install collections/netapp-cloudmanager-21.3.0.tar.gz
+```
+
+If you see a certificate issue when accessing galaxy, you can update your certificate, or disable the security check (at your own risk!):
+    `-c, --ignore-certs    Ignore SSL certificate validation errors.`
+
+If a collection is already installed, use the `--force` option to force an update if needed.
+
+### Reference
+https://docs.ansible.com/ansible/latest/cli/ansible-galaxy.html
+
+## Automation Hub
+The collections that are certified are also available in Red Hat Automation Hub if you have a subscription.
+
 ## Update History
 [ONTAP](https://github.com/ansible/ansible_collections_netapp/blob/master/ansible_collections/netapp/ontap/README.md)
 
@@ -83,6 +119,9 @@ The documentation generation may lag, in the meantime use ansible-doc for the la
 
   ansible-doc netapp.cloudmanager.na_cloudmanager_aggregate
 ```
+
+New collections which are not yet visible on Ansible docs site are documented at:
+https://github.com/ansible-collections/netapp/wiki
 
 # Need help
 Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
