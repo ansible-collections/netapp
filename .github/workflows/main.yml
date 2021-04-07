@@ -21,9 +21,6 @@ jobs:
         python -m pip install --upgrade pip
         pip install ansible==4.0.0a3
         cd ansible_collections/netapp/${{ matrix.collection }}
-        pwd
-        ls -l
-
         pip install -r requirements.txt
     - name: Run Ansible Sanity
       run: |
