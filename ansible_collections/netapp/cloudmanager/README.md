@@ -39,6 +39,7 @@ https://github.com/ansible-collections/netapp/wiki
   - na_cloudmanager_cvo_azure: Create or delete Cloud Manager CVO for AZURE for both single and HA.
   - na_cloudmanager_info: Gather Cloud Manager subset information using REST APIs. Support for subsets `working_environments_info`, `aggregates_info`, `accounts_info`.
   - na_cloudmanager_connector_gcp: Create or delete Cloud Manager connector for GCP.
+   - na_cloudmanager_cvo_gcp: Create or delete Cloud Manager CVO for GCP for both single and HA.
 
 ## 21.3.0
 
