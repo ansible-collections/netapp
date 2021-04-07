@@ -5,6 +5,35 @@ NetApp ElementSW Collection Release Notes
 .. contents:: Topics
 
 
+v21.3.0
+=======
+
+Minor Changes
+-------------
+
+- na_elementsw_info - add ``cluster_nodes`` and ``cluster_drives``.
+- na_elementsw_qos_policy - explicitly define ``minIOPS``, ``maxIOPS``, ``burstIOPS`` as int.
+
+Bugfixes
+--------
+
+- na_elementsw_drive - lastest SDK does not accept ``force_during_bin_sync`` and ``force_during_upgrade``.
+- na_elementsw_qos_policy - loop would convert `minIOPS`, `maxIOPS`, `burstIOPS` to str, causing type mismatch issues in comparisons.
+- na_elementsw_snapshot_schedule - change of interface in SDK ('ScheduleInfo' object has no attribute 'minutes')
+
+v20.11.0
+========
+
+Minor Changes
+-------------
+
+- na_elementsw_snapshot_schedule - Add ``retention`` in examples.
+
+Bugfixes
+--------
+
+- na_elementsw_drive - Object of type 'dict_values' is not JSON serializable.
+
 v20.10.0
 ========
 
