@@ -33,7 +33,11 @@ jobs:
     - name: Ran ansible-test on ansile DEV
       run: |
         git clone https://github.com/ansible/ansible/
+        which ansible-test
         source ansible/hacking/env-setup
         which ansible-test
+        cd ansible_collections/netapp/${{ matrix.collection }}
+        ansible-test sanity --docker=default
+        ansible-test sanity --docker=default
 
 
