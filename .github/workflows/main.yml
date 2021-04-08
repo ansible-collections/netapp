@@ -25,4 +25,8 @@ jobs:
     - name: Run Ansible Sanity
       run: |
         cd ansible_collections/netapp/${{ matrix.collection }}
-        ansible-test --docker=default
+        ansible-test sanity --docker=default
+    - name: Run unit tests
+      run: |
+        cd ansible_collections/netapp/${{ matrix.collection }}
+        ansible-test units --docker=default --python 3.8
