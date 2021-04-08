@@ -29,7 +29,7 @@ jobs:
     - name: Run unit tests
       run: |
         cd ansible_collections/netapp/${{ matrix.collection }}
-        ansible-test units --docker=default
+        ansible-test units --docker=default --python 3.8
     - name: Ran ansible-test on ansile DEV
       run: |
         git clone https://github.com/ansible/ansible/
@@ -38,6 +38,6 @@ jobs:
         which ansible-test
         cd ansible_collections/netapp/${{ matrix.collection }}
         ansible-test sanity --docker=default
-        ansible-test units --docker=default
+        ansible-test units --docker=default --python 3.8
 
 
