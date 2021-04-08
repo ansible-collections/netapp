@@ -38,6 +38,6 @@ jobs:
         which ansible-test
         cd ansible_collections/netapp/${{ matrix.collection }}
         ansible-test sanity --docker=default
-        ansible-test sanity --docker=default
+        ansible-test unit --docker=default
 
 
