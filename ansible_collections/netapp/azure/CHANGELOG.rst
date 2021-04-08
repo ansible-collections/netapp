@@ -5,6 +5,37 @@ Azure NetApp Files (ANF) Collection Release Notes
 .. contents:: Topics
 
 
+v21.3.0
+=======
+
+Minor Changes
+-------------
+
+- azure_rm_netapp_account - new option ``active_directories`` to support SMB volumes.
+- azure_rm_netapp_account - new suboptions ``ad_name``, ``kdc_ip``, ``service_root_ca_certificate``` for Active Directory.
+- azure_rm_netapp_volume - new option ``protocol_types`` to support SMB volumes.
+
+Bugfixes
+--------
+
+- azure_rm_netapp_account - wait for job completion for asynchroneous requests, and report belated errors.
+- support for azure-mgmt-netapp 1.0.0, while maintaining compatibility with 0.10.0.
+
+v21.2.0
+=======
+
+Minor Changes
+-------------
+
+- azure_rm_netapp_account - new option ``active_directories`` to support SMB volumes.
+- azure_rm_netapp_volume - new option ``protocol_types`` to support SMB volumes.
+- azure_rm_netapp_volume - new option ``subnet_name`` as subnet_id is ambiguous.  subnet_id is now aliased to subnet_name.
+
+Bugfixes
+--------
+
+- azure_rm_netapp_volume - fix 'Nonetype' object is not subscriptable exception when mount target is not created.
+
 v20.8.0
 =======
 

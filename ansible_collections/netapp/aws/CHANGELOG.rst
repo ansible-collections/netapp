@@ -5,6 +5,17 @@ NetApp AWS CVS Collection Release Notes
 .. contents:: Topics
 
 
+v21.2.0
+=======
+
+Bugfixes
+--------
+
+- all modules - disable logging for ``api_key`` and ``secret_key`` values.
+- all modules - prevent infinite loop when asynchronous action fails.
+- all modules - report error if response does not contain valid JSON.
+- aws_netapp_cvs_filesystems - fix KeyError when exportPolicy is not present.
+
 v20.9.0
 =======
 

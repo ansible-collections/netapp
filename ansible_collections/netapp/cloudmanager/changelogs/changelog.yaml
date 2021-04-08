@@ -21,3 +21,19 @@ releases:
       name: na_cloudmanager_volume
       namespace: ''
     release_date: '2021-03-03'
+  21.4.0:
+    modules:
+    - description: NetApp Cloud Manager connector for Azure.
+      name: na_cloudmanager_connector_azure
+      namespace: ''
+    - description: NetApp Cloud Manager connector for GCP.
+      name: na_cloudmanager_connector_gcp
+      namespace: ''
+    - description: NetApp Cloud Manager CVO/working environment in single or HA mode
+        for Azure.
+      name: na_cloudmanager_cvo_azure
+      namespace: ''
+    - description: NetApp Cloud Manager info
+      name: na_cloudmanager_info
+      namespace: ''
+    release_date: '2021-04-07'

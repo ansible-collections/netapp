@@ -101,6 +101,16 @@ releases:
       name: na_elementsw_info
       namespace: ''
     release_date: '2020-10-08'
+  20.11.0:
+    changes:
+      bugfixes:
+      - na_elementsw_drive - Object of type 'dict_values' is not JSON serializable.
+      minor_changes:
+      - na_elementsw_snapshot_schedule - Add ``retention`` in examples.
+    fragments:
+    - DEVOPS-3310.yml
+    - DEVOPS-3324.yaml
+    release_date: '2020-11-05'
   20.2.0:
     changes:
       bugfixes:
@@ -177,3 +187,21 @@ releases:
     - DEVOPS-3174.yaml
     - DEVOPS-3188.yaml
     release_date: '2020-09-08'
+  21.3.0:
+    changes:
+      bugfixes:
+      - na_elementsw_drive - lastest SDK does not accept ``force_during_bin_sync``
+        and ``force_during_upgrade``.
+      - na_elementsw_qos_policy - loop would convert `minIOPS`, `maxIOPS`, `burstIOPS`
+        to str, causing type mismatch issues in comparisons.
+      - na_elementsw_snapshot_schedule - change of interface in SDK ('ScheduleInfo'
+        object has no attribute 'minutes')
+      minor_changes:
+      - na_elementsw_info - add ``cluster_nodes`` and ``cluster_drives``.
+      - na_elementsw_qos_policy - explicitly define ``minIOPS``, ``maxIOPS``, ``burstIOPS``
+        as int.
+    fragments:
+    - DEVOPS-3731.yaml
+    - DEVOPS-3733.yaml
+    - DEVOPS-3734.yaml
+    release_date: '2021-03-03'

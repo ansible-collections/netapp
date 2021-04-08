@@ -52,3 +52,13 @@ releases:
     fragments:
     - 20.9.0.yaml
     release_date: '2020-09-02'
+  21.2.0:
+    changes:
+      bugfixes:
+      - all modules - disable logging for ``api_key`` and ``secret_key`` values.
+      - all modules - prevent infinite loop when asynchronous action fails.
+      - all modules - report error if response does not contain valid JSON.
+      - aws_netapp_cvs_filesystems - fix KeyError when exportPolicy is not present.
+    fragments:
+    - DEVOPS-3644.yaml
+    release_date: '2021-02-04'

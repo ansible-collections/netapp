@@ -29,4 +29,4 @@ sections:
   - Known Issues
 title: NetApp CloudManager Collection
 trivial_section_name: trivial
-use_fqcn: false
+use_fqcn: true
