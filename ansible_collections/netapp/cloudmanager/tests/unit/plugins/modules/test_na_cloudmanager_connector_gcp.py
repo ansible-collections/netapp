@@ -9,6 +9,7 @@ __metaclass__ = type
 
 import json
 import pytest
+import sys
 
 from ansible.module_utils import basic
 from ansible.module_utils._text import to_bytes
@@ -27,6 +28,9 @@ try:
     HAS_GCP_COLLECTION = True
 except ImportError as exc:
     IMPORT_ERRORS.append(str(exc))
+
+if not HAS_GCP_COLLECTION and sys.version_info < (3, 5):
+    pytestmark = pytest.mark.skip('skipping as missing required google packages on 2.6 and 2.7')
 
 
 def set_module_args(args):
