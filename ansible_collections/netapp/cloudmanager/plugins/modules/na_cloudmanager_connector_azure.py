@@ -396,7 +396,7 @@ class NetAppCloudManagerConnectorAzure(object):
         }
 
         create_account_url = "%s/tenancy/account/MyAccount" % CLOUD_MANAGER_HOST
-        account_res, error, dummy = self.rest_api.post(create_account_url, header=headers)
+        account_res, error, dummy = self.rest_api.post(create_account_url, data=None, header=headers)
         if error is not None:
             self.module.fail_json(msg="Error: unexpected response on creating account: %s, %s" % (str(error), str(account_res)))
 

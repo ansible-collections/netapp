@@ -1,5 +1,4 @@
-unittest2 ; python_version < '2.7'
-boto3
+boto3 ; python_version >= '3.5'
 azure-mgmt-compute ; python_version >= '3.5'
 azure-mgmt-network ; python_version >= '3.5'
 azure-mgmt-storage ; python_version >= '3.5'

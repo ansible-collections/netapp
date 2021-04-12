@@ -8,14 +8,18 @@ from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
 import json
+import sys
 import pytest
 
 from ansible.module_utils import basic
 from ansible.module_utils._text import to_bytes
-from ansible_collections.netapp.cloudmanager.tests.unit.compat.mock import patch, Mock
+from ansible_collections.netapp.cloudmanager.tests.unit.compat.mock import patch
 
 from ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_connector_azure \
-    import NetAppCloudManagerConnectorAzure as my_module
+    import NetAppCloudManagerConnectorAzure as my_module, IMPORT_EXCEPTION
+
+if IMPORT_EXCEPTION is not None and sys.version_info < (3, 5):
+    pytestmark = pytest.mark.skip('skipping as missing required imports on 2.6 and 2.7: %s' % IMPORT_EXCEPTION)
 
 
 def set_module_args(args):

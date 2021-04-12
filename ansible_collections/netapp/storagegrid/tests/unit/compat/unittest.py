@@ -16,15 +16,16 @@
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 
 # Make coding more python3-ish
-from __future__ import absolute_import, division, print_function
-
+from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
-"""
+'''
 Compat module for Python2.7's unittest module
-"""
+'''
 
 import sys
+
+import pytest
 
 # Allow wildcard import because we really do want to import all of
 # unittests's symbols into this compat shim
@@ -34,6 +35,10 @@ if sys.version_info < (2, 7):
         # Need unittest2 on python2.6
         from unittest2 import *
     except ImportError:
-        print("You need unittest2 installed on python2.6.x to run tests")
+        print('You need unittest2 installed on python2.6.x to run tests')
+
+        class TestCase:
+            """ skip everything """
+            pytestmark = pytest.mark.skip('Skipping Unit Tests on 2.6 as unittest2 may not be available')
 else:
     from unittest import *

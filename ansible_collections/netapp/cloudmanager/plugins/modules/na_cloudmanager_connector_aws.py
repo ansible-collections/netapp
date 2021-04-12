@@ -444,7 +444,7 @@ class NetAppCloudManagerConnectorAWS(object):
             "X-User-Token": self.rest_api.token_type + " " + self.rest_api.token,
         }
 
-        account_res, error, dummy = self.rest_api.post("cloudmanager.cloud.netapp.com//tenancy/account/MyAccount", header=headers)
+        account_res, error, dummy = self.rest_api.post("cloudmanager.cloud.netapp.com//tenancy/account/MyAccount", None, header=headers)
         if error is not None:
             self.module.fail_json(msg="Error: unexpected response on creating account: %s, %s" % (str(error), str(account_res)))
 

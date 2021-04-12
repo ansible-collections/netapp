@@ -3,6 +3,8 @@
 Copyright (c) 2021 NetApp, Inc. All rights reserved.
 Specifications subject to change without notice.
 
+This collection requires python 3.5 or better.
+
 # Installation
 ```bash
 ansible-galaxy collection install netapp.cloudmanager
@@ -19,13 +21,13 @@ collections:
 # Need help
 Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 
-# Release Notes
-
 # Code of Conduct
 This collection follows the [Ansible project's Code of Conduct](https://docs.ansible.com/ansible/devel/community/code_of_conduct.html).
 
 # Documentation
 https://github.com/ansible-collections/netapp/wiki
+
+# Release Notes
 
 ## 21.4.0
 
@@ -39,7 +41,7 @@ https://github.com/ansible-collections/netapp/wiki
   - na_cloudmanager_cvo_azure: Create or delete Cloud Manager CVO for AZURE for both single and HA.
   - na_cloudmanager_info: Gather Cloud Manager subset information using REST APIs. Support for subsets `working_environments_info`, `aggregates_info`, `accounts_info`.
   - na_cloudmanager_connector_gcp: Create or delete Cloud Manager connector for GCP.
-   - na_cloudmanager_cvo_gcp: Create or delete Cloud Manager CVO for GCP for both single and HA.
+  - na_cloudmanager_cvo_gcp: Create or delete Cloud Manager CVO for GCP for both single and HA.
 
 ## 21.3.0
 
