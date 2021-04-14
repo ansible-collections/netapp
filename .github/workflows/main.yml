@@ -8,7 +8,7 @@ on:
 
 jobs:
   sanity:
-    name: Sanity (${{ matrix.ansible }})
+    name: Sanity (${{ matrix.ansible }} on ${{ matrix.collection }})
     runs-on: ubuntu-latest
     strategy:
       matrix:
