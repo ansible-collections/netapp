@@ -1,43 +1,55 @@
 name: NetApp Ansible CI
 
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '0 6 * * *'
 
 jobs:
-  build:
-
+  sanity:
+    name: Sanity (${{ matrix.ansible }})
     runs-on: ubuntu-latest
     strategy:
-      max-parallel: 6
       matrix:
-        collection: [aws, azure, cloudmanager, elementsw, ontap, um_info]
+        ansible:
+          - stable-2.9
+          - stable-2.10
+          - stable-2.11
+          - devel
+
     steps:
-    - uses: actions/checkout@v1
-    - name: Setting up ansible test on ${{ matrix.collection }}
-      uses: actions/setup-python@v1
-      with:
-        python-version: 3.7
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install ansible==4.0.0a3
-        cd ansible_collections/netapp/${{ matrix.collection }}
-        pip install -r requirements.txt
-    - name: Run Ansible Sanity
-      run: |
-        cd ansible_collections/netapp/${{ matrix.collection }}
-        ansible-test sanity --docker=default
-    - name: Run unit tests
-      run: |
-        cd ansible_collections/netapp/${{ matrix.collection }}
-        ansible-test units --docker=default --python 3.8
-    - name: Ran ansible-test on ansile DEV
-      run: |
-        git clone https://github.com/ansible/ansible/
-        which ansible-test
-        source ansible/hacking/env-setup
-        which ansible-test
-        cd ansible_collections/netapp/${{ matrix.collection }}
-        ansible-test sanity --docker=default
-        ansible-test units --docker=default --python 3.8
+      - name: Check out code
+        uses: actions/checkout@v2
 
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
 
+      - name: Install ansible (${{ matrix.ansible }})
+        run: pip install https://github.com/ansible/ansible/archive/${{ matrix.ansible }}.tar.gz --disable-pip-version-check
+
+      - name: Run sanity tests (aws)
+        run: ansible-test sanity --docker -v --color
+        working-directory: ./ansible_collections/netapp/aws
+
+      - name: Run sanity tests (azure)
+        run: ansible-test sanity --docker -v --color
+        working-directory: ./ansible_collections/netapp/azure
+
+      - name: Run sanity tests (cloudmanager)
+        run: ansible-test sanity --docker -v --color
+        working-directory: ./ansible_collections/netapp/cloudmanager
+
+      - name: Run sanity tests (elementsw)
+        run: ansible-test sanity --docker -v --color
+        working-directory: ./ansible_collections/netapp/elementsw
+
+      - name: Run sanity tests (ontap)
+        run: ansible-test sanity --docker -v --color
+        working-directory: ./ansible_collections/netapp/ontap
+
+      - name: Run sanity tests (um_info)
+        run: ansible-test sanity --docker -v --color
+        working-directory: ./ansible_collections/netapp/um_info
