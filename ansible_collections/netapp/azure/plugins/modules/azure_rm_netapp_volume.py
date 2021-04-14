@@ -11,11 +11,6 @@ azure_rm_netapp_volume
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
-ANSIBLE_METADATA = {'metadata_version': '1.1',
-                    'status': ['preview'],
-                    'supported_by': 'certified'}
-
-
 DOCUMENTATION = '''
 ---
 module: azure_rm_netapp_volume
@@ -150,7 +145,7 @@ except ImportError as exc:
     IMPORT_ERRORS.append(str(exc))
 
 try:
-    from azure.mgmt.netapp.models import Volume, ExportPolicyRule, VolumePropertiesExportPolicy
+    from azure.mgmt.netapp.models import Volume, ExportPolicyRule, VolumePropertiesExportPolicy, VolumePatch
     HAS_AZURE_MGMT_NETAPP = True
 except ImportError as exc:
     IMPORT_ERRORS.append(str(exc))
@@ -189,9 +184,23 @@ class AzureRMNetAppVolume(AzureRMNetAppModuleBase):
         )
         self.na_helper = NetAppModule()
         self.parameters = self.na_helper.set_parameters(self.module.params)
+        # API is using 'usage_threshold' for 'size', and the unit is bytes
+        if 'size' in self.parameters:
+            self.parameters['usage_threshold'] = ONE_GIB * self.parameters.pop('size')
 
         self.fail_when_import_errors(IMPORT_ERRORS, HAS_AZURE_MGMT_NETAPP)
         super(AzureRMNetAppVolume, self).__init__(derived_arg_spec=self.module_arg_spec, supports_check_mode=True)
+
+    @staticmethod
+    def dict_from_volume_object(volume_object):
+        current_dict = vars(volume_object)
+        attr = 'subnet_id'
+        if attr in current_dict:
+            current_dict['subnet_name'] = current_dict.pop(attr).split('/')[-1]
+        attr = 'mount_targets'
+        if current_dict.get(attr):
+            current_dict[attr] = [vars(mount) for mount in current_dict[attr]]
+        return current_dict
 
     def get_azure_netapp_volume(self):
         """
@@ -203,7 +212,7 @@ class AzureRMNetAppVolume(AzureRMNetAppModuleBase):
                                                         self.parameters['pool_name'], self.parameters['name'])
         except (CloudError, ResourceNotFoundError):  # volume does not exist
             return None
-        return volume_get
+        return self.dict_from_volume_object(volume_get)
 
     def get_export_policy_rules(self):
         # ExportPolicyRule(rule_index: int=None, unix_read_only: bool=None, unix_read_write: bool=None,
@@ -216,32 +225,31 @@ class AzureRMNetAppVolume(AzureRMNetAppModuleBase):
         ptypes = [x.lower() for x in ptypes]
         if 'nfsv4.1' in ptypes:
             ptypes.append('nfsv41')
-        else:
-            return None
         # only create a policy when NFSv4 is used (for now)
+        if 'nfsv41' not in ptypes:
+            return None
         options = dict(
             rule_index=1,
             allowed_clients='0.0.0.0/0',
             unix_read_write=True)
         for protocol in ('cifs', 'nfsv3', 'nfsv41'):
             options[protocol] = protocol in ptypes
-        if options:
-            return VolumePropertiesExportPolicy(rules=[ExportPolicyRule(**options)])
-        return None
+        return VolumePropertiesExportPolicy(rules=[ExportPolicyRule(**options)])
+
+    def get_not_none_values_from_params(self, keys):
+        options = dict()
+        for attr in keys:
+            value = self.parameters.get(attr)
+            if value is not None:
+                options[attr] = value
+        return options
 
     def create_azure_netapp_volume(self):
         """
             Create a volume for the given Azure NetApp Account
             :return: None
         """
-        options = dict()
-        for attr in ('protocol_types', 'service_level', 'size'):
-            value = self.parameters.get(attr)
-            if value is not None:
-                if attr == 'size':
-                    attr = 'usage_threshold'
-                    value *= ONE_GIB
-                options[attr] = value
+        options = self.get_not_none_values_from_params(['protocol_types', 'service_level', 'usage_threshold'])
         rules = self.get_export_policy_rules()
         if rules is not None:
             options['export_policy'] = rules
@@ -269,6 +277,27 @@ class AzureRMNetAppVolume(AzureRMNetAppModuleBase):
                                   % (self.parameters['name'], self.parameters['account_name'], subnet_id, to_native(error)),
                                   exception=traceback.format_exc())
 
+    def modify_azure_netapp_volume(self):
+        """
+            Modify a volume for the given Azure NetApp Account
+            :return: None
+        """
+        options = self.get_not_none_values_from_params(['usage_threshold'])
+        volume_body = VolumePatch(
+            **options
+        )
+        try:
+            result = self.get_method('volumes', 'update')(body=volume_body, resource_group_name=self.parameters['resource_group'],
+                                                          account_name=self.parameters['account_name'],
+                                                          pool_name=self.parameters['pool_name'], volume_name=self.parameters['name'])
+            # waiting till the status turns Succeeded
+            while result.done() is not True:
+                result.result(10)
+        except (CloudError, ValidationError, AzureError) as error:
+            self.module.fail_json(msg='Error modifying volume %s for Azure NetApp account %s: %s'
+                                  % (self.parameters['name'], self.parameters['account_name'], to_native(error)),
+                                  exception=traceback.format_exc())
+
     def delete_azure_netapp_volume(self):
         """
             Delete a volume for the given Azure NetApp Account
@@ -286,29 +315,47 @@ class AzureRMNetAppVolume(AzureRMNetAppModuleBase):
                                   % (self.parameters['name'], self.parameters['account_name'], to_native(error)),
                                   exception=traceback.format_exc())
 
+    def validate_modify(self, modify, current):
+        disallowed = dict(modify)
+        disallowed.pop('usage_threshold', None)
+        if disallowed:
+            self.module.fail_json(msg="Error: the following properties cannot be modified: %s.  Current: %s" % (repr(disallowed), repr(current)))
+
     def exec_module(self, **kwargs):
+        modify = None
         current = self.get_azure_netapp_volume()
         cd_action = self.na_helper.get_cd_action(current, self.parameters)
+        if cd_action is None and current:
+            # ignore change in name
+            name = current.pop('name', None)
+            modify = self.na_helper.get_modified_attributes(current, self.parameters)
+            if name is not None:
+                current['name'] = name
+            self.validate_modify(modify, current)
 
-        if self.na_helper.changed:
-            if self.module.check_mode:
-                pass
-            else:
-                if cd_action == 'create':
-                    self.create_azure_netapp_volume()
-                elif cd_action == 'delete':
-                    self.delete_azure_netapp_volume()
+        if self.na_helper.changed and not self.module.check_mode:
+            if cd_action == 'create':
+                self.create_azure_netapp_volume()
+            elif cd_action == 'delete':
+                self.delete_azure_netapp_volume()
+            elif modify:
+                self.modify_azure_netapp_volume()
 
-        return_info = ''
+        def get_mount_info(return_info):
+            if return_info is not None and return_info.get('mount_targets'):
+                return '%s:/%s' % (return_info['mount_targets'][0]['ip_address'], return_info['creation_token'])
+            return None
+
+        mount_info = ''
         if self.parameters['state'] == 'present':
             return_info = self.get_azure_netapp_volume()
-            if return_info is None:
+            if return_info is None and not self.module.check_mode:
                 self.module.fail_json(msg='Error: volume %s was created successfully, but cannot be found.' % self.parameters['name'])
-            if return_info.mount_targets is None:
+            mount_info = get_mount_info(return_info)
+            if mount_info is None and not self.module.check_mode:
                 self.module.fail_json(msg='Error: volume %s was created successfully, but mount target(s) cannot be found - volume details: %s.'
                                       % (self.parameters['name'], str(return_info)))
-            return_info = '%s:/%s' % (return_info.mount_targets[0].ip_address, return_info.creation_token)
-        self.module.exit_json(changed=self.na_helper.changed, msg=str(return_info))
+        self.module.exit_json(changed=self.na_helper.changed, mount_path=mount_info, modify=modify)
 
 
 def main():

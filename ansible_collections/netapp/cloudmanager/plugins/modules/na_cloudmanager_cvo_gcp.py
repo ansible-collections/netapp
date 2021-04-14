@@ -324,7 +324,7 @@ notes:
 EXAMPLES = """
 
 - name: Create NetApp Cloud Manager cvo for GCP
-  na_cloudmanager_cvo_gcp:
+  netapp.cloudmanager.na_cloudmanager_cvo_gcp:
     state: present
     name: ansiblecvogcp
     project_id: default-project
@@ -352,7 +352,7 @@ EXAMPLES = """
         label_value: value2
 
 - name: Create NetApp Cloud Manager cvo ha for GCP
-  na_cloudmanager_cvo_gcp:
+  netapp.cloudmanager.na_cloudmanager_cvo_gcp:
     state: present
     name: ansiblecvogcpha
     project_id: "default-project"
@@ -391,10 +391,7 @@ EXAMPLES = """
 
 RETURN = r"""#"""
 
-import traceback
-
 from ansible.module_utils.basic import AnsibleModule
-from ansible.module_utils._text import to_native
 import ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp as netapp_utils
 from ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp_module import NetAppModule
 from ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp import CloudManagerRestAPI
@@ -403,7 +400,7 @@ CLOUD_MANAGER_HOST = "cloudmanager.cloud.netapp.com"
 GCP_LICENSE_TYPES = ["gcp-cot-standard-paygo", "gcp-cot-explore-paygo", "gcp-cot-premium-paygo", "gcp-cot-premium-byol",
                      "gcp-ha-cot-standard-paygo", "gcp-ha-cot-premium-paygo", "gcp-ha-cot-explore-paygo",
                      "gcp-ha-cot-premium-byol"]
-Google_API_URL = "https://www.googleapis.com/compute/v1/projects"
+GOOGLE_API_URL = "https://www.googleapis.com/compute/v1/projects"
 
 
 class NetAppCloudManagerCVOGCP:
@@ -602,44 +599,44 @@ class NetAppCloudManagerCVOGCP:
 
             if self.parameters.get('vpc0_node_and_data_connectivity'):
                 if self.parameters.get("network_project_id") is not None:
-                    ha_params["vpc0NodeAndDataConnectivity"] = Google_API_URL + "/{0}/global/networks/{1}".format(
+                    ha_params["vpc0NodeAndDataConnectivity"] = GOOGLE_API_URL + "/{0}/global/networks/{1}".format(
                         self.parameters["network_project_id"], self.parameters['vpc0_node_and_data_connectivity'])
                 else:
-                    ha_params["vpc0NodeAndDataConnectivity"] = Google_API_URL + "/{0}/global/networks/{1}".format(
+                    ha_params["vpc0NodeAndDataConnectivity"] = GOOGLE_API_URL + "/{0}/global/networks/{1}".format(
                         self.parameters["project_id"], self.parameters['vpc0_node_and_data_connectivity'])
             if self.parameters.get('vpc1_cluster_connectivity'):
-                ha_params["vpc1ClusterConnectivity"] = Google_API_URL + "/{0}/global/networks/{1}".format(
+                ha_params["vpc1ClusterConnectivity"] = GOOGLE_API_URL + "/{0}/global/networks/{1}".format(
                     self.parameters["project_id"], self.parameters['vpc1_cluster_connectivity'])
             if self.parameters.get('vpc2_ha_connectivity'):
                 ha_params["vpc2HAConnectivity"] = "https://www.googleapis.com/compute/v1/projects/{0}/global/networks" \
                                                   "/{1}".format(self.parameters["project_id"],
                                                                 self.parameters['vpc2_ha_connectivity'])
             if self.parameters.get('vpc3_data_replication'):
-                ha_params["vpc3DataReplication"] = Google_API_URL + "/{0}/global/networks/{1}".format(
+                ha_params["vpc3DataReplication"] = GOOGLE_API_URL + "/{0}/global/networks/{1}".format(
                     self.parameters["project_id"], self.parameters['vpc3_data_replication'])
 
             if self.parameters.get('subnet0_node_and_data_connectivity'):
                 if self.parameters.get('network_project_id') is not None:
-                    ha_params["subnet0NodeAndDataConnectivity"] = Google_API_URL + "/{0}/regions/{1}/subnetworks/{2}".\
+                    ha_params["subnet0NodeAndDataConnectivity"] = GOOGLE_API_URL + "/{0}/regions/{1}/subnetworks/{2}".\
                         format(self.parameters['network_project_id'], self.parameters['zone'][:-2],
                                self.parameters['subnet0_node_and_data_connectivity'])
                 else:
-                    ha_params["subnet0NodeAndDataConnectivity"] = Google_API_URL + "/{0}/regions/{1}/subnetworks/{2}".\
+                    ha_params["subnet0NodeAndDataConnectivity"] = GOOGLE_API_URL + "/{0}/regions/{1}/subnetworks/{2}".\
                         format(self.parameters['project_id'], self.parameters['zone'][:-2],
                                self.parameters['subnet0_node_and_data_connectivity'])
 
             if self.parameters.get('subnet1_cluster_connectivity'):
-                ha_params["subnet1ClusterConnectivity"] = Google_API_URL + "/{0}/regions/{1}/subnetworks/{2}".format(
+                ha_params["subnet1ClusterConnectivity"] = GOOGLE_API_URL + "/{0}/regions/{1}/subnetworks/{2}".format(
                     self.parameters['project_id'], self.parameters['zone'][:-2],
                     self.parameters['subnet1_cluster_connectivity'])
 
             if self.parameters.get('subnet2_ha_connectivity'):
-                ha_params["subnet2HAConnectivity"] = Google_API_URL + "/{0}/regions/{1}/subnetworks/{2}".format(
+                ha_params["subnet2HAConnectivity"] = GOOGLE_API_URL + "/{0}/regions/{1}/subnetworks/{2}".format(
                     self.parameters['project_id'], self.parameters['zone'][:-2],
                     self.parameters['subnet2_ha_connectivity'])
 
             if self.parameters.get('subnet3_data_replication'):
-                ha_params["subnet3DataReplication"] = Google_API_URL + "/{0}/regions/{1}/subnetworks/{2}". \
+                ha_params["subnet3DataReplication"] = GOOGLE_API_URL + "/{0}/regions/{1}/subnetworks/{2}". \
                     format(self.parameters['project_id'], self.parameters['zone'][:-2],
                            self.parameters['subnet3_data_replication'])
 

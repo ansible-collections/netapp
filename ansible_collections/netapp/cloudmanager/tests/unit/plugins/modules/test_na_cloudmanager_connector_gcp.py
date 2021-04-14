@@ -8,12 +8,12 @@ from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
 import json
-import pytest
 import sys
+import pytest
 
 from ansible.module_utils import basic
 from ansible.module_utils._text import to_bytes
-from ansible_collections.netapp.cloudmanager.tests.unit.compat.mock import patch, Mock
+from ansible_collections.netapp.cloudmanager.tests.unit.compat.mock import patch
 
 from ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_connector_gcp \
     import NetAppCloudManagerConnectorGCP as my_module
@@ -71,8 +71,8 @@ class MockCMConnection():
 
 
 # using pytest natively, without unittest.TestCase
-@pytest.fixture
-def patch_ansible():
+@pytest.fixture(name='patch_ansible')
+def fixture_patch_ansible():
     with patch.multiple(basic.AnsibleModule,
                         exit_json=exit_json,
                         fail_json=fail_json) as mocks:
@@ -132,12 +132,14 @@ def test_module_fail_when_required_args_missing(patch_ansible):
     print('Info: %s' % exc.value.args[0]['msg'])
 
 
+@patch('ansible_collections.netapp.cloudmanager.plugins.modules.na_cloudmanager_connector_gcp.NetAppCloudManagerConnectorGCP.get_gcp_token')
 @patch('ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp.CloudManagerRestAPI.get_token')
-def test_module_fail_when_required_args_present(get_token, patch_ansible):
+def test_module_fail_when_required_args_present(get_token, get_gcp_token, patch_ansible):
     ''' required arguments are reported as errors '''
     with pytest.raises(AnsibleExitJson) as exc:
         set_module_args(set_default_args_pass_check())
         get_token.return_value = 'test', 'test'
+        get_gcp_token.return_value = 'token', None
         my_module()
         exit_json(changed=True, msg="TestCase Fail when required args are present")
     assert exc.value.args[0]['changed']

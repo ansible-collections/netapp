@@ -133,7 +133,7 @@ options:
 
 EXAMPLES = """
 - name: Create NetApp Cloud Manager connector for GCP
-  na_cloudmanager_connector_gcp:
+  netapp.cloudmanager.na_cloudmanager_connector_gcp:
     state: present
     name: ansible-occm-gcp
     project_id: xxxxxxx-support
@@ -150,7 +150,7 @@ EXAMPLES = """
     client_id: "{{ wwwwwwwwww }}"
 
 - name: Delete NetApp Cloud Manager connector for GCP
-  na_cloudmanager_connector_gcp:
+  netapp.cloudmanager.na_cloudmanager_connector_gcp:
     state: absent
     name: ansible-occm-gcp
     refresh_token: "{{ xxxxxxxxxxxxxxx }}"
@@ -240,6 +240,8 @@ class NetAppCloudManagerConnectorGCP(object):
         super(NetAppCloudManagerConnectorGCP, self).__init__()
 
         self.rest_api.gcp_token, error = self.get_gcp_token()
+        if error:
+            self.module.fail_json(msg='Error getting gcp token: %s' % repr(error))
 
     def get_gcp_token(self):
         '''

@@ -30,6 +30,12 @@ Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 
 # Release Notes
 
+## 21.5.0
+
+### Minor changes
+  - azure_rm_netapp_volume - enable changes in volume size.
+  - azure_rm_netapp_volume - rename msg to mount_path, as documented in RETURN.
+
 ## 21.3.0
 
 ### New Options

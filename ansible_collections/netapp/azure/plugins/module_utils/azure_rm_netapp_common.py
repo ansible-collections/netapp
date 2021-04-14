@@ -12,7 +12,7 @@ __metaclass__ = type
 
 HAS_AZURE_COLLECTION = True
 NEW_STYLE = None
-COLLECTION_VERSION = "21.3.0"
+COLLECTION_VERSION = "21.5.0"
 IMPORT_ERRORS = list()
 
 try:
