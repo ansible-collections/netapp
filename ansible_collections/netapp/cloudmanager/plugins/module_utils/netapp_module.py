@@ -223,14 +223,12 @@ class NetAppModule(object):
         if error is not None:
             return None, error
         if len(account_res) == 0:
-            account_id, error = self.create_account()
+            account_id, error = self.create_account(host, rest_api)
             if error is not None:
                 return None, error
             return account_id, None
-        else:
-            account_id = account_res[0]['accountPublicId']
 
-        return account_id, None
+        return account_res[0]['accountPublicId'], None
 
     def get_accounts_info(self, rest_api, headers):
         '''

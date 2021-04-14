@@ -44,13 +44,11 @@ options:
     default: t3.xlarge
 
   key_name:
-    required: true
     description:
     - The name of the key pair to use for the Connector instance.
     type: str
 
   subnet_id:
-    required: true
     description:
     - The ID of the subnet for the instance.
     type: str
@@ -77,20 +75,17 @@ options:
     type: str
 
   company:
-    required: true
     description:
     - The name of the company of the user.
     type: str
 
   security_group_ids:
-    required: true
     description:
     - The IDs of the security groups for the instance, multiple security groups can be provided separated by ','.
     type: list
     elements: str
 
   iam_instance_profile_name:
-    required: true
     description:
     - The name of the instance profile for the Connector.
     type: str
@@ -127,6 +122,13 @@ options:
     - The proxy password, if using a proxy to connect to the internet.
     type: str
 
+  proxy_certificates:
+    description:
+    - The proxy certificates, a list of certificate file names.
+    type: list
+    elements: str
+    version_added: 21.5.0
+
   aws_tag:
     description:
     - Additional tags for the AWS EC2 instance.
@@ -159,7 +161,6 @@ EXAMPLES = """
     region: us-west-1
     key_name: dev_automation
     subnet_id: subnet-xxxxx
-    ami: "{{ ami-xxxxxxxxxxxxxxxxx }}"
     security_group_ids: [sg-xxxxxxxxxxx]
     iam_instance_profile_name: OCCM_AUTOMATION
     account_id: "{{ account-xxxxxxx }}"
@@ -167,6 +168,7 @@ EXAMPLES = """
     proxy_url: abc.com
     proxy_user_name: xyz
     proxy_password: abcxyz
+    proxy_certificates: [abc.crt.txt, xyz.crt.txt]
     aws_tag: [
         {tag_key: abc,
         tag_value: a123}]
@@ -176,15 +178,22 @@ EXAMPLES = """
     state: absent
     name: ansible
     region: us-west-1
+    account_id: "{{ account-xxxxxxx }}"
     instance_id: i-xxxxxxxxxxxxx
     client_id: xxxxxxxxxxxxxxxxxxx
 """
 
-RETURN = r''' # '''
+RETURN = """
+ids:
+  description: Newly created Azure client ID in cloud manager, instance ID and account ID.
+  type: dict
+  returned: success
+"""
 
 import traceback
 import uuid
 import time
+import base64
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils._text import to_native
@@ -201,6 +210,7 @@ except ImportError as exc:
     HAS_AWS_LIB = False
     IMPORT_EXCEPTION = exc
 
+CLOUD_MANAGER_HOST = "cloudmanager.cloud.netapp.com"
 AWS_ACCOUNT = '952013314444'
 UUID = str(uuid.uuid4())
 
@@ -215,21 +225,22 @@ class NetAppCloudManagerConnectorAWS(object):
             name=dict(required=True, type='str'),
             state=dict(required=False, choices=['present', 'absent'], default='present'),
             instance_type=dict(required=False, type='str', default='t3.xlarge'),
-            key_name=dict(required=True, type='str'),
-            subnet_id=dict(required=True, type='str'),
+            key_name=dict(required=False, type='str'),
+            subnet_id=dict(required=False, type='str'),
             region=dict(required=True, type='str'),
             instance_id=dict(required=False, type='str'),
             client_id=dict(required=False, type='str'),
             ami=dict(required=False, type='str'),
-            company=dict(required=True, type='str'),
-            security_group_ids=dict(required=True, type='list', elements='str'),
-            iam_instance_profile_name=dict(required=True, type='str'),
+            company=dict(required=False, type='str'),
+            security_group_ids=dict(required=False, type='list', elements='str'),
+            iam_instance_profile_name=dict(required=False, type='str'),
             enable_termination_protection=dict(required=False, type='bool', default=False),
             associate_public_ip_address=dict(required=False, type='bool', default=True),
             account_id=dict(required=False, type='str'),
             proxy_url=dict(required=False, type='str', default=''),
             proxy_user_name=dict(required=False, type='str', default=''),
             proxy_password=dict(required=False, type='str', default='', no_log=True),
+            proxy_certificates=dict(required=False, type='list', elements='str'),
             aws_tag=dict(required=False, type='list', elements='dict', options=dict(
                 tag_key=dict(type='str', no_log=False),
                 tag_value=dict(type='str')
@@ -239,7 +250,8 @@ class NetAppCloudManagerConnectorAWS(object):
         self.module = AnsibleModule(
             argument_spec=self.argument_spec,
             required_if=[
-                ['state', 'absent', ['instance_id', 'client_id']]
+                ['state', 'present', ['company', 'iam_instance_profile_name', 'key_name', 'security_group_ids', 'subnet_id']],
+                ['state', 'absent', ['instance_id', 'client_id', 'account_id']]
             ],
             supports_check_mode=True
         )
@@ -325,7 +337,7 @@ class NetAppCloudManagerConnectorAWS(object):
     def create_instance(self):
         """
         Create Cloud Manager connector for AWS
-        :return: None
+        :return: client_id, instance_id
         """
 
         if self.parameters.get('ami') is None:
@@ -398,7 +410,7 @@ class NetAppCloudManagerConnectorAWS(object):
             instance_input['SecurityGroupIds'] = self.parameters['security_group_ids']
 
         try:
-            ec2.run_instances(**instance_input)
+            result = ec2.run_instances(**instance_input)
         except ClientError as error:
             self.module.fail_json(msg=to_native(error), exception=traceback.format_exc())
 
@@ -406,7 +418,10 @@ class NetAppCloudManagerConnectorAWS(object):
         time.sleep(120)
         retries = 16
         while retries > 0:
-            occm_resp = self.check_occm_status(client_id)
+            occm_resp, error = self.na_helper.check_occm_status(CLOUD_MANAGER_HOST, self.rest_api, client_id)
+            if error is not None:
+                self.module.fail_json(
+                    msg="Error: Not able to get occm status: %s, %s" % (str(error), str(occm_resp)))
             if occm_resp['agent']['status'] == "active":
                 break
             else:
@@ -416,58 +431,7 @@ class NetAppCloudManagerConnectorAWS(object):
             # Taking too long for status to be active
             return self.module.fail_json(msg="Taking too long for OCCM agent to be active or not properly setup")
 
-    def get_account(self):
-        """
-        Get Account
-        :return: Account ID
-        """
-        headers = {
-            "X-User-Token": self.rest_api.token_type + " " + self.rest_api.token,
-        }
-
-        account_res, error, dummy = self.rest_api.get("cloudmanager.cloud.netapp.com/tenancy/account", header=headers)
-        if error is not None:
-            self.module.fail_json(msg="Error: unexpected response on getting account: %s, %s" % (str(error), str(account_res)))
-        if len(account_res) == 0:
-            account_id = self.create_account()
-            return account_id
-        account_id = account_res[0]['accountPublicId']
-
-        return account_id
-
-    def create_account(self):
-        """
-        Create Account
-        :return: Account ID
-        """
-        headers = {
-            "X-User-Token": self.rest_api.token_type + " " + self.rest_api.token,
-        }
-
-        account_res, error, dummy = self.rest_api.post("cloudmanager.cloud.netapp.com//tenancy/account/MyAccount", None, header=headers)
-        if error is not None:
-            self.module.fail_json(msg="Error: unexpected response on creating account: %s, %s" % (str(error), str(account_res)))
-
-        account_id = account_res['accountPublicId']
-
-        return account_id
-
-    def check_occm_status(self, client):
-        """
-        Check OCCM status
-        :return: status
-        """
-
-        get_occum_url = "cloudmanager.cloud.netapp.com/agents-mgmt/agent/" + client + "clients"
-        headers = {
-            "X-User-Token": self.rest_api.token_type + " " + self.rest_api.token,
-        }
-
-        occm_status, error, dummy = self.rest_api.get(get_occum_url, header=headers)
-        if error is not None:
-            self.module.fail_json(msg="Error: unexpected response on checking occm status: %s, %s" % (str(error), str(occm_status)))
-
-        return occm_status
+        return client_id, result['Instances'][0]['InstanceId']
 
     def get_vpc(self):
         """
@@ -496,7 +460,11 @@ class NetAppCloudManagerConnectorAWS(object):
         vpc = self.get_vpc()
 
         if self.parameters.get('account_id') is None:
-            self.parameters['account_id'] = self.get_account()
+            response, error = self.na_helper.get_account(CLOUD_MANAGER_HOST, self.rest_api)
+            if error is not None:
+                self.module.fail_json(
+                    msg="Error: unexpected response on getting account: %s, %s" % (str(error), str(response)))
+            self.parameters['account_id'] = response
 
         headers = {
             "X-User-Token": self.rest_api.token_type + " " + self.rest_api.token,
@@ -521,7 +489,8 @@ class NetAppCloudManagerConnectorAWS(object):
             }
         }
 
-        response, error, dummy = self.rest_api.post("cloudmanager.cloud.netapp.com/agents-mgmt/connector-setup", body, header=headers)
+        register_api = '%s/agents-mgmt/connector-setup' % CLOUD_MANAGER_HOST
+        response, error, dummy = self.rest_api.post(register_api, body, header=headers)
         if error is not None:
             self.module.fail_json(msg="Error: unexpected response on getting userdata for connector setup: %s, %s" % (str(error), str(response)))
         client_id = response['clientId']
@@ -540,6 +509,20 @@ class NetAppCloudManagerConnectorAWS(object):
                               },
             'localAgent': True
         }
+
+        proxy_certificates = []
+        if self.parameters.get('proxy_certificates') is not None:
+            for each in self.parameters['proxy_certificates']:
+                try:
+                    data = open(each, "r").read()
+                except OSError:
+                    self.module.fail_json(msg="Error: Could not open/read file of proxy_certificates: %s" % str(each))
+
+                encoded_certificate = base64.b64encode(data)
+                proxy_certificates.append(encoded_certificate)
+
+        if len(proxy_certificates) > 0:
+            u_data['proxySettings']['proxyCertificates'] = proxy_certificates
 
         user_data = self.na_helper.convert_data_to_tabbed_jsonstring(u_data)
 
@@ -564,7 +547,10 @@ class NetAppCloudManagerConnectorAWS(object):
 
         retries = 30
         while retries > 0:
-            occm_resp = self.check_occm_status(self.parameters['client_id'])
+            occm_resp, error = self.na_helper.check_occm_status(CLOUD_MANAGER_HOST, self.rest_api, self.parameters['client_id'])
+            if error is not None:
+                self.module.fail_json(
+                    msg="Error: Not able to get occm status: %s, %s" % (str(error), str(occm_resp)))
             if occm_resp['agent']['status'] != "active":
                 break
             else:
@@ -574,7 +560,7 @@ class NetAppCloudManagerConnectorAWS(object):
             # Taking too long for terminating OCCM
             return self.module.fail_json(msg="Taking too long for instance to finish terminating")
 
-        delete_occum_url = "cloudmanager.cloud.netapp.com/agents-mgmt/agent/" + self.parameters['client_id'] + "clients"
+        delete_occum_url = "%s/agents-mgmt/agent/%sclients" % (CLOUD_MANAGER_HOST, self.parameters['client_id'])
         headers = {
             "X-User-Token": self.rest_api.token_type + " " + self.rest_api.token,
             "X-Tenancy-Account-Id": self.parameters['account_id']
@@ -589,11 +575,13 @@ class NetAppCloudManagerConnectorAWS(object):
         Apply action to the Cloud Manager connector for AWS
         :return: None
         """
+        client_id = None
+        instance_id = None
         if self.module.check_mode:
             pass
         else:
             if self.parameters['state'] == 'present':
-                self.create_instance()
+                client_id, instance_id = self.create_instance()
                 self.na_helper.changed = True
             elif self.parameters['state'] == 'absent':
                 status = self.get_instance()
@@ -601,7 +589,8 @@ class NetAppCloudManagerConnectorAWS(object):
                     self.delete_instance()
                     self.na_helper.changed = True
 
-        self.module.exit_json(changed=self.na_helper.changed)
+        self.module.exit_json(changed=self.na_helper.changed,
+                              msg={'client_id': client_id, 'instance_id': instance_id, 'account_id': self.parameters['account_id']})
 
 
 def main():

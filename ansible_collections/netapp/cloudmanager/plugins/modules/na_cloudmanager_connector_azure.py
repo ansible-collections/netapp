@@ -355,7 +355,11 @@ class NetAppCloudManagerConnectorAzure(object):
         time.sleep(120)
         retries = 30
         while retries > 0:
-            occm_resp = self.check_occm_status(client_id)
+            occm_resp, error = self.na_helper.check_occm_status(CLOUD_MANAGER_HOST, self.rest_api,
+                                                                self.parameters['client_id'])
+            if error is not None:
+                self.module.fail_json(
+                    msg="Error: Not able to get occm status: %s, %s" % (str(error), str(occm_resp)))
             if occm_resp['agent']['status'] == "active":
                 break
             else:
@@ -365,61 +369,6 @@ class NetAppCloudManagerConnectorAzure(object):
             # Taking too long for status to be active
             return self.module.fail_json(msg="Taking too long for OCCM agent to be active or not properly setup")
         return client_id
-
-    def get_account(self):
-        """
-        Get Account
-        :return: Account ID
-        """
-        headers = {
-            "X-User-Token": self.rest_api.token_type + " " + self.rest_api.token,
-        }
-
-        account_url = "%s/tenancy/account" % CLOUD_MANAGER_HOST
-        account_res, error, dummy = self.rest_api.get(account_url, header=headers)
-        if error is not None:
-            self.module.fail_json(msg="Error: unexpected response on getting account: %s, %s" % (str(error), str(account_res)))
-        if len(account_res) == 0:
-            account_id = self.create_account()
-        else:
-            account_id = account_res[0]['accountPublicId']
-
-        return account_id
-
-    def create_account(self):
-        """
-        Create Account
-        :return: Account ID
-        """
-        headers = {
-            "X-User-Token": self.rest_api.token_type + " " + self.rest_api.token,
-        }
-
-        create_account_url = "%s/tenancy/account/MyAccount" % CLOUD_MANAGER_HOST
-        account_res, error, dummy = self.rest_api.post(create_account_url, data=None, header=headers)
-        if error is not None:
-            self.module.fail_json(msg="Error: unexpected response on creating account: %s, %s" % (str(error), str(account_res)))
-
-        account_id = account_res['accountPublicId']
-
-        return account_id
-
-    def check_occm_status(self, client):
-        """
-        Check OCCM status
-        :return: status
-        """
-
-        get_occum_url = "%s/agents-mgmt/agent/%sclients" % (CLOUD_MANAGER_HOST, client)
-        headers = {
-            "X-User-Token": self.rest_api.token_type + " " + self.rest_api.token,
-        }
-
-        occm_status, error, dummy = self.rest_api.get(get_occum_url, header=headers)
-        if error is not None:
-            self.module.fail_json(msg="Error: unexpected response on checking occm status: %s, %s" % (str(error), str(occm_status)))
-
-        return occm_status
 
     def register_agent_to_service(self):
         """
@@ -437,7 +386,11 @@ class NetAppCloudManagerConnectorAzure(object):
         subnet = '%s/subnets/%s' % (network, self.parameters['subnet_id'])
 
         if self.parameters.get('account_id') is None:
-            self.parameters['account_id'] = self.get_account()
+            response, error = self.na_helper.get_account(CLOUD_MANAGER_HOST, self.rest_api)
+            if error is not None:
+                self.module.fail_json(
+                    msg="Error: unexpected response on getting account: %s, %s" % (str(error), str(response)))
+            self.parameters['account_id'] = response
 
         headers = {
             "X-User-Token": self.rest_api.token_type + " " + self.rest_api.token,
@@ -544,7 +497,11 @@ class NetAppCloudManagerConnectorAzure(object):
 
         retries = 16
         while retries > 0:
-            occm_resp = self.check_occm_status(self.parameters['client_id'])
+            occm_resp, error = self.na_helper.check_occm_status(CLOUD_MANAGER_HOST, self.rest_api,
+                                                                self.parameters['client_id'])
+            if error is not None:
+                self.module.fail_json(
+                    msg="Error: Not able to get occm status: %s, %s" % (str(error), str(occm_resp)))
             if occm_resp['agent']['status'] != "active":
                 break
             else:

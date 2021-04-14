@@ -29,6 +29,11 @@ https://github.com/ansible-collections/netapp/wiki
 
 # Release Notes
 
+## 21.5.0
+
+### New Options
+  - na_cloudmanager_connector_aws: Return newly created Azure client ID in cloud manager, instance ID and account ID. New option `proxy_certificates`.
+
 ## 21.4.0
 
 ### Module documentation changes

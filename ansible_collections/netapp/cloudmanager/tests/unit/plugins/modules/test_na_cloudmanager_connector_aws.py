@@ -97,10 +97,7 @@ class TestMyModule(unittest.TestCase):
             'client_id': 'test',
             'instance_id': 'test',
             'region': 'us-west-1',
-            'key_name': 'dev_automation',
-            'subnet_id': 'subnet-test',
-            'security_group_ids': ['sg-test'],
-            'iam_instance_profile_name': 'OCCM_AUTOMATION',
+            'account_id': 'account-test',
             'refresh_token': 'myrefresh_token',
             'company': 'NetApp'
         })
@@ -137,7 +134,7 @@ class TestMyModule(unittest.TestCase):
         get_ami.return_value = 'ami-test'
         register_agent_to_service.return_value = 'test', 'test'
         get_vpc.return_value = 'test'
-        create_instance.return_value = None
+        create_instance.return_value = 'test', 'test'
 
         with pytest.raises(AnsibleExitJson) as exc:
             my_obj.apply()
