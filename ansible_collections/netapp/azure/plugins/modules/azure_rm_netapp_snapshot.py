@@ -69,7 +69,7 @@ options:
 EXAMPLES = '''
 
 - name: Create Azure NetApp Snapshot
-  azure_rm_netapp_snapshot:
+  netapp.azure.azure_rm_netapp_snapshot:
     resource_group: myResourceGroup
     account_name: tests-netapp
     pool_name: tests-pool
@@ -78,7 +78,7 @@ EXAMPLES = '''
     location: eastus
 
 - name: Delete Azure NetApp Snapshot
-  azure_rm_netapp_snapshot:
+  netapp.azure.azure_rm_netapp_snapshot:
     state: absent
     resource_group: myResourceGroup
     account_name: tests-netapp

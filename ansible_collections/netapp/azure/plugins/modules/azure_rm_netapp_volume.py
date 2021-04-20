@@ -99,7 +99,7 @@ options:
 EXAMPLES = '''
 
 - name: Create Azure NetApp volume
-  azure_rm_netapp_volume:
+  netapp.azure.azure_rm_netapp_volume:
     resource_group: myResourceGroup
     account_name: tests-netapp
     pool_name: tests-pool
@@ -113,7 +113,7 @@ EXAMPLES = '''
     size: 100
 
 - name: Delete Azure NetApp volume
-  azure_rm_netapp_volume:
+  netapp.azure.azure_rm_netapp_volume:
     state: absent
     resource_group: myResourceGroup
     account_name: tests-netapp

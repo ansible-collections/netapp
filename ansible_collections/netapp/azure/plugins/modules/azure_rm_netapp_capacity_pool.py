@@ -73,7 +73,7 @@ options:
 EXAMPLES = '''
 
 - name: Create Azure NetApp capacity pool
-  azure_rm_netapp_capacity_pool:
+  netapp.azure.azure_rm_netapp_capacity_pool:
     resource_group: myResourceGroup
     account_name: tests-netapp
     name: tests-pool
@@ -82,7 +82,7 @@ EXAMPLES = '''
     service_level: Standard
 
 - name: Resize Azure NetApp capacity pool
-  azure_rm_netapp_capacity_pool:
+  netapp.azure.azure_rm_netapp_capacity_pool:
     resource_group: myResourceGroup
     account_name: tests-netapp
     name: tests-pool
@@ -91,7 +91,7 @@ EXAMPLES = '''
     service_level: Standard
 
 - name: Delete Azure NetApp capacity pool
-  azure_rm_netapp_capacity_pool:
+  netapp.azure.azure_rm_netapp_capacity_pool:
     state: absent
     resource_group: myResourceGroup
     account_name: tests-netapp

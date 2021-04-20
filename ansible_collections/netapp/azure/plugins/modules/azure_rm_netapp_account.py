@@ -119,14 +119,14 @@ options:
 EXAMPLES = '''
 
 - name: Create NetApp Azure Account
-  azure_rm_netapp_account:
+  netapp.azure.azure_rm_netapp_account:
     resource_group: myResourceGroup
     name: testaccount
     location: eastus
     tags: {'abc': 'xyz', 'cba': 'zyx'}
 
 - name: Modify Azure NetApp account (Join AD)
-  azure_rm_netapp_account:
+  netapp.azure.azure_rm_netapp_account:
     resource_group: myResourceGroup
     name: testaccount
     location: eastus
@@ -139,14 +139,14 @@ EXAMPLES = '''
         username: laurentn
 
 - name: Delete NetApp Azure Account
-  azure_rm_netapp_account:
+  netapp.azure.azure_rm_netapp_account:
     state: absent
     resource_group: myResourceGroup
     name: testaccount
     location: eastus
 
 - name: Create Azure NetApp account (with AD)
-  azure_rm_netapp_account:
+  netapp.azure.azure_rm_netapp_account:
     resource_group: laurentngroupnodash
     name: tests-netapp11
     location: eastus

@@ -7,7 +7,7 @@ license_file: COPYING
 readme: README.md
 description: Azure NetApp Files (ANF)
 dependencies:
-    "azure.azcollection": "*"
+    "azure.azcollection": ">=1.0.0"
 repository: https://github.com/ansible-collections/netapp
 homepage: https://netapp.io/configuration-management-and-automation/
 tags:

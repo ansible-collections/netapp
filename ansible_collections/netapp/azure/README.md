@@ -28,6 +28,9 @@ Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 - Python azure-mgmt-netapp. Install using ```pip install azure-mgmt-netapp```
 - For authentication with Azure NetApp log in before you run your tasks or playbook with 'az login'.
 
+# Code of Conduct
+This collection follows the [Ansible project's Code of Conduct](https://docs.ansible.com/ansible/devel/community/code_of_conduct.html).
+
 # Release Notes
 
 ## 21.5.0
