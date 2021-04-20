@@ -30,7 +30,7 @@ description:
 
 EXAMPLES = """
 - name: List Clusters
-  na_um_list_clusters:
+  netapp.um_info.na_um_list_clusters:
     hostname: "{{ hostname }}"
     username: "{{ username }}"
     password: "{{ password }}"

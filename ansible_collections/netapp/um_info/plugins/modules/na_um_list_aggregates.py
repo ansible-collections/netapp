@@ -30,7 +30,7 @@ description:
 
 EXAMPLES = """
 - name: List Aggregates
-  na_um_list_aggregates:
+  netapp.um_info.na_um_list_aggregates:
     hostname: "{{ hostname }}"
     username: "{{ username }}"
     password: "{{ password }}"

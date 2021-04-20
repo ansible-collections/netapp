@@ -30,7 +30,7 @@ description:
 
 EXAMPLES = """
 - name: List Volumes
-  na_um_list_volumes:
+  netapp.um_info.na_um_list_volumes:
     hostname: "{{ hostname }}"
     username: "{{ username }}"
     password: "{{ password }}"

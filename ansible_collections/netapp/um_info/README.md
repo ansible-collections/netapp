@@ -17,6 +17,10 @@ To use Collection add the following to the top of your playbook, with out this y
 collections:
   - netapp.um_info
 ```
+
+# Code of Conduct
+This collection follows the [Ansible project's Code of Conduct](https://docs.ansible.com/ansible/devel/community/code_of_conduct.html).
+
 # Need help
 Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 

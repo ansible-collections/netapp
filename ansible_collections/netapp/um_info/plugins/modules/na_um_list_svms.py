@@ -30,7 +30,7 @@ description:
 
 EXAMPLES = """
 - name: List SVMs
-  na_um_list_svms:
+  netapp.um_info.na_um_list_svms:
     hostname: "{{ hostname }}"
     username: "{{ username }}"
     password: "{{ password }}"
