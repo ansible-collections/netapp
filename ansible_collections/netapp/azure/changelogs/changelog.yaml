@@ -99,3 +99,11 @@ releases:
     - DEVOPS-3663.yaml
     - DEVOPS-3704.yaml
     release_date: '2021-03-03'
+  21.5.0:
+    changes:
+      minor_changes:
+      - azure_rm_netapp_volume - enable changes in volume size.
+      - azure_rm_netapp_volume - rename msg to mount_path, as documented in RETURN.
+    fragments:
+    - DEVOPS-3849.yaml
+    release_date: '2021-04-21'

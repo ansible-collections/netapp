@@ -5,6 +5,15 @@ Azure NetApp Files (ANF) Collection Release Notes
 .. contents:: Topics
 
 
+v21.5.0
+=======
+
+Minor Changes
+-------------
+
+- azure_rm_netapp_volume - enable changes in volume size.
+- azure_rm_netapp_volume - rename msg to mount_path, as documented in RETURN.
+
 v21.3.0
 =======
 
