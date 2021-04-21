@@ -128,7 +128,8 @@ class TestMyModule(unittest.TestCase):
         get_token.return_value = 'test', 'test'
         my_obj = my_module()
 
-        get_post_api.return_value = None, None, None
+        response = {'publicId': 'abcdefg12345'}
+        get_post_api.return_value = response, None, None
         get_working_environment.return_value = None
         get_nss.return_value = 'nss-test'
         get_tenant.return_value = 'test'
@@ -155,7 +156,8 @@ class TestMyModule(unittest.TestCase):
         get_token.return_value = 'test', 'test'
         my_obj = my_module()
 
-        get_post_api.return_value = None, None, None
+        response = {'publicId': 'abcdefg12345'}
+        get_post_api.return_value = response, None, None
         get_working_environment.return_value = None
         get_nss.return_value = 'nss-test'
         get_tenant.return_value = 'test'

@@ -309,7 +309,12 @@ EXAMPLES = """
     client_id: "{{ xxxxxxxxxxxxxxx }}"
 """
 
-RETURN = r''' # '''
+RETURN = '''
+working_environment_id:
+  description: Newly created AZURE CVO working_environment_id.
+  type: str
+  returned: success
+'''
 
 from ansible.module_utils.basic import AnsibleModule
 import ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp as netapp_utils
@@ -540,12 +545,14 @@ class NetAppCloudManagerCVOAZURE:
         if error is not None:
             self.module.fail_json(
                 msg="Error: unexpected response on creating cvo azure: %s, %s" % (str(error), str(response)))
-
+        working_environment_id = response['publicId']
         wait_on_completion_api_url = '%s/occm/api/audit/activeTask/%s' % (Cloud_Manager_Host, str(on_cloud_request_id))
         err = self.rest_api.wait_on_completion(wait_on_completion_api_url, "CVO", "create", 60, 60)
 
         if err is not None:
             self.module.fail_json(msg="Error: unexpected response wait_on_completion for creating CVO AZURE: %s" % str(err))
+
+        return working_environment_id
 
     def delete_cvo_azure(self, we_id):
         """
@@ -581,6 +588,7 @@ class NetAppCloudManagerCVOAZURE:
         Apply action to the Cloud Manager CVO for AZURE
         :return: None
         """
+        working_environment_id = None
         current = self.get_working_environment()
         # check the action whether to create, delete, or not
         cd_action = self.na_helper.get_cd_action(current, self.parameters)
@@ -588,11 +596,11 @@ class NetAppCloudManagerCVOAZURE:
         if self.na_helper.changed and not self.module.check_mode:
             if cd_action == "create":
                 self.validate_cvo_params()
-                self.create_cvo_azure()
+                working_environment_id = self.create_cvo_azure()
             elif cd_action == "delete":
                 self.delete_cvo_azure(current['publicId'])
 
-        self.module.exit_json(changed=self.na_helper.changed)
+        self.module.exit_json(changed=self.na_helper.changed, working_environment_id=working_environment_id)
 
 
 def main():

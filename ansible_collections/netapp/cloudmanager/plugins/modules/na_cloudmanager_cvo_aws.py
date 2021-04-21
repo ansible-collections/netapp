@@ -374,7 +374,12 @@ EXAMPLES = """
     client_id: "{{ xxxxxxxxxxxxxxx }}"
 """
 
-RETURN = r''' # '''
+RETURN = '''
+working_environment_id:
+  description: Newly created AWS CVO working_environment_id.
+  type: str
+  returned: success
+'''
 
 import traceback
 
@@ -674,16 +679,19 @@ class NetAppCloudManagerCVOAWS:
             base_url = '/occm/api/vsa/working-environments'
 
         api_url = '%s%s' % (Cloud_Manager_Host, base_url)
+
         response, error, on_cloud_request_id = self.rest_api.post(api_url, json, header=self.headers)
         if error is not None:
             self.module.fail_json(
                 msg="Error: unexpected response on creating cvo aws: %s, %s" % (str(error), str(response)))
-
+        working_environment_id = response['publicId']
         wait_on_completion_api_url = '%s/occm/api/audit/activeTask/%s' % (Cloud_Manager_Host, str(on_cloud_request_id))
         err = self.rest_api.wait_on_completion(wait_on_completion_api_url, "CVO", "create", 60, 60)
 
         if err is not None:
             self.module.fail_json(msg="Error: unexpected response wait_on_completion for creating CVO AWS: %s" % str(err))
+
+        return working_environment_id
 
     def delete_cvo_aws(self, we_id):
         """
@@ -726,6 +734,7 @@ class NetAppCloudManagerCVOAWS:
         Apply action to the Cloud Manager CVO for AWS
         :return: None
         """
+        working_environment_id = None
         current = self.get_working_environment()
         # check the action
         cd_action = self.na_helper.get_cd_action(current, self.parameters)
@@ -733,14 +742,14 @@ class NetAppCloudManagerCVOAWS:
         if self.na_helper.changed and not self.module.check_mode:
             if cd_action == "create":
                 self.validate_cvo_params()
-                self.create_cvo_aws()
+                working_environment_id = self.create_cvo_aws()
             elif cd_action == "delete":
                 self.delete_cvo_aws(current['publicId'])
 
         if self.parameters['state'] == "present" and cd_action is None:
             self.module.warn(warning=self.parameters['name'] + ' already exists')
 
-        self.module.exit_json(changed=self.na_helper.changed)
+        self.module.exit_json(changed=self.na_helper.changed, working_environment_id=working_environment_id)
 
 
 def main():
