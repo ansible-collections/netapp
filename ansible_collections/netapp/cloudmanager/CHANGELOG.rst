@@ -5,6 +5,17 @@ NetApp CloudManager Collection Release Notes
 .. contents:: Topics
 
 
+v21.5.0
+=======
+
+Minor Changes
+-------------
+
+- na_cloudmanager_connector_aws - Return newly created Azure client ID in cloud manager, instance ID and account ID. New option ``proxy_certificates``.
+- na_cloudmanager_cvo_aws - Return newly created AWS working_environment_id.
+- na_cloudmanager_cvo_azure - Return newly created AZURE working_environment_id.
+- na_cloudmanager_cvo_gcp - Return newly created GCP working_environment_id.
+
 v21.4.0
 =======
 
