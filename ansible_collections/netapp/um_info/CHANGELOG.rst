@@ -5,6 +5,14 @@ NetApp Unified Manager Info Collection Release Notes
 .. contents:: Topics
 
 
+v21.5.0
+=======
+
+Minor Changes
+-------------
+
+- minor changes to meet Red Hat requirements to be certified.
+
 v20.7.0
 =======
 

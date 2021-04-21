@@ -29,3 +29,10 @@ releases:
     fragments:
     - 20.7.0.yaml
     release_date: '2020-06-24'
+  21.5.0:
+    changes:
+      minor_changes:
+      - minor changes to meet Red Hat requirements to be certified.
+    fragments:
+    - DEVOPS-3920.yaml
+    release_date: '2021-04-21'

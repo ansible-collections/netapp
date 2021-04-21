@@ -26,7 +26,14 @@ Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
 
 # Release Notes
 
+## 21.5.0
+
+### Minor changes
+- minor changes to meet Red Hat requirements to be certified.
+
 ## 20.7.0
+
+### Minor changes
 - na_um_list_aggregates: Now sort by performance_capacity.used
 - na_um_list_nodes: Now sort by performance_capacity.used
 
