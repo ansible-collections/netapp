@@ -16,6 +16,11 @@ Minor Changes
 - na_cloudmanager_cvo_azure - Return newly created AZURE working_environment_id.
 - na_cloudmanager_cvo_gcp - Return newly created GCP working_environment_id.
 
+Bugfixes
+--------
+
+- na_cloudmanager_cvo_aws - Fix incorrect placement of platformSerialNumber in the resulting json structure
+
 v21.4.0
 =======
 

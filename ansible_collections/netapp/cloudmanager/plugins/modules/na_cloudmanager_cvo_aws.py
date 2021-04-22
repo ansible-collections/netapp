@@ -590,7 +590,7 @@ class NetAppCloudManagerCVOAWS:
                          "tierLevel": self.parameters['tier_level']})
 
         if self.parameters.get('platform_serial_number') is not None:
-            json.update({"platformSerialNumber": self.parameters['platform_serial_number']})
+            json['vsaMetadata'].update({"platformSerialNumber": self.parameters['platform_serial_number']})
 
         if self.parameters.get('writing_speed_state') is not None:
             json.update({"writingSpeedState": self.parameters['writing_speed_state']})
