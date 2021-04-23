@@ -41,7 +41,7 @@ options:
     default: 'all'
 
 notes:
-- Not support check_mode
+- Support check_mode
 '''
 
 EXAMPLES = """

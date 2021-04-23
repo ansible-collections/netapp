@@ -18,5 +18,5 @@ options:
     description:
     - The refresh token for NetApp Cloud Manager API operations.
 notes:
-  - The modules prefixed with cloudmanager\\_netapp are built to Manage AWS/GCP/Azure CLOUDMANAGER.
+  - The modules prefixed with na_cloudmanager are built to manage CloudManager and CVO deployments in AWS/GCP/Azure clouds.
 """
