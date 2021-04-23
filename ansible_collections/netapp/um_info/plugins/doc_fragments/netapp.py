@@ -53,6 +53,6 @@ requirements:
   - Ansible 2.9
 
 notes:
-  - The modules prefixed with na\\_um are built to support the AIQUM/OCUM 9.7 platform.
-
+  - The modules prefixed with na_um are built to support the AIQUM/OCUM 9.7 platform.
+  - Supports check_mode.
 '''
