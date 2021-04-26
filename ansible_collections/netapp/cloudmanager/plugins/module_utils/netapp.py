@@ -41,7 +41,7 @@ try:
 except ImportError:
     ansible_version = 'unknown'
 
-COLLECTION_VERSION = "21.5.0"
+COLLECTION_VERSION = "21.5.1"
 AUTH0_DOMAIN = 'netapp-cloud-account.auth0.com'
 AUTH0_CLIENT = 'Mu0V1ywgYteI6w1MbD15fKfVIUrNXGWC'
 

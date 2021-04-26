@@ -196,7 +196,7 @@ class NetAppCloudmanagerCifsServer:
         response, err, dummy = self.rest_api.send_request("GET", "%s/working-environments/%s/cifs" % (
             self.rest_api.api_root_path, self.parameters['working_environment_id']), None, header=self.headers)
         if err is not None:
-            self.module.fail_json(changed=False, msg=err)
+            self.module.fail_json(changed=False, msg="Error on get_cifs_server: %s, %s" % (str(err), str(response)))
         current_cifs = dict()
         if response is None or len(response) == 0:
             return None
@@ -228,16 +228,17 @@ class NetAppCloudmanagerCifsServer:
         url = "%s/working-environments/%s/cifs" % (self.rest_api.api_root_path,
                                                    self.parameters['working_environment_id'])
         if self.parameters.get('is_workgroup'):
-            url = url + "workgroup"
+            url = url + "-workgroup"
+
         response, err, dummy = self.rest_api.send_request("POST", url, None, server, header=self.headers)
         if err is not None:
-            self.module.fail_json(changed=False, msg=err)
+            self.module.fail_json(changed=False, msg="Error on create_cifs_server failed: %s, %s" % (str(err), str(response)))
 
     def delete_cifs_server(self):
         response, err, dummy = self.rest_api.send_request("POST", "%s/working-environments/%s/delete-cifs" % (
             self.rest_api.api_root_path, self.parameters['working_environment_id']), None, {}, header=self.headers)
         if err is not None:
-            self.module.fail_json(changed=False, msg=err)
+            self.module.fail_json(changed=False, msg="Error on delete_cifs_server: %s, %s" % (str(err), str(response)))
 
     def apply(self):
         current = self.get_cifs_server()

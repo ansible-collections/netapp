@@ -29,6 +29,11 @@ https://github.com/ansible-collections/netapp/wiki
 
 # Release Notes
 
+## 21.5.1
+
+### Bug fixes
+  - na_cloudmanager_cifs_server: Fix incorrect API call when is_workgroup is true
+
 ## 21.5.0
 
 ### New Options
