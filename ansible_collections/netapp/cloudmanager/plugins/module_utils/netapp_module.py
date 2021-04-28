@@ -32,7 +32,6 @@ from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
 from copy import deepcopy
-from ansible_collections.netapp.cloudmanager.plugins.module_utils.netapp import CloudManagerRestAPI
 import json
 import re
 import base64
