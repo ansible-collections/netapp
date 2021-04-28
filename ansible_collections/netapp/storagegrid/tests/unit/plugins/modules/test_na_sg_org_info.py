@@ -10,8 +10,8 @@ import pytest
 
 from ansible.module_utils import basic
 from ansible.module_utils._text import to_bytes
-from ansible_collections.netapp.ontap.tests.unit.compat import unittest
-from ansible_collections.netapp.ontap.tests.unit.compat.mock import patch
+from ansible_collections.netapp.storagegrid.tests.unit.compat import unittest
+from ansible_collections.netapp.storagegrid.tests.unit.compat.mock import patch
 
 from ansible_collections.netapp.storagegrid.plugins.modules.na_sg_org_info \
     import NetAppSgGatherInfo as sg_org_info_module
