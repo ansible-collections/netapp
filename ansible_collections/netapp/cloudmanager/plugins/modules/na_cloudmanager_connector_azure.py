@@ -215,6 +215,8 @@ try:
     from azure.mgmt.compute import ComputeManagementClient
     from azure.mgmt.network import NetworkManagementClient
     from azure.mgmt.storage import StorageManagementClient
+    from azure.mgmt.resource.resources.models import Deployment
+    from azure.mgmt.resource.resources.models import DeploymentProperties
     from azure.common.client_factory import get_client_from_cli_profile
     from msrestazure.azure_exceptions import CloudError
     HAS_AZURE_LIB = True
@@ -339,14 +341,16 @@ class NetAppCloudManagerConnectorAzure(object):
                 self.parameters['resource_group'],
                 {"location": self.parameters['location']})
 
-            resource_client.deployments.create_or_update(
+            deployment_properties = {
+                'mode': 'Incremental',
+                'template': template,
+                'parameters': params
+            }
+            resource_client.deployments.begin_create_or_update(
                 self.parameters['resource_group'],
                 self.parameters['name'],
-                {
-                    'mode': 'Incremental',
-                    'template': template,
-                    'parameters': params
-                })
+                Deployment(properties=deployment_properties)
+            )
 
         except CloudError as error:
             self.module.fail_json(msg="Error in deploy_azure: %s" % to_native(error), exception=traceback.format_exc())
@@ -445,7 +449,7 @@ class NetAppCloudManagerConnectorAzure(object):
         # delete vm deploy
         try:
             compute_client = get_client_from_cli_profile(ComputeManagementClient)
-            vm_delete = compute_client.virtual_machines.delete(
+            vm_delete = compute_client.virtual_machines.begin_delete(
                 self.parameters['resource_group'],
                 self.parameters['name'])
             while not vm_delete.done():
@@ -487,7 +491,7 @@ class NetAppCloudManagerConnectorAzure(object):
         # delete deployment
         try:
             resource_client = get_client_from_cli_profile(ResourceManagementClient)
-            deployments_delete = resource_client.deployments.delete(
+            deployments_delete = resource_client.deployments.begin_delete(
                 self.parameters['resource_group'],
                 self.parameters['name'] + '-ip')
             while not deployments_delete.done():
