@@ -21,6 +21,17 @@ from ansible_collections.netapp.azure.tests.unit.compat.mock import patch, Mock
 # and anyway, it's better to remove any external dependency in UTs.
 class MockAzureRMModuleBase(object):
     ''' dummy base class for AzureRMNetAppModuleBase '''
+    def __init__(self, derived_arg_spec, required_if=None, supports_check_mode=False):
+        derived_arg_spec.update(dict(tags=dict()))
+        self.module = basic.AnsibleModule(
+            argument_spec=derived_arg_spec,
+            required_if=required_if,
+            supports_check_mode=supports_check_mode
+        )
+        # the following is done in exec_module()
+        self.parameters = dict([item for item in self.module.params.items() if item[1] is not None])
+        # remove values with a default of None (not required)
+        self.module_arg_spec = dict([item for item in self.module_arg_spec.items() if item[0] in self.parameters])
 
 
 mocked_module = type(sys)('mock_azure_import')
@@ -122,66 +133,62 @@ class TestMyModule(unittest.TestCase):
             account_module()
         print('Info: %s' % exc.value.args[0]['msg'])
 
-    @patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.__init__')
     @patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.netapp_client')
-    def test_ensure_get_called_valid_account(self, client_f, mock_base):
+    def test_ensure_get_called_valid_account(self, client_f):
         set_module_args(self.set_default_args())
-        mock_base.return_value = Mock()
         client_f.return_value = Mock()
         client_f.side_effect = Mock()
         my_obj = account_module()
-        # my_obj.netapp_client = self.netapp_client
         my_obj.netapp_client.accounts = self.netapp_client.accounts
         assert my_obj.get_azure_netapp_account() is not None
 
-    @patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.__init__')
     @patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.netapp_client')
-    def test_ensure_get_called_non_existing_account(self, client_f, mock_base):
+    def test_ensure_get_called_non_existing_account(self, client_f):
         data = self.set_default_args()
         data['name'] = 'invalid'
         set_module_args(data)
-        mock_base.return_value = Mock()
         client_f.return_value = Mock()
         client_f.side_effect = Mock()
         my_obj = account_module()
         my_obj.netapp_client.accounts = self.netapp_client.accounts
         assert my_obj.get_azure_netapp_account() is None
 
-    @patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.__init__')
     @patch('ansible_collections.netapp.azure.plugins.modules.azure_rm_netapp_account.AzureRMNetAppAccount.get_azure_netapp_account')
     @patch('ansible_collections.netapp.azure.plugins.modules.azure_rm_netapp_account.AzureRMNetAppAccount.create_azure_netapp_account')
     @patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.netapp_client')
-    def test_ensure_create_called(self, client_f, mock_create, mock_get, mock_base):
-        data = self.set_default_args()
+    def test_ensure_create_called(self, client_f, mock_create, mock_get):
+        data = dict(self.set_default_args())
         data['name'] = 'create'
         data['tags'] = {'ttt': 'tesssttt', 'abc': 'xyz'}
         set_module_args(data)
         mock_get.return_value = None
-        mock_base.return_value = Mock()
         client_f.return_value = Mock()
         client_f.side_effect = Mock()
         my_obj = account_module()
         my_obj.netapp_client.accounts = self.netapp_client.accounts
         with pytest.raises(AnsibleExitJson) as exc:
-            my_obj.exec_module()
+            # add default args for exec_module
+            data['state'] = 'present'
+            data['debug'] = False
+            my_obj.exec_module(**data)
         assert exc.value.args[0]['changed']
         mock_create.assert_called_with()
 
-    @patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.__init__')
     @patch('ansible_collections.netapp.azure.plugins.modules.azure_rm_netapp_account.AzureRMNetAppAccount.get_azure_netapp_account')
     @patch('ansible_collections.netapp.azure.plugins.modules.azure_rm_netapp_account.AzureRMNetAppAccount.delete_azure_netapp_account')
     @patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.netapp_client')
-    def test_ensure_delete_called(self, client_f, mock_delete, mock_get, mock_base):
-        data = self.set_default_args()
+    def test_ensure_delete_called(self, client_f, mock_delete, mock_get):
+        data = dict(self.set_default_args())
         data['state'] = 'absent'
         set_module_args(data)
-        mock_base.return_value = Mock()
         mock_get.return_value = Mock()
         client_f.return_value = Mock()
         client_f.side_effect = Mock()
         my_obj = account_module()
         my_obj.netapp_client.accounts = self.netapp_client.accounts
         with pytest.raises(AnsibleExitJson) as exc:
-            my_obj.exec_module()
+            # add default args for exec_module
+            data['debug'] = False
+            my_obj.exec_module(**data)
         assert exc.value.args[0]['changed']
         mock_delete.assert_called_with()

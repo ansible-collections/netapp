@@ -1,0 +1,2 @@
+plugins/modules/azure_rm_netapp_account.py validate-modules:required_if-requirements-unknown
+plugins/modules/azure_rm_netapp_account.py validate-modules:required_if-unknown-key

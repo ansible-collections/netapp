@@ -33,6 +33,12 @@ This collection follows the [Ansible project's Code of Conduct](https://docs.ans
 
 # Release Notes
 
+## 21.6.0
+
+### Minor changes
+
+  - azure_rm_netapp_account - support additional authentication schemes provided by AzureRMModuleBase.
+
 ## 21.5.0
 
 ### Minor changes

@@ -12,7 +12,7 @@ __metaclass__ = type
 
 HAS_AZURE_COLLECTION = True
 NEW_STYLE = None
-COLLECTION_VERSION = "21.5.0"
+COLLECTION_VERSION = "21.6.0"
 IMPORT_ERRORS = list()
 
 try:
@@ -36,13 +36,13 @@ except ImportError as exc:
 
 class AzureRMNetAppModuleBase(AzureRMModuleBase):
     ''' Wrapper around AzureRMModuleBase base class '''
-    def __init__(self, derived_arg_spec, supports_check_mode=False):
+    def __init__(self, derived_arg_spec, required_if=None, supports_check_mode=False):
         self._netapp_client = None
         self._new_style = NEW_STYLE
         if not HAS_AZURE_COLLECTION:
-            # we can't use self.module yet
-            raise ImportError(IMPORT_ERRORS)
+            self.fail_when_import_errors(IMPORT_ERRORS)
         super(AzureRMNetAppModuleBase, self).__init__(derived_arg_spec=derived_arg_spec,
+                                                      required_if=required_if,
                                                       supports_check_mode=supports_check_mode)
 
     def get_mgmt_svc_client(self, client_type, base_url=None, api_version=None):
@@ -98,5 +98,8 @@ class AzureRMNetAppModuleBase(AzureRMModuleBase):
         msg = ''
         if not has_azure_mgmt_netapp:
             msg = "The python azure-mgmt-netapp package is required.  "
-        msg += 'Import errors: %s' % str(import_errors)
-        self.module.fail_json(msg=msg)
+        if hasattr(self, 'module'):
+            msg += 'Import errors: %s' % str(import_errors)
+            self.module.fail_json(msg=msg)
+        msg += str(import_errors)
+        raise ImportError(msg)

@@ -28,6 +28,8 @@ description:
     - Create and delete NetApp Azure account.
       Provide the Resource group name for the NetApp account to be created.
 extends_documentation_fragment:
+    - azure.azcollection.azure
+    - azure.azcollection.azure_tags
     - netapp.azure.netapp.azure_rm_netapp
 
 options:
@@ -41,13 +43,7 @@ options:
             - Resource location.
             - Required for create.
         type: str
-    tags:
-        description:
-            - name/value pairs that enable you to categorize resources.
-            - view consolidated billing by applying the same tag to multiple resources and resource groups.
-            - Tag names are case-insensitive and tag values are case-sensitive.
-        type: dict
-        version_added: "20.5.0"
+
     active_directories:
       description:
         - list of active directory dictionaries.
@@ -197,7 +193,6 @@ class AzureRMNetAppAccount(AzureRMNetAppModuleBase):
             name=dict(type='str', required=True),
             location=dict(type='str', required=False),
             state=dict(choices=['present', 'absent'], default='present', type='str'),
-            tags=dict(type='dict', required=False),
             active_directories=dict(type='list', elements='dict', options=dict(
                 active_directory_id=dict(type='str'),
                 dns=dict(type='list', elements='str'),
@@ -215,20 +210,15 @@ class AzureRMNetAppAccount(AzureRMNetAppModuleBase):
             )),
             debug=dict(type='bool', default=False)
         )
-        self.module = AnsibleModule(
-            argument_spec=self.module_arg_spec,
-            required_if=[
-                ('state', 'present', ['location']),
-            ],
-            supports_check_mode=True
-        )
+
         self.na_helper = NetAppModule()
-        self.parameters = self.na_helper.set_parameters(self.module.params)
+        self.parameters = dict()
         self.debug = list()
         self.warnings = list()
 
-        self.fail_when_import_errors(IMPORT_ERRORS, HAS_AZURE_MGMT_NETAPP)
+        # import errors are handled in AzureRMModuleBase
         super(AzureRMNetAppAccount, self).__init__(derived_arg_spec=self.module_arg_spec,
+                                                   required_if=[('state', 'present', ['location'])],
                                                    supports_check_mode=True)
 
     def get_azure_netapp_account(self):
@@ -363,6 +353,18 @@ class AzureRMNetAppAccount(AzureRMNetAppModuleBase):
         return None, None
 
     def exec_module(self, **kwargs):
+
+        # unlikely
+        self.fail_when_import_errors(IMPORT_ERRORS, HAS_AZURE_MGMT_NETAPP)
+
+        # set up parameters according to our initial list
+        for key in list(self.module_arg_spec):
+            self.parameters[key] = kwargs[key]
+        # and common parameter
+        for key in ['tags']:
+            if key in kwargs:
+                self.parameters[key] = kwargs[key]
+
         current = self.get_azure_netapp_account()
         modify = None
         cd_action = self.na_helper.get_cd_action(current, self.parameters)
@@ -375,6 +377,8 @@ class AzureRMNetAppAccount(AzureRMNetAppModuleBase):
             if ads_to_delete:
                 self.module.fail_json(msg="Error: API does not support unjoining an AD", debug=self.debug)
             modify = self.na_helper.get_modified_attributes(current, self.parameters)
+            if 'tags' in modify:
+                dummy, modify['tags'] = self.update_tags(current.get('tags'))
 
         if self.na_helper.changed:
             if self.module.check_mode:
