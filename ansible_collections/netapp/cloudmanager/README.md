@@ -34,6 +34,7 @@ https://github.com/ansible-collections/netapp/wiki
 ### Bug fixes
   - na_cloudmanager_cifs_server: Fix incorrect API call when is_workgroup is true
   - na_cloudmanager_connector_azure: Fix python error - msrest.exceptions.ValidationError. Parameter 'Deployment.properties' can not be None.
+  - na_cloudmanager_connector_azure: Fix wrong example on the document and update account_id is required field on deletion.
 
 ## 21.5.0
 

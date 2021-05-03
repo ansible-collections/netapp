@@ -117,6 +117,7 @@ options:
     default: true
 
   account_id:
+    required: true
     description:
     - The NetApp tenancy account ID.
     type: str
@@ -161,8 +162,6 @@ EXAMPLES = """
     subnet_id: subnetxxxxx
     vnet_id: Vnetxxxxx
     subscription_id: "{{ xxxxxxxxxxxxxxxxx }}"
-    security_group_ids: [sg-xxxxxxxxxxx]
-    iam_instance_profile_name: OCCM_AUTOMATION
     account_id: "{{ account-xxxxxxx }}"
     company: NetApp
     admin_password: Netapp123456
@@ -186,6 +185,8 @@ EXAMPLES = """
     admin_username: bsuhas
     vnet_id: Vnetxxxxx
     subscription_id: "{{ xxxxxxxxxxxxxxxxx }}"
+    account_id: "{{ account-xxxxxxx }}"
+    refresh_token: "{{ xxxxxxxxxxxxxxx }}"
     client_id: xxxxxxxxxxxxxxxxxxx
 """
 
@@ -249,7 +250,7 @@ class NetAppCloudManagerConnectorAzure(object):
             company=dict(required=True, type='str'),
             proxy_certificates=dict(required=False, type='list', elements='str'),
             associate_public_ip_address=dict(required=False, type='bool', default=True),
-            account_id=dict(required=False, type='str'),
+            account_id=dict(required=True, type='str'),
             proxy_url=dict(required=False, type='str', default=''),
             proxy_user_name=dict(required=False, type='str', default=''),
             proxy_password=dict(required=False, type='str', default='', no_log=True),
