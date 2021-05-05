@@ -34,3 +34,40 @@ jobs:
       - name: Run sanity tests (${{ matrix.collection }})
         run: ansible-test sanity --docker -v --color
         working-directory: ./ansible_collections/netapp/${{ matrix.collection }}
+
+  sanity_azure:
+    name: Sanity (${{ matrix.ansible }} on Azure ANF)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ansible:
+          - stable-2.9
+          - stable-2.10
+          - stable-2.11
+          - devel
+        collection: [azure]
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Install ansible (${{ matrix.ansible }})
+        run: pip install https://github.com/ansible/ansible/archive/${{ matrix.ansible }}.tar.gz --disable-pip-version-check
+
+      - name: Build collection (${{ matrix.collection }})
+        run: ansible-galaxy collection build --output-path /tmp ./ansible_collections/netapp/${{ matrix.collection }}
+
+      - name: Install collection (${{ matrix.collection }})
+        run: ansible-galaxy collection install /tmp/netapp-${{ matrix.collection }}*
+
+      - name: Delete collection tar file (${{ matrix.collection }})
+        run: rm -f /tmp/netapp-${{ matrix.collection }}*
+
+      - name: Run sanity tests (${{ matrix.collection }})
+        run: ansible-test sanity --docker -v --color
+        working-directory: /root/.ansible/collections/ansible_collections/netapp/${{ matrix.collection }}
