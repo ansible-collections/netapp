@@ -21,7 +21,7 @@ from ansible_collections.netapp.azure.tests.unit.compat.mock import patch, Mock
 # and anyway, it's better to remove any external dependency in UTs.
 class MockAzureRMModuleBase(object):
     ''' dummy base class for AzureRMNetAppModuleBase '''
-    def __init__(self, derived_arg_spec, required_if=None, supports_check_mode=False):
+    def __init__(self, derived_arg_spec, required_if=None, supports_check_mode=False, **kwargs):
         derived_arg_spec.update(dict(tags=dict()))
         self.module = basic.AnsibleModule(
             argument_spec=derived_arg_spec,

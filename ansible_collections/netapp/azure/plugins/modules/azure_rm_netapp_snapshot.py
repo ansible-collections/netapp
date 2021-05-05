@@ -11,11 +11,6 @@ azure_rm_netapp_snapshot
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
-ANSIBLE_METADATA = {'metadata_version': '1.1',
-                    'status': ['preview'],
-                    'supported_by': 'certified'}
-
-
 DOCUMENTATION = '''
 ---
 module: azure_rm_netapp_snapshot
@@ -27,6 +22,7 @@ author: NetApp Ansible Team (@carchi8py) <ng-ansibleteam@netapp.com>
 description:
     - Create and delete NetApp Azure Snapshot.
 extends_documentation_fragment:
+    - azure.azcollection.azure
     - netapp.azure.netapp.azure_rm_netapp
 
 options:
@@ -110,7 +106,7 @@ except ImportError as exc:
     HAS_AZURE_MGMT_NETAPP = False
     IMPORT_ERRORS.append(str(exc))
 
-from ansible.module_utils.basic import to_native, AnsibleModule
+from ansible.module_utils.basic import to_native
 from ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common import AzureRMNetAppModuleBase
 from ansible_collections.netapp.azure.plugins.module_utils.netapp_module import NetAppModule
 
@@ -128,18 +124,14 @@ class AzureRMNetAppSnapshot(AzureRMNetAppModuleBase):
             location=dict(type='str', required=False),
             state=dict(choices=['present', 'absent'], default='present', type='str')
         )
-        self.module = AnsibleModule(
-            argument_spec=self.module_arg_spec,
-            required_if=[
-                ('state', 'present', ['location']),
-            ],
-            supports_check_mode=True
-        )
         self.na_helper = NetAppModule()
-        self.parameters = self.na_helper.set_parameters(self.module.params)
+        self.parameters = dict()
 
-        self.fail_when_import_errors(IMPORT_ERRORS, HAS_AZURE_MGMT_NETAPP)
-        super(AzureRMNetAppSnapshot, self).__init__(derived_arg_spec=self.module_arg_spec, supports_check_mode=True)
+        # import errors are handled in AzureRMModuleBase
+        super(AzureRMNetAppSnapshot, self).__init__(derived_arg_spec=self.module_arg_spec,
+                                                    required_if=[('state', 'present', ['location'])],
+                                                    supports_check_mode=True,
+                                                    supports_tags=False)
 
     def get_azure_netapp_snapshot(self):
         """
@@ -173,7 +165,11 @@ class AzureRMNetAppSnapshot(AzureRMNetAppModuleBase):
         else:
             kw_args['location'] = self.parameters['location']
         try:
-            self.get_method('snapshots', 'create')(**kw_args)
+            result = self.get_method('snapshots', 'create')(**kw_args)
+            # waiting till the status turns Succeeded
+            while result.done() is not True:
+                result.result(10)
+
         except (CloudError, AzureError) as error:
             self.module.fail_json(msg='Error creating snapshot %s for Azure NetApp account %s: %s'
                                   % (self.parameters['name'], self.parameters['account_name'], to_native(error)),
@@ -185,17 +181,29 @@ class AzureRMNetAppSnapshot(AzureRMNetAppModuleBase):
             :return: None
         """
         try:
-            self.get_method('snapshots', 'delete')(resource_group_name=self.parameters['resource_group'],
-                                                   account_name=self.parameters['account_name'],
-                                                   pool_name=self.parameters['pool_name'],
-                                                   volume_name=self.parameters['volume_name'],
-                                                   snapshot_name=self.parameters['name'])
+            result = self.get_method('snapshots', 'delete')(resource_group_name=self.parameters['resource_group'],
+                                                            account_name=self.parameters['account_name'],
+                                                            pool_name=self.parameters['pool_name'],
+                                                            volume_name=self.parameters['volume_name'],
+                                                            snapshot_name=self.parameters['name'])
+            # waiting till the status turns Succeeded
+            while result.done() is not True:
+                result.result(10)
+
         except (CloudError, AzureError) as error:
             self.module.fail_json(msg='Error deleting snapshot %s for Azure NetApp account %s: %s'
                                   % (self.parameters['name'], self.parameters['account_name'], to_native(error)),
                                   exception=traceback.format_exc())
 
     def exec_module(self, **kwargs):
+
+        # unlikely
+        self.fail_when_import_errors(IMPORT_ERRORS, HAS_AZURE_MGMT_NETAPP)
+
+        # set up parameters according to our initial list
+        for key in list(self.module_arg_spec):
+            self.parameters[key] = kwargs[key]
+
         current = self.get_azure_netapp_snapshot()
         cd_action = self.na_helper.get_cd_action(current, self.parameters)
 

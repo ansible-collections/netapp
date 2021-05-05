@@ -22,6 +22,8 @@ author: NetApp Ansible Team (@carchi8py) <ng-ansibleteam@netapp.com>
 description:
     - Create and delete NetApp Azure volume.
 extends_documentation_fragment:
+    - azure.azcollection.azure
+    - azure.azcollection.azure_tags
     - netapp.azure.netapp.azure_rm_netapp
 
 options:
@@ -150,7 +152,7 @@ try:
 except ImportError as exc:
     IMPORT_ERRORS.append(str(exc))
 
-from ansible.module_utils.basic import to_native, AnsibleModule
+from ansible.module_utils.basic import to_native
 from ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common import AzureRMNetAppModuleBase
 from ansible_collections.netapp.azure.plugins.module_utils.netapp_module import NetAppModule
 
@@ -175,21 +177,14 @@ class AzureRMNetAppVolume(AzureRMNetAppModuleBase):
             service_level=dict(type='str', required=False, choices=['Premium', 'Standard', 'Ultra']),
             protocol_types=dict(type='list', elements='str')
         )
-        self.module = AnsibleModule(
-            argument_spec=self.module_arg_spec,
-            required_if=[
-                ('state', 'present', ['location', 'file_path', 'subnet_name', 'virtual_network']),
-            ],
-            supports_check_mode=True
-        )
         self.na_helper = NetAppModule()
-        self.parameters = self.na_helper.set_parameters(self.module.params)
-        # API is using 'usage_threshold' for 'size', and the unit is bytes
-        if 'size' in self.parameters:
-            self.parameters['usage_threshold'] = ONE_GIB * self.parameters.pop('size')
+        self.parameters = dict()
 
-        self.fail_when_import_errors(IMPORT_ERRORS, HAS_AZURE_MGMT_NETAPP)
-        super(AzureRMNetAppVolume, self).__init__(derived_arg_spec=self.module_arg_spec, supports_check_mode=True)
+        # import errors are handled in AzureRMModuleBase
+        super(AzureRMNetAppVolume, self).__init__(derived_arg_spec=self.module_arg_spec,
+                                                  required_if=[('state', 'present', ['location', 'file_path', 'subnet_name', 'virtual_network']),
+                                                               ],
+                                                  supports_check_mode=True)
 
     @staticmethod
     def dict_from_volume_object(volume_object):
@@ -236,20 +231,12 @@ class AzureRMNetAppVolume(AzureRMNetAppModuleBase):
             options[protocol] = protocol in ptypes
         return VolumePropertiesExportPolicy(rules=[ExportPolicyRule(**options)])
 
-    def get_not_none_values_from_params(self, keys):
-        options = dict()
-        for attr in keys:
-            value = self.parameters.get(attr)
-            if value is not None:
-                options[attr] = value
-        return options
-
     def create_azure_netapp_volume(self):
         """
             Create a volume for the given Azure NetApp Account
             :return: None
         """
-        options = self.get_not_none_values_from_params(['protocol_types', 'service_level', 'usage_threshold'])
+        options = self.na_helper.get_not_none_values_from_dict(self.parameters, ['protocol_types', 'service_level', 'tags', 'usage_threshold'])
         rules = self.get_export_policy_rules()
         if rules is not None:
             options['export_policy'] = rules
@@ -282,7 +269,7 @@ class AzureRMNetAppVolume(AzureRMNetAppModuleBase):
             Modify a volume for the given Azure NetApp Account
             :return: None
         """
-        options = self.get_not_none_values_from_params(['usage_threshold'])
+        options = self.na_helper.get_not_none_values_from_dict(self.parameters, ['tags', 'usage_threshold'])
         volume_body = VolumePatch(
             **options
         )
@@ -317,11 +304,28 @@ class AzureRMNetAppVolume(AzureRMNetAppModuleBase):
 
     def validate_modify(self, modify, current):
         disallowed = dict(modify)
+        disallowed.pop('tags', None)
         disallowed.pop('usage_threshold', None)
         if disallowed:
             self.module.fail_json(msg="Error: the following properties cannot be modified: %s.  Current: %s" % (repr(disallowed), repr(current)))
 
     def exec_module(self, **kwargs):
+
+        # unlikely
+        self.fail_when_import_errors(IMPORT_ERRORS, HAS_AZURE_MGMT_NETAPP)
+
+        # set up parameters according to our initial list
+        for key in list(self.module_arg_spec):
+            self.parameters[key] = kwargs[key]
+        # and common parameter
+        for key in ['tags']:
+            if key in kwargs:
+                self.parameters[key] = kwargs[key]
+
+        # API is using 'usage_threshold' for 'size', and the unit is bytes
+        if self.parameters.get('size') is not None:
+            self.parameters['usage_threshold'] = ONE_GIB * self.parameters.pop('size')
+
         modify = None
         current = self.get_azure_netapp_volume()
         cd_action = self.na_helper.get_cd_action(current, self.parameters)
@@ -331,6 +335,8 @@ class AzureRMNetAppVolume(AzureRMNetAppModuleBase):
             modify = self.na_helper.get_modified_attributes(current, self.parameters)
             if name is not None:
                 current['name'] = name
+            if 'tags' in modify:
+                dummy, modify['tags'] = self.update_tags(current.get('tags'))
             self.validate_modify(modify, current)
 
         if self.na_helper.changed and not self.module.check_mode:
