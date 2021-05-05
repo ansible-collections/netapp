@@ -70,4 +70,4 @@ jobs:
 
       - name: Run sanity tests (${{ matrix.collection }})
         run: ansible-test sanity --docker -v --color
-        working-directory: /root/.ansible/collections/ansible_collections/netapp/${{ matrix.collection }}
+        working-directory: ./ansible_collections/netapp/${{ matrix.collection }}
