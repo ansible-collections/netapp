@@ -251,3 +251,7 @@ class NetAppModule():
             return alist
 
         raise TypeError('unexpected type %s' % type(list_or_dict))
+
+    @staticmethod
+    def get_not_none_values_from_dict(parameters, keys):
+        return dict((key, value) for key, value in parameters.items() if key in keys and value is not None)

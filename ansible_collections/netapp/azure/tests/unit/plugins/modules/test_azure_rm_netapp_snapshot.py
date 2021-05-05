@@ -21,6 +21,16 @@ from ansible_collections.netapp.azure.tests.unit.compat.mock import patch, Mock
 # and anyway, it's better to remove any external dependency in UTs.
 class MockAzureRMModuleBase(object):
     ''' dummy base class for AzureRMNetAppModuleBase '''
+    def __init__(self, derived_arg_spec, required_if=None, supports_check_mode=False, **kwargs):
+        self.module = basic.AnsibleModule(
+            argument_spec=derived_arg_spec,
+            required_if=required_if,
+            supports_check_mode=supports_check_mode
+        )
+        # the following is done in exec_module()
+        self.parameters = dict([item for item in self.module.params.items() if item[1] is not None])
+        # remove values with a default of None (not required)
+        self.module_arg_spec = dict([item for item in self.module_arg_spec.items() if item[0] in self.parameters])
 
 
 mocked_module = type(sys)('mock_azure_import')
@@ -130,47 +140,46 @@ class TestMyModule(unittest.TestCase):
         print('Info: %s' % exc.value.args[0]['msg'])
 
     @patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.netapp_client')
-    @patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.__init__')
-    def test_ensure_get_called_valid_snapshot(self, mock_base, client_f):
+    def test_ensure_get_called_valid_snapshot(self, client_f):
         set_module_args(self.set_default_args())
-        mock_base.return_value = Mock()
         client_f.return_value = Mock()
         my_obj = snapshot_module()
         my_obj.netapp_client.snapshots = self.netapp_client.snapshots
         assert my_obj.get_azure_netapp_snapshot() is not None
 
     @patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.netapp_client')
-    @patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.__init__')
     @patch('ansible_collections.netapp.azure.plugins.modules.azure_rm_netapp_snapshot.AzureRMNetAppSnapshot.get_azure_netapp_snapshot')
     @patch('ansible_collections.netapp.azure.plugins.modules.azure_rm_netapp_snapshot.AzureRMNetAppSnapshot.create_azure_netapp_snapshot')
-    def test_ensure_create_called(self, mock_create, mock_get, client_f, mock_base):
-        data = self.set_default_args()
+    def test_ensure_create_called(self, mock_create, mock_get, client_f):
+        data = dict(self.set_default_args())
         data['name'] = 'create'
         set_module_args(data)
         mock_get.return_value = None
-        mock_base.return_value = Mock()
         client_f.return_value = Mock()
         my_obj = snapshot_module()
         my_obj.netapp_client.snapshots = self.netapp_client.snapshots
         with pytest.raises(AnsibleExitJson) as exc:
-            my_obj.exec_module()
+            # add default args for exec_module
+            data['state'] = 'present'
+            data['debug'] = False
+            my_obj.exec_module(**data)
         assert exc.value.args[0]['changed']
         mock_create.assert_called_with()
 
     @patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.netapp_client')
-    @patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.__init__')
     @patch('ansible_collections.netapp.azure.plugins.modules.azure_rm_netapp_snapshot.AzureRMNetAppSnapshot.get_azure_netapp_snapshot')
     @patch('ansible_collections.netapp.azure.plugins.modules.azure_rm_netapp_snapshot.AzureRMNetAppSnapshot.delete_azure_netapp_snapshot')
-    def test_ensure_delete_called(self, mock_delete, mock_get, client_f, mock_base):
-        data = self.set_default_args()
+    def test_ensure_delete_called(self, mock_delete, mock_get, client_f):
+        data = dict(self.set_default_args())
         data['state'] = 'absent'
         set_module_args(data)
-        mock_base.return_value = Mock()
         client_f.return_value = Mock()
         mock_get.return_value = Mock()
         my_obj = snapshot_module()
         my_obj.netapp_client.snapshots = self.netapp_client.snapshots
         with pytest.raises(AnsibleExitJson) as exc:
-            my_obj.exec_module()
+            # add default args for exec_module
+            data['debug'] = False
+            my_obj.exec_module(**data)
         assert exc.value.args[0]['changed']
         mock_delete.assert_called_with()

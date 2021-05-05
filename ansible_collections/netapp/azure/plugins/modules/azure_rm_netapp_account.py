@@ -11,11 +11,6 @@ azure_rm_netapp_account
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
-ANSIBLE_METADATA = {'metadata_version': '1.1',
-                    'status': ['preview'],
-                    'supported_by': 'certified'}
-
-
 DOCUMENTATION = '''
 ---
 module: azure_rm_netapp_account
@@ -178,7 +173,7 @@ try:
 except ImportError as exc:
     IMPORT_ERRORS.append(str(exc))
 
-from ansible.module_utils.basic import to_native, AnsibleModule
+from ansible.module_utils.basic import to_native
 from ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common import AzureRMNetAppModuleBase
 from ansible_collections.netapp.azure.plugins.module_utils.netapp_module import NetAppModule
 

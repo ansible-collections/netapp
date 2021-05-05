@@ -20,6 +20,17 @@ from ansible_collections.netapp.azure.tests.unit.compat.mock import patch, Mock
 # and anyway, it's better to remove any external dependency in UTs.
 class MockAzureRMModuleBase(object):
     ''' dummy base class for AzureRMNetAppModuleBase '''
+    def __init__(self, derived_arg_spec, required_if=None, supports_check_mode=False, **kwargs):
+        derived_arg_spec.update(dict(tags=dict()))
+        self.module = basic.AnsibleModule(
+            argument_spec=derived_arg_spec,
+            required_if=required_if,
+            supports_check_mode=supports_check_mode
+        )
+        # the following is done in exec_module()
+        self.parameters = dict([item for item in self.module.params.items() if item[1] is not None])
+        # remove values with a default of None (not required)
+        self.module_arg_spec = dict([item for item in self.module_arg_spec.items() if item[0] in self.parameters])
 
 
 mocked_module = type(sys)('mock_azure_import')
@@ -144,7 +155,7 @@ def set_default_args():
         'name': name,
         'location': location,
         'file_path': file_path,
-        'subnet_id': subnet_id,
+        'subnet_name': subnet_id,
         'virtual_network': virtual_network,
         'size': size,
         'protocol_types': 'nfs'
@@ -160,10 +171,8 @@ def test_module_fail_when_required_args_missing(patch_ansible):     # pylint: di
 
 
 @patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.netapp_client')
-@patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.__init__')
-def test_ensure_get_called_valid_volume(mock_base, client_f):
+def test_ensure_get_called_valid_volume(client_f):
     set_module_args(set_default_args())
-    mock_base.return_value = Mock()
     client_f.return_value = Mock()
     my_obj = volume_module()
     my_obj.netapp_client.volumes = MockAzureClient()
@@ -171,12 +180,10 @@ def test_ensure_get_called_valid_volume(mock_base, client_f):
 
 
 @patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.netapp_client')
-@patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.__init__')
-def test_ensure_get_called_non_existing_volume(mock_base, client_f):
-    data = set_default_args()
+def test_ensure_get_called_non_existing_volume(client_f):
+    data = dict(set_default_args())
     data['name'] = 'invalid'
     set_module_args(data)
-    mock_base.return_value = Mock()
     client_f.return_value = Mock()
     my_obj = volume_module()
     my_obj.netapp_client.volumes = MockAzureClient()
@@ -184,11 +191,10 @@ def test_ensure_get_called_non_existing_volume(mock_base, client_f):
 
 
 @patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.netapp_client')
-@patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.__init__')
 @patch('ansible_collections.netapp.azure.plugins.modules.azure_rm_netapp_volume.AzureRMNetAppVolume.get_azure_netapp_volume')
 @patch('ansible_collections.netapp.azure.plugins.modules.azure_rm_netapp_volume.AzureRMNetAppVolume.create_azure_netapp_volume')
-def test_ensure_create_called(mock_create, mock_get, mock_base, client_f, patch_ansible):   # pylint: disable=unused-argument
-    data = set_default_args()
+def test_ensure_create_called(mock_create, mock_get, client_f, patch_ansible):   # pylint: disable=unused-argument
+    data = dict(set_default_args())
     data['name'] = 'create'
     set_module_args(data)
     mock_get.side_effect = [
@@ -196,12 +202,14 @@ def test_ensure_create_called(mock_create, mock_get, mock_base, client_f, patch_
         dict(mount_targets=[dict(ip_address='11.22.33.44')],        # get after create
              creation_token='abcd')
     ]
-    mock_base.return_value = Mock()
     client_f.return_value = Mock()
     my_obj = volume_module()
     my_obj.netapp_client.volumes = MockAzureClient()
     with pytest.raises(AnsibleExitJson) as exc:
-        my_obj.exec_module()
+        # add default args for exec_module
+        data['state'] = 'present'
+        data['debug'] = False
+        my_obj.exec_module(**data)
     assert exc.value.args[0]['changed']
     expected_mount_path = '11.22.33.44:/abcd'
     assert exc.value.args[0]['mount_path'] == expected_mount_path
@@ -209,10 +217,9 @@ def test_ensure_create_called(mock_create, mock_get, mock_base, client_f, patch_
 
 
 @patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.netapp_client')
-@patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.__init__')
 @patch('ansible_collections.netapp.azure.plugins.modules.azure_rm_netapp_volume.AzureRMNetAppVolume.get_azure_netapp_volume')
-def test_create(mock_get, mock_base, client_f, patch_ansible):  # pylint: disable=unused-argument
-    data = set_default_args()
+def test_create(mock_get, client_f, patch_ansible):  # pylint: disable=unused-argument
+    data = dict(set_default_args())
     data['name'] = 'create'
     data['protocol_types'] = 'nfsv4.1'
     set_module_args(data)
@@ -221,24 +228,25 @@ def test_create(mock_get, mock_base, client_f, patch_ansible):  # pylint: disabl
         dict(mount_targets=[dict(ip_address='11.22.33.44')],        # get after create
              creation_token='abcd')
     ]
-    mock_base.return_value = Mock()
     client_f.return_value = Mock()
     my_obj = volume_module()
     my_obj.azure_auth = Mock(subscription_id='1234')
     my_obj._new_style = True
     my_obj.netapp_client.volumes = MockAzureClient()
     with pytest.raises(AnsibleExitJson) as exc:
-        my_obj.exec_module()
+        # add default args for exec_module
+        data['state'] = 'present'
+        data['debug'] = False
+        my_obj.exec_module(**data)
     assert exc.value.args[0]['changed']
     expected_mount_path = '11.22.33.44:/abcd'
     assert exc.value.args[0]['mount_path'] == expected_mount_path
 
 
 @patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.netapp_client')
-@patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.__init__')
 @patch('ansible_collections.netapp.azure.plugins.modules.azure_rm_netapp_volume.AzureRMNetAppVolume.get_azure_netapp_volume')
-def test_create_exception(mock_get, mock_base, client_f, patch_ansible):    # pylint: disable=unused-argument
-    data = set_default_args()
+def test_create_exception(mock_get, client_f, patch_ansible):    # pylint: disable=unused-argument
+    data = dict(set_default_args())
     data['name'] = 'create'
     data['protocol_types'] = 'nfsv4.1'
     set_module_args(data)
@@ -247,24 +255,25 @@ def test_create_exception(mock_get, mock_base, client_f, patch_ansible):    # py
         dict(mount_targets=[dict(ip_address='11.22.33.44')],        # get after create
              creation_token='abcd')
     ]
-    mock_base.return_value = Mock()
     client_f.return_value = Mock()
     my_obj = volume_module()
     my_obj.azure_auth = Mock(subscription_id='1234')
     my_obj._new_style = True
     my_obj.netapp_client.volumes = MockAzureClientRaise()
     with pytest.raises(AnsibleFailJson) as exc:
-        my_obj.exec_module()
+        # add default args for exec_module
+        data['state'] = 'present'
+        data['debug'] = False
+        my_obj.exec_module(**data)
     expected_msg = 'Error creating volume'
     assert expected_msg in exc.value.args[0]['msg']
 
 
 @patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.netapp_client')
-@patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.__init__')
 @patch('ansible_collections.netapp.azure.plugins.modules.azure_rm_netapp_volume.AzureRMNetAppVolume.get_azure_netapp_volume')
 @patch('ansible_collections.netapp.azure.plugins.modules.azure_rm_netapp_volume.AzureRMNetAppVolume.create_azure_netapp_volume')
-def test_ensure_create_called_but_fail_on_get(mock_create, mock_get, mock_base, client_f, patch_ansible):   # pylint: disable=unused-argument
-    data = set_default_args()
+def test_ensure_create_called_but_fail_on_get(mock_create, mock_get, client_f, patch_ansible):   # pylint: disable=unused-argument
+    data = dict(set_default_args())
     data['name'] = 'create'
     set_module_args(data)
     mock_get.side_effect = [
@@ -272,61 +281,63 @@ def test_ensure_create_called_but_fail_on_get(mock_create, mock_get, mock_base, 
         dict(mount_targets=None,                                    # get after create
              creation_token='abcd')
     ]
-    mock_base.return_value = Mock()
     client_f.return_value = Mock()
     my_obj = volume_module()
     my_obj.netapp_client.volumes = MockAzureClient()
     with pytest.raises(AnsibleFailJson) as exc:
-        my_obj.exec_module()
+        # add default args for exec_module
+        data['state'] = 'present'
+        data['debug'] = False
+        my_obj.exec_module(**data)
     error = 'Error: volume create was created successfully, but mount target(s) cannot be found - volume details:'
     assert exc.value.args[0]['msg'].startswith(error)
     mock_create.assert_called_with()
 
 
 @patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.netapp_client')
-@patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.__init__')
 @patch('ansible_collections.netapp.azure.plugins.modules.azure_rm_netapp_volume.AzureRMNetAppVolume.get_azure_netapp_volume')
 @patch('ansible_collections.netapp.azure.plugins.modules.azure_rm_netapp_volume.AzureRMNetAppVolume.create_azure_netapp_volume')
-def test_ensure_create_called_but_fail_on_mount_target(mock_create, mock_get, mock_base, client_f, patch_ansible):  # pylint: disable=unused-argument
-    data = set_default_args()
+def test_ensure_create_called_but_fail_on_mount_target(mock_create, mock_get, client_f, patch_ansible):  # pylint: disable=unused-argument
+    data = dict(set_default_args())
     data['name'] = 'create'
     set_module_args(data)
     mock_get.return_value = None
-    mock_base.return_value = Mock()
     client_f.return_value = Mock()
     my_obj = volume_module()
     my_obj.netapp_client.volumes = MockAzureClient()
     with pytest.raises(AnsibleFailJson) as exc:
-        my_obj.exec_module()
+        # add default args for exec_module
+        data['state'] = 'present'
+        data['debug'] = False
+        my_obj.exec_module(**data)
     error = 'Error: volume create was created successfully, but cannot be found.'
     assert exc.value.args[0]['msg'] == error
     mock_create.assert_called_with()
 
 
 @patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.netapp_client')
-@patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.__init__')
 @patch('ansible_collections.netapp.azure.plugins.modules.azure_rm_netapp_volume.AzureRMNetAppVolume.get_azure_netapp_volume')
 @patch('ansible_collections.netapp.azure.plugins.modules.azure_rm_netapp_volume.AzureRMNetAppVolume.delete_azure_netapp_volume')
-def test_ensure_delete_called(mock_delete, mock_get, mock_base, client_f, patch_ansible):   # pylint: disable=unused-argument
-    data = set_default_args()
+def test_ensure_delete_called(mock_delete, mock_get, client_f, patch_ansible):   # pylint: disable=unused-argument
+    data = dict(set_default_args())
     data['state'] = 'absent'
     set_module_args(data)
-    mock_base.return_value = Mock()
     client_f.return_value = Mock()
     mock_get.return_value = Mock()
     my_obj = volume_module()
     my_obj.netapp_client.volumes = MockAzureClient()
     with pytest.raises(AnsibleExitJson) as exc:
-        my_obj.exec_module()
+        # add default args for exec_module
+        data['debug'] = False
+        my_obj.exec_module(**data)
     assert exc.value.args[0]['changed']
     mock_delete.assert_called_with()
 
 
 @patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.netapp_client')
-@patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.__init__')
 @patch('ansible_collections.netapp.azure.plugins.modules.azure_rm_netapp_volume.AzureRMNetAppVolume.get_azure_netapp_volume')
-def test_delete(mock_get, mock_base, client_f, patch_ansible):  # pylint: disable=unused-argument
-    data = set_default_args()
+def test_delete(mock_get, client_f, patch_ansible):  # pylint: disable=unused-argument
+    data = dict(set_default_args())
     data['name'] = 'delete'
     data['state'] = 'absent'
     set_module_args(data)
@@ -334,24 +345,24 @@ def test_delete(mock_get, mock_base, client_f, patch_ansible):  # pylint: disabl
         dict(mount_targets=[dict(ip_address='11.22.33.44')],        # first get
              creation_token='abcd')
     ]
-    mock_base.return_value = Mock()
     client_f.return_value = Mock()
     my_obj = volume_module()
     my_obj.azure_auth = Mock(subscription_id='1234')
     my_obj._new_style = True
     my_obj.netapp_client.volumes = MockAzureClient()
     with pytest.raises(AnsibleExitJson) as exc:
-        my_obj.exec_module()
+        # add default args for exec_module
+        data['debug'] = False
+        my_obj.exec_module(**data)
     assert exc.value.args[0]['changed']
     expected_mount_path = ''
     assert exc.value.args[0]['mount_path'] == expected_mount_path
 
 
 @patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.netapp_client')
-@patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.__init__')
 @patch('ansible_collections.netapp.azure.plugins.modules.azure_rm_netapp_volume.AzureRMNetAppVolume.get_azure_netapp_volume')
-def test_delete_exception(mock_get, mock_base, client_f, patch_ansible):    # pylint: disable=unused-argument
-    data = set_default_args()
+def test_delete_exception(mock_get, client_f, patch_ansible):    # pylint: disable=unused-argument
+    data = dict(set_default_args())
     data['name'] = 'delete'
     data['state'] = 'absent'
     set_module_args(data)
@@ -359,23 +370,23 @@ def test_delete_exception(mock_get, mock_base, client_f, patch_ansible):    # py
         dict(mount_targets=[dict(ip_address='11.22.33.44')],        # first get
              creation_token='abcd')
     ]
-    mock_base.return_value = Mock()
     client_f.return_value = Mock()
     my_obj = volume_module()
     my_obj.azure_auth = Mock(subscription_id='1234')
     my_obj._new_style = True
     my_obj.netapp_client.volumes = MockAzureClientRaise()
     with pytest.raises(AnsibleFailJson) as exc:
-        my_obj.exec_module()
+        # add default args for exec_module
+        data['debug'] = False
+        my_obj.exec_module(**data)
     expected_msg = 'Error deleting volume'
     assert expected_msg in exc.value.args[0]['msg']
 
 
 @patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.netapp_client')
-@patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.__init__')
 @patch('ansible_collections.netapp.azure.plugins.modules.azure_rm_netapp_volume.AzureRMNetAppVolume.get_azure_netapp_volume')
-def test_modify(mock_get, mock_base, client_f, patch_ansible):  # pylint: disable=unused-argument
-    data = set_default_args()
+def test_modify(mock_get, client_f, patch_ansible):  # pylint: disable=unused-argument
+    data = dict(set_default_args())
     data['name'] = 'modify'
     data['size'] = 200
     set_module_args(data)
@@ -387,24 +398,25 @@ def test_modify(mock_get, mock_base, client_f, patch_ansible):  # pylint: disabl
              creation_token='abcd',
              usage_threshold=10000000)
     ]
-    mock_base.return_value = Mock()
     client_f.return_value = Mock()
     my_obj = volume_module()
     my_obj.azure_auth = Mock(subscription_id='1234')
     my_obj._new_style = True
     my_obj.netapp_client.volumes = MockAzureClient()
     with pytest.raises(AnsibleExitJson) as exc:
-        my_obj.exec_module()
+        # add default args for exec_module
+        data['state'] = 'present'
+        data['debug'] = False
+        my_obj.exec_module(**data)
     assert exc.value.args[0]['changed']
     expected_mount_path = '11.22.33.44:/abcd'
     assert exc.value.args[0]['mount_path'] == expected_mount_path
 
 
 @patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.netapp_client')
-@patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.__init__')
 @patch('ansible_collections.netapp.azure.plugins.modules.azure_rm_netapp_volume.AzureRMNetAppVolume.get_azure_netapp_volume')
-def test_modify_exception(mock_get, mock_base, client_f, patch_ansible):    # pylint: disable=unused-argument
-    data = set_default_args()
+def test_modify_exception(mock_get, client_f, patch_ansible):    # pylint: disable=unused-argument
+    data = dict(set_default_args())
     data['name'] = 'modify'
     data['size'] = 200
     set_module_args(data)
@@ -416,23 +428,24 @@ def test_modify_exception(mock_get, mock_base, client_f, patch_ansible):    # py
              creation_token='abcd',
              usage_threshold=10000000)
     ]
-    mock_base.return_value = Mock()
     client_f.return_value = Mock()
     my_obj = volume_module()
     my_obj.azure_auth = Mock(subscription_id='1234')
     my_obj._new_style = True
     my_obj.netapp_client.volumes = MockAzureClientRaise()
     with pytest.raises(AnsibleFailJson) as exc:
-        my_obj.exec_module()
+        # add default args for exec_module
+        data['state'] = 'present'
+        data['debug'] = False
+        my_obj.exec_module(**data)
     expected_msg = 'Error modifying volume'
     assert expected_msg in exc.value.args[0]['msg']
 
 
 @patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.netapp_client')
-@patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.__init__')
 @patch('ansible_collections.netapp.azure.plugins.modules.azure_rm_netapp_volume.AzureRMNetAppVolume.get_azure_netapp_volume')
-def test_modify_not_supported(mock_get, mock_base, client_f, patch_ansible):    # pylint: disable=unused-argument
-    data = set_default_args()
+def test_modify_not_supported(mock_get, client_f, patch_ansible):    # pylint: disable=unused-argument
+    data = dict(set_default_args())
     data['name'] = 'modify'
     data['location'] = 'east'
     set_module_args(data)
@@ -446,23 +459,23 @@ def test_modify_not_supported(mock_get, mock_base, client_f, patch_ansible):    
              creation_token='abcd',
              usage_threshold=10000000)
     ]
-    mock_base.return_value = Mock()
     client_f.return_value = Mock()
     my_obj = volume_module()
     my_obj.azure_auth = Mock(subscription_id='1234')
     my_obj._new_style = True
     my_obj.netapp_client.volumes = MockAzureClient()
     with pytest.raises(AnsibleFailJson) as exc:
-        my_obj.exec_module()
+        # add default args for exec_module
+        data['state'] = 'present'
+        data['debug'] = False
+        my_obj.exec_module(**data)
     expected_msg = "Error: the following properties cannot be modified: {'location': 'east'}"
     assert expected_msg in exc.value.args[0]['msg']
 
 
 @patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.netapp_client')
-@patch('ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common.AzureRMNetAppModuleBase.__init__')
-def test_get_export_policy_rules(mock_base, client_f, patch_ansible):
+def test_get_export_policy_rules(client_f, patch_ansible):
     set_module_args(set_default_args())
-    mock_base.return_value = Mock()
     client_f.return_value = Mock()
     my_obj = volume_module()
     my_obj.netapp_client.volumes = MockAzureClient()

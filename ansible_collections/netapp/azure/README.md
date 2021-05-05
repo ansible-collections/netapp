@@ -38,6 +38,11 @@ This collection follows the [Ansible project's Code of Conduct](https://docs.ans
 ### Minor changes
 
   - azure_rm_netapp_account - support additional authentication schemes provided by AzureRMModuleBase.
+  - azure_rm_netapp_capacity_pool - support additional authentication schemes provided by AzureRMModuleBase, and tags.
+  - azure_rm_netapp_capacity_pool - wait for completion when creating, modifying, or deleting a pool.
+  - azure_rm_netapp_snapshot - support additional authentication schemes provided by AzureRMModuleBase.
+  - azure_rm_netapp_snapshot - wait for completion when creating or deleting a snapshot.
+  - azure_rm_netapp_volume - support additional authentication schemes provided by AzureRMModuleBase, and tags.
 
 ## 21.5.0
 

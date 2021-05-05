@@ -11,11 +11,6 @@ azure_rm_netapp_capacity_pool
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
-ANSIBLE_METADATA = {'metadata_version': '1.1',
-                    'status': ['preview'],
-                    'supported_by': 'certified'}
-
-
 DOCUMENTATION = '''
 ---
 module: azure_rm_netapp_capacity_pool
@@ -29,6 +24,8 @@ description:
       Provide the Resource group name for the capacity pool to be created.
     - Resize NetApp Azure capacity pool
 extends_documentation_fragment:
+    - azure.azcollection.azure
+    - azure.azcollection.azure_tags
     - netapp.azure.netapp.azure_rm_netapp
 
 options:
@@ -121,7 +118,7 @@ try:
 except ImportError as exc:
     HAS_AZURE_MGMT_NETAPP = False
 
-from ansible.module_utils.basic import to_native, AnsibleModule
+from ansible.module_utils.basic import to_native
 from ansible_collections.netapp.azure.plugins.module_utils.azure_rm_netapp_common import AzureRMNetAppModuleBase
 from ansible_collections.netapp.azure.plugins.module_utils.netapp_module import NetAppModule
 
@@ -139,18 +136,13 @@ class AzureRMNetAppCapacityPool(AzureRMNetAppModuleBase):
             size=dict(type='int', required=False, default=1),
             service_level=dict(type='str', required=False, choices=['Standard', 'Premium', 'Ultra']),
         )
-        self.module = AnsibleModule(
-            argument_spec=self.module_arg_spec,
-            required_if=[
-                ('state', 'present', ['location', 'service_level']),
-            ],
-            supports_check_mode=True
-        )
-        self.na_helper = NetAppModule()
-        self.parameters = self.na_helper.set_parameters(self.module.params)
 
-        self.fail_when_import_errors(IMPORT_ERRORS, HAS_AZURE_MGMT_NETAPP)
+        self.na_helper = NetAppModule()
+        self.parameters = dict()
+
+        # import errors are handled in AzureRMModuleBase
         super(AzureRMNetAppCapacityPool, self).__init__(derived_arg_spec=self.module_arg_spec,
+                                                        required_if=[('state', 'present', ['location', 'service_level'])],
                                                         supports_check_mode=True)
 
     def get_azure_netapp_capacity_pool(self):
@@ -170,15 +162,15 @@ class AzureRMNetAppCapacityPool(AzureRMNetAppModuleBase):
             Create a capacity pool for the given Azure NetApp Account
             :return: None
         """
-        capacity_pool_body = CapacityPool(
-            location=self.parameters['location'],
-            size=self.parameters['size'] * SIZE_POOL,
-            service_level=self.parameters['service_level']
-        )
+        options = self.na_helper.get_not_none_values_from_dict(self.parameters, ['location', 'service_level', 'size', 'tags'])
+        capacity_pool_body = CapacityPool(**options)
         try:
-            self.get_method('pools', 'create_or_update')(body=capacity_pool_body, resource_group_name=self.parameters['resource_group'],
-                                                         account_name=self.parameters['account_name'],
-                                                         pool_name=self.parameters['name'])
+            response = self.get_method('pools', 'create_or_update')(body=capacity_pool_body, resource_group_name=self.parameters['resource_group'],
+                                                                    account_name=self.parameters['account_name'],
+                                                                    pool_name=self.parameters['name'])
+            while response.done() is not True:
+                response.result(10)
+
         except (CloudError, AzureError) as error:
             self.module.fail_json(msg='Error creating capacity pool %s for Azure NetApp account %s: %s'
                                   % (self.parameters['name'], self.parameters['account_name'], to_native(error)),
@@ -189,15 +181,15 @@ class AzureRMNetAppCapacityPool(AzureRMNetAppModuleBase):
             Modify a capacity pool for the given Azure NetApp Account
             :return: None
         """
-        capacity_pool_body = CapacityPool(
-            location=self.parameters['location'],
-            service_level=self.parameters['service_level'],
-            size=self.parameters['size'] * SIZE_POOL
-        )
+        options = self.na_helper.get_not_none_values_from_dict(self.parameters, ['location', 'service_level', 'size', 'tags'])
+        capacity_pool_body = CapacityPool(**options)
         try:
-            self.get_method('pools', 'update')(body=capacity_pool_body, resource_group_name=self.parameters['resource_group'],
-                                               account_name=self.parameters['account_name'],
-                                               pool_name=self.parameters['name'])
+            response = self.get_method('pools', 'update')(body=capacity_pool_body, resource_group_name=self.parameters['resource_group'],
+                                                          account_name=self.parameters['account_name'],
+                                                          pool_name=self.parameters['name'])
+            while response.done() is not True:
+                response.result(10)
+
         except (CloudError, AzureError) as error:
             self.module.fail_json(msg='Error modifying capacity pool %s for Azure NetApp account %s: %s'
                                   % (self.parameters['name'], self.parameters['account_name'], to_native(error)),
@@ -209,24 +201,41 @@ class AzureRMNetAppCapacityPool(AzureRMNetAppModuleBase):
             :return: None
         """
         try:
-            self.get_method('pools', 'delete')(resource_group_name=self.parameters['resource_group'],
-                                               account_name=self.parameters['account_name'], pool_name=self.parameters['name'])
+            response = self.get_method('pools', 'delete')(resource_group_name=self.parameters['resource_group'],
+                                                          account_name=self.parameters['account_name'], pool_name=self.parameters['name'])
+            while response.done() is not True:
+                response.result(10)
+
         except (CloudError, AzureError) as error:
             self.module.fail_json(msg='Error deleting capacity pool %s for Azure NetApp account %s: %s'
                                   % (self.parameters['name'], self.parameters['name'], to_native(error)),
                                   exception=traceback.format_exc())
 
     def exec_module(self, **kwargs):
+
+        # unlikely
+        self.fail_when_import_errors(IMPORT_ERRORS, HAS_AZURE_MGMT_NETAPP)
+
+        # set up parameters according to our initial list
+        for key in list(self.module_arg_spec):
+            self.parameters[key] = kwargs[key]
+        # and common parameter
+        for key in ['tags']:
+            if key in kwargs:
+                self.parameters[key] = kwargs[key]
+        if 'size' in self.parameters:
+            self.parameters['size'] *= SIZE_POOL
+
         modify = {}
         current = self.get_azure_netapp_capacity_pool()
         cd_action = self.na_helper.get_cd_action(current, self.parameters)
         if cd_action is None and self.parameters['state'] == 'present':
             current = vars(current)
-            # to match with the unit of size input
-            current['size'] = int(current['size'] / SIZE_POOL)
             # get_azure_netapp_capacity_pool() returns pool name with account name appended in front of it like 'account/pool'
             current['name'] = self.parameters['name']
             modify = self.na_helper.get_modified_attributes(current, self.parameters)
+            if 'tags' in modify:
+                dummy, modify['tags'] = self.update_tags(current.get('tags'))
 
         if self.na_helper.changed:
             if self.module.check_mode:
