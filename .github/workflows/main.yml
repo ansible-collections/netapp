@@ -59,6 +59,9 @@ jobs:
       - name: Install ansible (${{ matrix.ansible }})
         run: pip install https://github.com/ansible/ansible/archive/${{ matrix.ansible }}.tar.gz --disable-pip-version-check
 
+      - name: Delete collection tar file (${{ matrix.collection }})
+        run: rm -f /tmp/netapp-${{ matrix.collection }}*
+
       - name: Build collection (${{ matrix.collection }})
         run: ansible-galaxy collection build --output-path /tmp ./ansible_collections/netapp/${{ matrix.collection }}
 
@@ -70,4 +73,4 @@ jobs:
 
       - name: Run sanity tests (${{ matrix.collection }})
         run: ansible-test sanity --docker -v --color
-        working-directory: ./ansible_collections/netapp/${{ matrix.collection }}
+        working-directory: .ansible/collections/ansible_collections/netapp/${{ matrix.collection }}
