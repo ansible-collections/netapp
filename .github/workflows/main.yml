@@ -17,7 +17,7 @@ jobs:
           - stable-2.10
           - stable-2.11
           - devel
-        collection: [aws, azure, cloudmanager, elementsw, ontap, um_info]
+        collection: [aws, cloudmanager, elementsw, ontap, um_info]
 
     steps:
       - name: Check out code
