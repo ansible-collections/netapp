@@ -53,6 +53,7 @@ requirements:
   - Ansible 2.9
 
 notes:
+  - With the 21.6.0 release, all modules have been renamed to na_um_<module>_info. The old ones will continue to work but will be depecrated in the future.
   - The modules prefixed with na_um are built to support the AIQUM/OCUM 9.7 platform.
   - Supports check_mode.
 '''
