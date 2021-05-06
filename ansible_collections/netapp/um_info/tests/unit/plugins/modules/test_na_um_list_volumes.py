@@ -1,7 +1,7 @@
 # (c) 2020, NetApp, Inc
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
-""" unit tests for Ansible module: na_um_list_volumes """
+""" unit tests for Ansible module: na_um_volumes_info """
 
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
@@ -13,7 +13,7 @@ from ansible_collections.netapp.um_info.tests.unit.compat.mock import patch, Moc
 from ansible.module_utils import basic
 from ansible.module_utils._text import to_bytes
 
-from ansible_collections.netapp.um_info.plugins.modules.na_um_list_volumes\
+from ansible_collections.netapp.um_info.plugins.modules.na_um_volumes_info\
     import NetAppUMVolume as my_module  # module under test
 
 
@@ -99,7 +99,7 @@ class TestMyModule(unittest.TestCase):
             my_module()
         print('Info: %s' % exc.value.args[0]['msg'])
 
-    @patch('ansible_collections.netapp.um_info.plugins.modules.na_um_list_volumes.NetAppUMVolume.get_volumes')
+    @patch('ansible_collections.netapp.um_info.plugins.modules.na_um_volumes_info.NetAppUMVolume.get_volumes')
     def test_ensure_list_volumes_get_called(self, get_volumes):
         ''' fetching details of volumes '''
         set_module_args(self.set_default_args())
@@ -110,7 +110,7 @@ class TestMyModule(unittest.TestCase):
             my_obj.apply()
         assert exc.value.args[0]['changed']
 
-    @patch('ansible_collections.netapp.um_info.plugins.modules.na_um_list_volumes.NetAppUMVolume.get_volumes')
+    @patch('ansible_collections.netapp.um_info.plugins.modules.na_um_volumes_info.NetAppUMVolume.get_volumes')
     def test_ensure_get_called_existing(self, get_volumes):
         ''' test for existing volumes'''
         set_module_args(self.set_default_args())

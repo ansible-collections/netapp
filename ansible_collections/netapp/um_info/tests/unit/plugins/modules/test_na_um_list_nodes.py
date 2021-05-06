@@ -1,7 +1,7 @@
 # (c) 2020, NetApp, Inc
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
-""" unit tests for Ansible module: na_um_list_nodes """
+""" unit tests for Ansible module: na_um_nodes_info """
 
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
@@ -13,7 +13,7 @@ from ansible_collections.netapp.um_info.tests.unit.compat.mock import patch, Moc
 from ansible.module_utils import basic
 from ansible.module_utils._text import to_bytes
 
-from ansible_collections.netapp.um_info.plugins.modules.na_um_list_nodes\
+from ansible_collections.netapp.um_info.plugins.modules.na_um_nodes_info\
     import NetAppUMNode as my_module  # module under test
 
 
@@ -99,7 +99,7 @@ class TestMyModule(unittest.TestCase):
             my_module()
         print('Info: %s' % exc.value.args[0]['msg'])
 
-    @patch('ansible_collections.netapp.um_info.plugins.modules.na_um_list_nodes.NetAppUMNode.get_nodes')
+    @patch('ansible_collections.netapp.um_info.plugins.modules.na_um_nodes_info.NetAppUMNode.get_nodes')
     def test_ensure_list_nodes_get_called(self, get_nodes):
         ''' fetching details of nodes '''
         set_module_args(self.set_default_args())
@@ -110,7 +110,7 @@ class TestMyModule(unittest.TestCase):
             my_obj.apply()
         assert exc.value.args[0]['changed']
 
-    @patch('ansible_collections.netapp.um_info.plugins.modules.na_um_list_nodes.NetAppUMNode.get_nodes')
+    @patch('ansible_collections.netapp.um_info.plugins.modules.na_um_nodes_info.NetAppUMNode.get_nodes')
     def test_ensure_get_called_existing(self, get_nodes):
         ''' test for existing nodes'''
         set_module_args(self.set_default_args())
