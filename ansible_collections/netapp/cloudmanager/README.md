@@ -34,8 +34,9 @@ https://github.com/ansible-collections/netapp/wiki
 ### New Modules
   - na_cloudmanager_snapmirror: Create or Delete snapmirror on Cloud Manager
 
-### Bug fixes
+## Bug Fixes
   - na_cloudmanager_connector_gcp: Make client_id as optional
+  - na_cloudmanager_cvo_gcp - Change vpc_id from optional to required.
 
 ## 21.5.1
 

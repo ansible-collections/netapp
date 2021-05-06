@@ -244,6 +244,7 @@ options:
     default: true
 
   vpc_id:
+    required: true
     description:
     - The name of the VPC.
     type: str
@@ -345,6 +346,7 @@ EXAMPLES = """
     capacity_tier: cloudStorage
     writing_speed_state: NORMAL
     refresh_token: "{{ xxxxxxxxxxxxxxx }}"
+    vpc_id: default
     gcp_labels:
       - label_key: key1
         label_value: value1
@@ -453,7 +455,7 @@ class NetAppCloudManagerCVOGCP:
             tier_level=dict(required=False, type='str', choices=['standard', 'nearline', 'coldline'],
                             default='standard'),
             use_latest_version=dict(required=False, type='bool', default=True),
-            vpc_id=dict(required=False, type='str'),
+            vpc_id=dict(required=True, type='str'),
             vpc0_firewall_rule_name=dict(required=False, type='str'),
             vpc0_node_and_data_connectivity=dict(required=False, type='str'),
             vpc1_cluster_connectivity=dict(required=False, type='str'),
