@@ -29,6 +29,11 @@ https://github.com/ansible-collections/netapp/wiki
 
 # Release Notes
 
+## 21.6.0
+
+### Bug fixes
+  - na_cloudmanager_connector_gcp: Make client_id as optional
+
 ## 21.5.1
 
 ### Bug fixes

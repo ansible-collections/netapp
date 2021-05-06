@@ -126,7 +126,6 @@ options:
   client_id:
     description:
     - The client ID of the Cloud Manager Connector.
-    required: true
     type: str
 
 '''
@@ -221,7 +220,7 @@ class NetAppCloudManagerConnectorGCP(object):
             proxy_password=dict(required=False, type='str', default='', no_log=True),
             proxy_certificates=dict(required=False, type='list', elements='str'),
             account_id=dict(required=False, type='str'),
-            client_id=dict(required=True, type='str'),
+            client_id=dict(required=False, type='str'),
         ))
 
         self.module = AnsibleModule(
