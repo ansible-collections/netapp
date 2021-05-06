@@ -5,6 +5,19 @@ Azure NetApp Files (ANF) Collection Release Notes
 .. contents:: Topics
 
 
+v21.6.0
+=======
+
+Minor Changes
+-------------
+
+- azure_rm_netapp_account - support additional authentication schemes provided by AzureRMModuleBase.
+- azure_rm_netapp_capacity_pool - support additional authentication schemes provided by AzureRMModuleBase, and tags.
+- azure_rm_netapp_capacity_pool - wait for completion when creating, modifying, or deleting a pool.
+- azure_rm_netapp_snapshot - support additional authentication schemes provided by AzureRMModuleBase.
+- azure_rm_netapp_snapshot - wait for completion when creating, modifying, or deleting a pool.
+- azure_rm_netapp_volume - support additional authentication schemes provided by AzureRMModuleBase, and tags.
+
 v21.5.0
 =======
 

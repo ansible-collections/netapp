@@ -107,3 +107,22 @@ releases:
     fragments:
     - DEVOPS-3849.yaml
     release_date: '2021-04-21'
+  21.6.0:
+    changes:
+      minor_changes:
+      - azure_rm_netapp_account - support additional authentication schemes provided
+        by AzureRMModuleBase.
+      - azure_rm_netapp_capacity_pool - support additional authentication schemes
+        provided by AzureRMModuleBase, and tags.
+      - azure_rm_netapp_capacity_pool - wait for completion when creating, modifying,
+        or deleting a pool.
+      - azure_rm_netapp_snapshot - support additional authentication schemes provided
+        by AzureRMModuleBase.
+      - azure_rm_netapp_snapshot - wait for completion when creating, modifying, or
+        deleting a pool.
+      - azure_rm_netapp_volume - support additional authentication schemes provided
+        by AzureRMModuleBase, and tags.
+    fragments:
+    - DEVOPS-3935.yaml
+    - DEVOPS-3949.yaml
+    release_date: '2021-05-06'
