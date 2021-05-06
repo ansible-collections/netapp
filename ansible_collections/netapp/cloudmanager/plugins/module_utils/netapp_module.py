@@ -130,16 +130,16 @@ class NetAppModule(object):
         else:
             return response, None
 
-    def look_up_working_environment_by_name_in_list(self, we_list):
+    def look_up_working_environment_by_name_in_list(self, we_list, name='working_environment_name'):
         '''
         Look up working environment by the name in working environment list
         '''
         for we in we_list:
-            if we['name'] == self.parameters['working_environment_name']:
+            if we['name'] == self.parameters[name]:
                 return we, None
         return None, "Not found"
 
-    def get_working_environment_details_by_name(self, rest_api, headers):
+    def get_working_environment_details_by_name(self, rest_api, headers, name='working_environment_name'):
         '''
         Use working environment name to get working environment details including:
         name: working environment name,
@@ -149,7 +149,7 @@ class NetAppModule(object):
         svmName
         '''
         # check the working environment exist or not
-        api = "/occm/api/working-environments/exists/" + self.parameters['working_environment_name']
+        api = "/occm/api/working-environments/exists/" + self.parameters[name]
         response, error, dummy = rest_api.get(api, None, header=headers)
         if error is not None:
             return None, error
@@ -160,16 +160,16 @@ class NetAppModule(object):
         if error is not None:
             return None, error
         # look up the working environment in the working environment lists
-        working_environment_details, error = self.look_up_working_environment_by_name_in_list(response['onPremWorkingEnvironments'])
+        working_environment_details, error = self.look_up_working_environment_by_name_in_list(response['onPremWorkingEnvironments'], name)
         if error is None:
             return working_environment_details, None
-        working_environment_details, error = self.look_up_working_environment_by_name_in_list(response['gcpVsaWorkingEnvironments'])
+        working_environment_details, error = self.look_up_working_environment_by_name_in_list(response['gcpVsaWorkingEnvironments'], name)
         if error is None:
             return working_environment_details, None
-        working_environment_details, error = self.look_up_working_environment_by_name_in_list(response['azureVsaWorkingEnvironments'])
+        working_environment_details, error = self.look_up_working_environment_by_name_in_list(response['azureVsaWorkingEnvironments'], name)
         if error is None:
             return working_environment_details, None
-        working_environment_details, error = self.look_up_working_environment_by_name_in_list(response['vsaWorkingEnvironments'])
+        working_environment_details, error = self.look_up_working_environment_by_name_in_list(response['vsaWorkingEnvironments'], name)
         if error is None:
             return working_environment_details, None
         return None, "Not found"
@@ -189,6 +189,36 @@ class NetAppModule(object):
         if error:
             return None, error
         return response, None
+
+    def get_working_environment_detail_for_snapmirror(self, rest_api, headers):
+
+        if self.parameters.get('source_working_environment_id'):
+            api = '/occm/api/working-environments/'
+            api += self.parameters['source_working_environment_id']
+            source_working_env_detail, error, dummy = rest_api.get(api, None, header=headers)
+            if error:
+                return None, None, error
+        elif self.parameters.get('source_working_environment_name'):
+            source_working_env_detail, error = self.get_working_environment_details_by_name(rest_api, headers, 'source_working_environment_name')
+            if error:
+                return None, None, error
+        else:
+            return None, None, "Cannot find working environment by source_working_environment_id or source_working_environment_name"
+
+        if self.parameters.get('destination_working_environment_id'):
+            api = '/occm/api/working-environments/'
+            api += self.parameters['destination_working_environment_id']
+            dest_working_env_detail, error, dummy = rest_api.get(api, None, header=headers)
+            if error:
+                return None, None, error
+        elif self.parameters.get('destination_working_environment_name'):
+            dest_working_env_detail, error = self.get_working_environment_details_by_name(rest_api, headers, 'destination_working_environment_name')
+            if error:
+                return None, None, error
+        else:
+            return None, None, "Cannot find working environment by destination_working_environment_id or destination_working_environment_name"
+
+        return source_working_env_detail, dest_working_env_detail, None
 
     def create_account(self, host, rest_api):
         """
