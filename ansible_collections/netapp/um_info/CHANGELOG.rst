@@ -5,6 +5,18 @@ NetApp Unified Manager Info Collection Release Notes
 .. contents:: Topics
 
 
+v21.6.0
+=======
+
+Minor Changes
+-------------
+
+- na_um_list_aggregates has been renamed na_um_aggregates_info.
+- na_um_list_clusters has been renamed na_um_clusters_info.
+- na_um_list_nodes has been renamed na_um_nodes_info.
+- na_um_list_svms has been renamed na_um_svms_info.
+- na_um_list_volumes has been renamed na_um_volumes_info.
+
 v21.5.0
 =======
 
