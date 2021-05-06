@@ -5,6 +5,23 @@ NetApp CloudManager Collection Release Notes
 .. contents:: Topics
 
 
+v21.6.0
+=======
+
+Bugfixes
+--------
+
+- na_cloudmanager_cifs_server - Fix incorrect API call when is_workgroup is true
+- na_cloudmanager_connector_azure - Change client_id as optional
+- na_cloudmanager_connector_azure - Fix python error - msrest.exceptions.ValidationError. Parameter 'Deployment.properties' can not be None.
+- na_cloudmanager_connector_azure - Fix wrong example on the document and update account_id is required field on deletion.
+- na_cloudmanager_cvo_gcp - Change vpc_id from optional to required.
+
+New Modules
+-----------
+
+- netapp.cloudmanager.na_cloudmanager_snapmirror - NetApp Cloud Manager SnapMirror
+
 v21.5.0
 =======
 
