@@ -95,20 +95,22 @@ https://docs.ansible.com/ansible/latest/cli/ansible-galaxy.html
 ## Automation Hub
 The collections that are certified are also available in Red Hat Automation Hub if you have a subscription.
 
-## Update History
-[ONTAP](https://github.com/ansible/ansible_collections_netapp/blob/master/ansible_collections/netapp/ontap/README.md)
+## Source code
+As of 21.6.0 (May 7, 2021), the common repository for the 7 collections as been split into 7 new repositories, one for each collection:
 
-[CloudManager](https://github.com/ansible/ansible_collections_netapp/blob/master/ansible_collections/netapp/cloudmanager/README.md)
+[ONTAP](https://github.com/ansible-collections/netapp.ontap)
 
-[ANF for Azure](https://github.com/ansible-collections/ansible_collections_netapp/blob/master/ansible_collections/netapp/azure/README.md)
+[CloudManager](https://github.com/ansible-collections/netapp.cloudmanager)
 
-[CVS for AWS](https://github.com/ansible-collections/ansible_collections_netapp/blob/master/ansible_collections/netapp/aws/README.md)
+[ANF for Azure](https://github.com/ansible-collections/netapp.azure)
 
-[UM info for ONTAP](https://github.com/ansible-collections/ansible_collections_netapp/blob/master/ansible_collections/netapp/um_info/README.md)
+[CVS for AWS](https://https://github.com/ansible-collections/netapp.aws)
 
-[ElementSW](https://github.com/ansible-collections/ansible_collections_netapp/blob/master/ansible_collections/netapp/elementsw/README.md)
+[UM info for ONTAP](https://github.com/ansible-collections/netapp.um_info)
 
-[StorageGRID](https://github.com/ansible-collections/ansible_collections_netapp/blob/master/ansible_collections/netapp/storagegrid/README.md)
+[ElementSW](https://github.com/ansible-collections/netapp.elementsw)
+
+[StorageGRID](https://github.com/ansible-collections/netapp.storagegrid)
 
 ## Resource Supported
 See https://docs.ansible.com/ansible/latest/collections/ for documentation.
