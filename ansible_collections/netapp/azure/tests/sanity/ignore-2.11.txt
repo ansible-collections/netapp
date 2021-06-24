@@ -1,8 +1,0 @@
-plugins/modules/azure_rm_netapp_account.py validate-modules:required_if-requirements-unknown
-plugins/modules/azure_rm_netapp_account.py validate-modules:required_if-unknown-key
-plugins/modules/azure_rm_netapp_capacity_pool.py validate-modules:required_if-requirements-unknown
-plugins/modules/azure_rm_netapp_capacity_pool.py validate-modules:required_if-unknown-key
-plugins/modules/azure_rm_netapp_snapshot.py validate-modules:required_if-requirements-unknown
-plugins/modules/azure_rm_netapp_snapshot.py validate-modules:required_if-unknown-key
-plugins/modules/azure_rm_netapp_volume.py validate-modules:required_if-requirements-unknown
-plugins/modules/azure_rm_netapp_volume.py validate-modules:required_if-unknown-key
