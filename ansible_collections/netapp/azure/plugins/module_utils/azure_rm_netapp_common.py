@@ -21,6 +21,13 @@ except ImportError as exc:
     IMPORT_ERRORS.append(str(exc))
     from ansible_collections.netapp.azure.plugins.module_utils.netapp_module import AzureRMModuleBaseMock as AzureRMModuleBase
     HAS_AZURE_COLLECTION = False
+except SyntaxError as exc:
+    if sys.version_info < (2, 7):
+        IMPORT_ERRORS.append(str(exc))
+        from ansible_collections.netapp.azure.plugins.module_utils.netapp_module import AzureRMModuleBaseMock as AzureRMModuleBase
+        HAS_AZURE_COLLECTION = False
+    else:
+        raise
 
 try:
     from azure.mgmt.netapp import NetAppManagementClient                    # 1.0.0 or newer
