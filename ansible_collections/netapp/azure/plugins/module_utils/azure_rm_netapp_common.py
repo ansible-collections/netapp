@@ -10,6 +10,8 @@ Wrapper around AzureRMModuleBase base class
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
+import sys
+
 HAS_AZURE_COLLECTION = True
 NEW_STYLE = None
 COLLECTION_VERSION = "21.6.0"
