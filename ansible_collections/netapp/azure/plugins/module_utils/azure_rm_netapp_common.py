@@ -48,12 +48,12 @@ class AzureRMNetAppModuleBase(AzureRMModuleBase):
     def __init__(self, derived_arg_spec, required_if=None, supports_check_mode=False, supports_tags=True):
         self._netapp_client = None
         self._new_style = NEW_STYLE
-        if not HAS_AZURE_COLLECTION:
-            self.fail_when_import_errors(IMPORT_ERRORS)
         super(AzureRMNetAppModuleBase, self).__init__(derived_arg_spec=derived_arg_spec,
                                                       required_if=required_if,
                                                       supports_check_mode=supports_check_mode,
                                                       supports_tags=supports_tags)
+        if not HAS_AZURE_COLLECTION:
+            self.fail_when_import_errors(IMPORT_ERRORS)
 
     def get_mgmt_svc_client(self, client_type, base_url=None, api_version=None):
         if not self._new_style:
