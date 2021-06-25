@@ -31,11 +31,20 @@
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
+from ansible.module_utils import basic
+
 
 class AzureRMModuleBaseMock():
     ''' Mock for sanity tests when azcollection is not installed '''
-    def __init__(self):
-        raise NotImplementedError
+    def __init__(self, derived_arg_spec, required_if=None, supports_check_mode=False, supports_tags=True, **kwargs):
+        if supports_tags:
+            derived_arg_spec.update(dict(tags=dict()))
+        self.module = basic.AnsibleModule(
+            argument_spec=derived_arg_spec,
+            required_if=required_if,
+            supports_check_mode=supports_check_mode
+        )
+        self.module.warn('Running in dummy context!')
 
 
 def cmp(obj1, obj2):
