@@ -1,5 +1,5 @@
 ---
-# requires_ansible: '>=2.9.10'
+requires_ansible: '>=2.9.10'
 action_groups:
   netapp_aws:
     - aws_netapp_cvs_active_directory

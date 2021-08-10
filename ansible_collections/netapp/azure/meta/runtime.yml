@@ -1,5 +1,5 @@
 ---
-# requires_ansible: '>=2.9.10'
+requires_ansible: '>=2.9.10'
 action_groups:
   netapp_azure:
     - azure_rm_netapp_account
