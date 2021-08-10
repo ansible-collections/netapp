@@ -1,0 +1,9 @@
+---
+# requires_ansible: '>=2.9.10'
+action_groups:
+  netapp_uminfo:
+    - na_um_list_aggregates
+    - na_um_list_clusters
+    - na_um_list_nodes
+    - na_um_list_svms
+    - na_um_list_volumes
