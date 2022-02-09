@@ -1,5 +1,21 @@
 # NetApp Ansible Collections
 
+As of May 10, 2021, after releasing 21.6.0 for four collections, we discontinued and archived ansible-collections/netapp repository.
+
+It is being replaced with 7 new repositories, one for each collection
+
+* ansible-collections/netapp.azure
+* ansible-collections/netapp.aws
+* ansible-collections/netapp.cloudmanager
+* ansible-collections/netapp.elementsw
+* ansible-collections/netapp.ontap
+* ansible-collections/netapp.storagegrid
+* ansible-collections/netapp.um_info
+
+This meets a requirement from Red Hat that each repository hosts a single collection, and it makes it easier to version and publish each collection independently.
+
+This is also part of a move to fully comply with semantic versioning
+
 There are currently 7 NetApp Collections
 * [ONTAP](https://galaxy.ansible.com/netapp/ontap)
   * over 100 modules to support ONTAP configuration.
@@ -64,33 +80,8 @@ ansible-galaxy collection install netapp.storagegrid
 ```
 
 ## Installation in a closed environment
-If you do not have connectivity to Galaxy in your production environment, you will need to:
-- download a collection tarball in an environment with access to internet,
-- move the tarball from the public environment to your private environment.  The specifics depends on your company,
-- use `galaxy collection install` with the tarball file in your private environment.
-
-There are two ways to download the collection tarball:
-- CLI: `galaxy collection download <collection_path>`
-- GUI: using the Ansible Galaxy web site, locate the collection of interest and click the `Download tarball` button.
-
-### Example
-```bash
-ansible-galaxy collection download netapp.cloudmanager
-```
-
-Transfer file, then install it:
-
-```bash
-ansible-galaxy collection install collections/netapp-cloudmanager-21.3.0.tar.gz
-```
-
-If you see a certificate issue when accessing galaxy, you can update your certificate, or disable the security check (at your own risk!):
-    `-c, --ignore-certs    Ignore SSL certificate validation errors.`
-
-If a collection is already installed, use the `--force` option to force an update if needed.
-
-### Reference
-https://docs.ansible.com/ansible/latest/cli/ansible-galaxy.html
+https://github.com/ansible-collections/netapp.ontap/wiki/NetApp-ONTAP-Ansible-Collection
+https://github.com/ansible-collections/netapp.ontap/wiki/NetApp-ONTAP-Ansible-Collection---installing-from-GitHub
 
 ## Automation Hub
 The collections that are certified are also available in Red Hat Automation Hub if you have a subscription.
@@ -114,16 +105,6 @@ As of 21.6.0 (May 7, 2021), the common repository for the 7 collections as been 
 
 ## Resource Supported
 See https://docs.ansible.com/ansible/latest/collections/ for documentation.
-
-The documentation generation may lag, in the meantime use ansible-doc for the latest updates.  For instance:
-```
-  ansible-doc netapp.ontap.na_ontap_svm
-
-  ansible-doc netapp.cloudmanager.na_cloudmanager_aggregate
-```
-
-New collections which are not yet visible on Ansible docs site are documented at:
-https://github.com/ansible-collections/netapp/wiki
 
 # Need help
 Join our Slack Channel at [Netapp.io](http://netapp.io/slack)
