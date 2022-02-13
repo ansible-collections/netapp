@@ -386,7 +386,7 @@ class ElementSWSnapShotSchedule(object):
 
     def is_same_schedule_type(self, schedule_detail):
         # To check schedule type is same or not
-        if str(schedule_detail.frequency).split('(')[0] == self.schedule_type:
+        if str(schedule_detail.frequency).split('(', maxsplit=1)[0] == self.schedule_type:
             return True
         else:
             return False
