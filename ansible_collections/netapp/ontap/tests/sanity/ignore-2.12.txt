@@ -5,3 +5,11 @@ plugins/modules/na_ontap_nfs.py validate-modules:parameter-invalid
 plugins/modules/na_ontap_firmware_upgrade.py validate-modules:version-added-must-be-major-or-minor
 plugins/modules/na_ontap_iscsi_security.py validate-modules:version-added-must-be-major-or-minor
 plugins/modules/na_ontap_snapshot_policy.py validate-modules:version-added-must-be-major-or-minor
+plugins/modules/na_ontap_debug.py pylint:use-a-generator
+plugins/modules/na_ontap_flexcache.py pylint:consider-using-from-import
+plugins/modules/na_ontap_lun.py pylint:consider-using-from-import
+plugins/modules/na_ontap_qos_policy_group.py pylint:use-a-generator
+plugins/modules/na_ontap_quota_policy.py pylint:consider-using-from-import
+plugins/modules/na_ontap_volume.py pylint:consider-using-from-import
+plugins/modules/na_ontap_volume.py pylint:use-a-generator
+tests/unit/plugins/module_utils/test_rest_volume.py pylint:consider-using-from-import
